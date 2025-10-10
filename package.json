@@ -1,0 +1,67 @@
+{
+  "name": "meomeobot",
+  "version": "5.0.0",
+  "description": "Self-hosted Twitch bot with GUI",
+  "main": "main.js",
+  "repository": "github:VotreNomGitHub/NomDeVotreRepo",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "publish": "electron-builder --publish always"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "castv2-client": "^1.2.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.1.8",
+    "fluent-ffmpeg": "^2.1.2",
+    "ip": "^2.0.1",
+    "mdns-js": "^1.0.1",
+    "tmi.js": "^1.8.5"
+  },
+  "devDependencies": {
+    "electron": "38.2.2",
+    "electron-builder": "^24.13.3"
+  },
+  "author": "MeoMeoBot",
+  "license": "MIT",
+  "build": {
+    "appId": "com.meomeobot.app",
+    "productName": "MeoMeoBot",
+    "publish": {
+      "provider": "github",
+      "owner": "VotreNomGitHub",
+      "repo": "NomDeVotreRepo"
+    },
+    "files": [
+      "main.js",
+      "bot.js",
+      "preload.js",
+      "index.html",
+      "style.css",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",
+        "to": "ffmpeg.exe"
+      },
+      {
+        "from": "node_modules/@ffprobe-installer/win32-x64/ffprobe.exe",
+        "to": "ffprobe.exe"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "uninstallDisplayName": "${productName}"
+    }
+  }
+}
