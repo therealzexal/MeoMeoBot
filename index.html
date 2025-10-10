@@ -13,10 +13,13 @@
             <span>MeoMeoBot</span>
         </h2>
         <div class="header-right">
-            <div id="update-container" class="update-container">
-                <div id="update-badge" class="update-badge" title="Vérification des mises à jour..."></div>
+            <div id="update-container" class="update-container hidden">
+                <div id="update-badge" class="status update-available">
+                    <span class="status-dot"></span>
+                    <span>Mise à jour</span>
+                </div>
                 <div id="update-popover" class="update-popover">
-                    <p id="update-text">Une mise à jour est disponible ! Voulez-vous la télécharger ?</p>
+                    <p id="update-text">Mettre à jour ?</p>
                     <div id="update-buttons" class="update-buttons">
                         <button id="update-yes-btn" class="btn btn-sm btn-success">Oui</button>
                         <button id="update-no-btn" class="btn btn-sm btn-secondary">Non</button>
@@ -208,7 +211,6 @@
             await loadAllData();
             setupEventListeners();
             setupConfirmationOverlay(); 
-            console.log('Application initialisée');
         }
 
         // --- CORE UI SETUP ---
@@ -232,44 +234,34 @@
             try {
                 const config = await window.api.invoke('get-config');
                 updateConfigForm(config);
-                
                 if (config.castFolderPath) {
                     await loadCastVideos(config.castFolderPath); 
                 }
-                
                 await loadCommands();
                 await loadBannedWords();
                 await loadParticipants();
             } catch (error) {
-                console.error('Erreur détaillée lors du chargement des données:', error);
                 showNotification(`Erreur critique au chargement: ${error.message || error}`, "error");
             }
         }
         
         // --- EVENT LISTENERS ---
         function setupEventListeners() {
-            // Config
             document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
             document.getElementById('connectBtn').addEventListener('click', connectBot);
             document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
             document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
-            
-            // Commands
             const addCommandBtn = document.getElementById('addCommandBtn');
             const newCommandInput = document.getElementById('newCommand');
             const commandResponseInput = document.getElementById('commandResponse');
             addCommandBtn.addEventListener('click', addCommand);
             newCommandInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') commandResponseInput.focus(); });
             commandResponseInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCommand(); }});
-
-            // Giveaway
             document.getElementById('saveGiveawayConfig').addEventListener('click', saveGiveawayConfig);
             document.getElementById('startGiveawayBtn').addEventListener('click', startGiveaway);
             document.getElementById('stopGiveawayBtn').addEventListener('click', stopGiveaway);
             document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
             document.getElementById('clearParticipantsBtn').addEventListener('click', () => showConfirmation('Vider la liste des participants ?', clearParticipants));
-            
-            // Moderation
             const addBannedWordBtn = document.getElementById('addBannedWordBtn');
             const newBannedWordInput = document.getElementById('newBannedWord');
             addBannedWordBtn.addEventListener('click', addBannedWord);
@@ -277,31 +269,22 @@
             document.getElementById('clearBannedWordsBtn').addEventListener('click', () => {
                 showConfirmation('Vider toute la liste des mots bannis ? Cette action est irréversible.', clearBannedWords);
             });
-
-            // Cast
             document.getElementById('select-cast-folder-btn').addEventListener('click', selectCastFolder);
             document.getElementById('close-device-picker').addEventListener('click', hideDevicePicker);
-
-            // Window Controls
             document.getElementById('minimize-btn').addEventListener('click', () => window.api.send('window-control', 'minimize'));
             document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
             document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
-
-             // MISE À JOUR
             const updateContainer = document.getElementById('update-container');
             const updateBadge = document.getElementById('update-badge');
             const updateYesBtn = document.getElementById('update-yes-btn');
-            
             updateBadge.addEventListener('click', (e) => {
                 e.stopPropagation();
                 updateContainer.classList.toggle('active');
             });
-
             document.getElementById('update-no-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 updateContainer.classList.remove('active');
             });
-            
             updateYesBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const text = document.getElementById('update-text');
@@ -311,9 +294,10 @@
                     window.api.send('start-download');
                 }
             });
-            
-            document.addEventListener('click', () => {
-                updateContainer.classList.remove('active');
+            document.addEventListener('click', (e) => {
+                if (!updateContainer.contains(e.target)) {
+                    updateContainer.classList.remove('active');
+                }
             });
         }
 
@@ -326,7 +310,6 @@
             container.appendChild(notif);
             setTimeout(() => notif.remove(), 3000);
         }
-
         function setupConfirmationOverlay() {
             const overlay = document.getElementById('confirmationOverlay');
             document.getElementById('confirmYes').addEventListener('click', () => {
@@ -367,7 +350,6 @@
             `;
             item.querySelector('#inline-edit-response').focus();
         }
-
         async function saveCommandEdit(originalCommandName) {
             const item = document.querySelector(`.list-item[data-command="${originalCommandName}"]`);
             let newCommand = item.querySelector('#inline-edit-command').value.trim().replace(/^!+/, '');
@@ -385,12 +367,10 @@
             await loadCommands();
             showNotification('Commande modifiée !', 'success');
         }
-
         function cancelCommandEdit(commandName) {
             activeInlineEdit = null;
             loadCommands();
         }
-
         function confirmDelete(element, type, id) {
             const item = element.closest('.list-item');
             item.classList.add('is-deleting');
@@ -401,7 +381,6 @@
                 <button class="control-button" onclick="cancelDelete(this)">❌</button>
             `;
         }
-
         function cancelDelete(element) {
             const item = element.closest('.list-item');
             item.classList.remove('is-deleting');
@@ -435,13 +414,11 @@
                 list.appendChild(item);
             }
         }
-
         async function commandDelete(command) {
             await window.api.invoke('remove-command', command);
             await loadCommands();
             showNotification(`Commande ${command} supprimée.`, 'info');
         }
-
         async function loadBannedWords() {
             const { bannedWords } = await window.api.invoke('get-banned-words');
             const list = document.getElementById('bannedWordsList');
@@ -461,19 +438,16 @@
                 list.appendChild(item);
             });
         }
-
         async function bannedWordDelete(word) {
             await window.api.invoke('remove-banned-word', word);
             await loadBannedWords();
             showNotification(`Mot "${word}" supprimé.`, 'info');
         }
-        
         async function clearBannedWords() {
             await window.api.invoke('clear-banned-words');
             await loadBannedWords();
             showNotification('La liste des mots bannis a été vidée.', 'info');
         }
-
         async function loadParticipants() {
             const { count, participants } = await window.api.invoke('get-participants-count');
             document.getElementById('participantsCount').textContent = count;
@@ -488,7 +462,7 @@
                 });
             }
         }
-
+        
         // --- CAST FUNCTIONS ---
         async function selectCastFolder() {
             const folderPath = await window.api.invoke('select-folder');
@@ -497,25 +471,17 @@
                 await loadCastVideos(folderPath);
             }
         }
-
         async function loadCastVideos(folderPath) {
             const grid = document.getElementById('video-thumbnail-grid');
             grid.innerHTML = '<p>Chargement des miniatures, veuillez patienter...</p>';
-
             try {
                 const result = await window.api.invoke('get-videos', folderPath);
-                
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
+                if (result.error) { throw new Error(result.error); }
                 grid.innerHTML = '';
-                
                 if (!result || result.length === 0) {
                     grid.innerHTML = '<p>Aucune vidéo compatible trouvée ou les miniatures n\'ont pas pu être générées.</p>';
                     return;
                 }
-
                 result.forEach(video => {
                     const thumbElement = document.createElement('div');
                     thumbElement.className = 'video-thumbnail';
@@ -530,24 +496,20 @@
                 showNotification(`Erreur FFmpeg. Voir la console.`, "error");
             }
         }
-        
         function handleThumbnailClick(videoPath) {
             currentVideoToCast = videoPath;
             showDevicePicker();
             window.api.invoke('discover-devices');
         }
-
         function showDevicePicker() {
             document.getElementById('device-list').innerHTML = '';
             document.getElementById('device-discovery-status').textContent = 'Recherche en cours...';
             document.getElementById('device-picker-overlay').classList.add('active');
         }
-
         function hideDevicePicker() {
             document.getElementById('device-picker-overlay').classList.remove('active');
             currentVideoToCast = null;
         }
-
         async function playOnDevice(deviceHost, devicePort) {
             if (currentVideoToCast) {
                 showNotification(`Lancement de la vidéo...`);
@@ -568,7 +530,6 @@
             document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || '';
             document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage || '';
         }
-
         async function saveConfig() {
             await window.api.invoke('update-config', {
                 channel: document.getElementById('channelName').value.trim(),
@@ -684,22 +645,17 @@
         window.api.on('cast-status', ({ success, message }) => {
             showNotification(message, success ? 'success' : 'error');
         });
-
         window.api.on('update-available', () => {
-            const updateContainer = document.getElementById('update-container');
-            updateContainer.classList.add('update-ready');
+            document.getElementById('update-container').classList.add('update-ready');
         });
-
         window.api.on('update-downloaded', () => {
             const updateContainer = document.getElementById('update-container');
             const updateText = document.getElementById('update-text');
             const updateButtons = document.getElementById('update-buttons');
             const updateYesBtn = document.getElementById('update-yes-btn');
-
-            updateText.textContent = 'Mise à jour prête. Redémarrer maintenant ?';
+            updateText.textContent = 'Prêt à redémarrer ?';
             updateButtons.style.display = 'flex';
-            updateContainer.classList.add('active');
-
+            setTimeout(() => updateContainer.classList.add('active'), 200);
             updateYesBtn.textContent = 'Redémarrer';
             updateYesBtn.onclick = (e) => {
                 e.stopPropagation();

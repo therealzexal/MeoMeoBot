@@ -9,7 +9,6 @@ const mdns = require('mdns-js');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
 
-// --- Logique FFmpeg ---
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 if (app.isPackaged) {
@@ -53,13 +52,11 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
     startMediaServer();
-
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
         }
     });
-
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -78,7 +75,6 @@ ipcMain.on('window-control', (event, action) => {
     }
 });
 
-// --- GESTIONNAIRES DE MISE À JOUR ---
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
 });
@@ -92,11 +88,9 @@ ipcMain.on('quit-and-install', () => {
     autoUpdater.quitAndInstall();
 });
 
-
 function autoConnectBot() {
     const config = bot.getConfig();
     if (bot && config.channel && config.username && config.token) {
-        console.log('Tentative de connexion automatique...');
         setTimeout(() => bot.connect(), 1000);
     }
 }
@@ -126,13 +120,10 @@ function startMediaServer() {
                     .format('mp4')
                     .addOutputOptions(['-preset veryfast', '-tune zerolatency', '-movflags frag_keyframe+empty_moov'])
                     .on('error', (err, stdout, stderr) => {
-                        console.error('Erreur FFmpeg pendant le transcodage:', err.message);
-                        console.error('ffmpeg stderr:', stderr);
                         if (!res.headersSent) res.end();
                     })
                     .pipe(res, { end: true });
             } catch (e) {
-                console.error("Erreur critique du serveur média:", e);
                 if (!res.headersSent) res.writeHead(404);
                 res.end();
             }
@@ -140,9 +131,7 @@ function startMediaServer() {
             res.writeHead(404);
             res.end();
         }
-    }).listen(0, () => {
-        console.log(`Serveur média démarré sur le port ${mediaServer.address().port}`);
-    });
+    }).listen(0, () => {});
 }
 
 ipcMain.handle('discover-devices', async () => {
@@ -152,15 +141,13 @@ ipcMain.handle('discover-devices', async () => {
     browser.on('ready', () => browser.discover());
     browser.on('update', (service) => {
         if (service.fullname && !devices.some(d => d.host === service.host)) {
-            console.log('Appareil trouvé:', service.fullname, `sur ${service.host}:${service.port}`);
             devices.push({ name: service.fullname.replace('._googlecast._tcp.local', ''), host: service.host, port: service.port });
             mainWindow.webContents.send('cast-devices-found', devices);
         }
     });
     setTimeout(() => {
-        try { browser.stop(); } catch(e) { console.error("Erreur à l'arrêt du browser mdns:", e); }
+        try { browser.stop(); } catch(e) {}
         mainWindow.webContents.send('device-discovery-status', 'Recherche terminée.');
-        console.log('Arrêt de la recherche de périphériques.');
     }, 10000);
     return true;
 });
@@ -170,34 +157,25 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
     const serverPort = mediaServer.address().port;
     const localIp = ip.address();
     const videoUrl = `http://${localIp}:${serverPort}/media`;
-
-    console.log(`Tentative de lecture de ${videoUrl} sur ${deviceHost}:${devicePort}`);
     
     const client = new Client();
     client.connect({ host: deviceHost, port: devicePort }, (err) => {
         if (err) {
-            console.error('Erreur de connexion au Chromecast:', err);
             mainWindow.webContents.send('cast-status', { success: false, message: 'Impossible de se connecter à l\'appareil.' });
             return;
         }
-
         client.launch(DefaultMediaReceiver, (err, player) => {
             if (err) {
-                console.error('Erreur de lancement du lecteur:', err);
                 mainWindow.webContents.send('cast-status', { success: false, message: 'Impossible de lancer le lecteur.' });
                 client.close();
                 return;
             }
-
             const media = { contentId: videoUrl, contentType: 'video/mp4', streamType: 'BUFFERED' };
-
             player.load(media, { autoplay: true }, (err, status) => {
                 client.close();
                 if (err) {
-                    console.error('Erreur lors du chargement de la vidéo:', err);
                     mainWindow.webContents.send('cast-status', { success: false, message: 'Impossible de charger la vidéo.' });
                 } else {
-                    console.log('Média chargé, lecture en cours.');
                     mainWindow.webContents.send('cast-status', { success: true, message: 'Lecture démarrée.' });
                 }
             });
