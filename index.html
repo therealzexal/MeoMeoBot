@@ -13,6 +13,16 @@
             <span>MeoMeoBot</span>
         </h2>
         <div class="header-right">
+            <div id="update-container" class="update-container">
+                <div id="update-badge" class="update-badge" title="Vérification des mises à jour..."></div>
+                <div id="update-popover" class="update-popover">
+                    <p id="update-text">Une mise à jour est disponible ! Voulez-vous la télécharger ?</p>
+                    <div id="update-buttons" class="update-buttons">
+                        <button id="update-yes-btn" class="btn btn-sm btn-success">Oui</button>
+                        <button id="update-no-btn" class="btn btn-sm btn-secondary">Non</button>
+                    </div>
+                </div>
+            </div>
             <div id="connectionStatus" class="status disconnected">
                 <span class="status-dot"></span>
                 <span>Déconnecté</span>
@@ -133,8 +143,7 @@
     
     <div class="tab-content" id="cast-tab">
         <div class="card full-height-card">
-            <div class="list-container" id="video-thumbnail-grid">
-                </div>
+            <div class="list-container" id="video-thumbnail-grid"></div>
             <button class="fab" id="select-cast-folder-btn" title="Choisir un dossier">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
             </button>
@@ -277,6 +286,35 @@
             document.getElementById('minimize-btn').addEventListener('click', () => window.api.send('window-control', 'minimize'));
             document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
             document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
+
+             // MISE À JOUR
+            const updateContainer = document.getElementById('update-container');
+            const updateBadge = document.getElementById('update-badge');
+            const updateYesBtn = document.getElementById('update-yes-btn');
+            
+            updateBadge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateContainer.classList.toggle('active');
+            });
+
+            document.getElementById('update-no-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateContainer.classList.remove('active');
+            });
+            
+            updateYesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const text = document.getElementById('update-text');
+                if (updateYesBtn.textContent === 'Oui') {
+                    text.textContent = "Téléchargement en cours...";
+                    document.getElementById('update-buttons').style.display = 'none';
+                    window.api.send('start-download');
+                }
+            });
+            
+            document.addEventListener('click', () => {
+                updateContainer.classList.remove('active');
+            });
         }
 
         // --- NOTIFICATIONS & CONFIRMATION ---
@@ -529,7 +567,6 @@
             document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage || '';
             document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || '';
             document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage || '';
-            // La ligne pour cast-folder-path est bien supprimée ici
         }
 
         async function saveConfig() {
@@ -646,6 +683,28 @@
         });
         window.api.on('cast-status', ({ success, message }) => {
             showNotification(message, success ? 'success' : 'error');
+        });
+
+        window.api.on('update-available', () => {
+            const updateContainer = document.getElementById('update-container');
+            updateContainer.classList.add('update-ready');
+        });
+
+        window.api.on('update-downloaded', () => {
+            const updateContainer = document.getElementById('update-container');
+            const updateText = document.getElementById('update-text');
+            const updateButtons = document.getElementById('update-buttons');
+            const updateYesBtn = document.getElementById('update-yes-btn');
+
+            updateText.textContent = 'Mise à jour prête. Redémarrer maintenant ?';
+            updateButtons.style.display = 'flex';
+            updateContainer.classList.add('active');
+
+            updateYesBtn.textContent = 'Redémarrer';
+            updateYesBtn.onclick = (e) => {
+                e.stopPropagation();
+                window.api.send('quit-and-install');
+            };
         });
 
         // --- GLOBAL FUNCTIONS FOR ONCLICK ---

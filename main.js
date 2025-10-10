@@ -7,26 +7,14 @@ const http = require('http');
 const ip = require('ip');
 const mdns = require('mdns-js');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
+const { autoUpdater } = require('electron-updater');
 
-// --- Logique dynamique pour FFmpeg ---
+// --- Logique FFmpeg ---
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
-
-console.log('--- CHEMINS FFmpeg ---');
-console.log('Développement (utilisé si app.isPackaged = false):');
-console.log('ffmpeg:', ffmpegPath);
-console.log('ffprobe:', ffprobePath);
-console.log('--------------------');
-
-
 if (app.isPackaged) {
-  const packagedFfmpegPath = path.join(process.resourcesPath, 'ffmpeg.exe');
-  const packagedFfprobePath = path.join(process.resourcesPath, 'ffprobe.exe');
-  console.log('Mode Packagé - Chemins attendus:');
-  console.log('ffmpeg:', packagedFfmpegPath);
-  console.log('ffprobe:', packagedFfprobePath);
-  ffmpeg.setFfmpegPath(packagedFfmpegPath);
-  ffmpeg.setFfprobePath(packagedFfprobePath);
+  ffmpeg.setFfmpegPath(path.join(process.resourcesPath, 'ffmpeg.exe'));
+  ffmpeg.setFfprobePath(path.join(process.resourcesPath, 'ffprobe.exe'));
 } else {
   ffmpeg.setFfmpegPath(ffmpegPath);
   ffmpeg.setFfprobePath(ffprobePath);
@@ -65,6 +53,13 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
     startMediaServer();
+
+    mainWindow.webContents.on('did-finish-load', () => {
+        if (app.isPackaged) {
+            autoUpdater.checkForUpdates();
+        }
+    });
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -82,6 +77,21 @@ ipcMain.on('window-control', (event, action) => {
         case 'close': mainWindow.close(); break;
     }
 });
+
+// --- GESTIONNAIRES DE MISE À JOUR ---
+autoUpdater.on('update-available', () => {
+    mainWindow.webContents.send('update-available');
+});
+autoUpdater.on('update-downloaded', () => {
+    mainWindow.webContents.send('update-downloaded');
+});
+ipcMain.on('start-download', () => {
+    autoUpdater.downloadUpdate();
+});
+ipcMain.on('quit-and-install', () => {
+    autoUpdater.quitAndInstall();
+});
+
 
 function autoConnectBot() {
     const config = bot.getConfig();
@@ -160,7 +170,9 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
     const serverPort = mediaServer.address().port;
     const localIp = ip.address();
     const videoUrl = `http://${localIp}:${serverPort}/media`;
+
     console.log(`Tentative de lecture de ${videoUrl} sur ${deviceHost}:${devicePort}`);
+    
     const client = new Client();
     client.connect({ host: deviceHost, port: devicePort }, (err) => {
         if (err) {
@@ -168,6 +180,7 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
             mainWindow.webContents.send('cast-status', { success: false, message: 'Impossible de se connecter à l\'appareil.' });
             return;
         }
+
         client.launch(DefaultMediaReceiver, (err, player) => {
             if (err) {
                 console.error('Erreur de lancement du lecteur:', err);
@@ -175,7 +188,9 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
                 client.close();
                 return;
             }
+
             const media = { contentId: videoUrl, contentType: 'video/mp4', streamType: 'BUFFERED' };
+
             player.load(media, { autoplay: true }, (err, status) => {
                 client.close();
                 if (err) {
@@ -197,19 +212,11 @@ ipcMain.handle('select-folder', async () => {
 });
 
 ipcMain.handle('get-videos', async (event, folderPath) => {
-    console.log(`[GET-VIDEOS] Démarrage du traitement pour le dossier : ${folderPath}`);
     if (!folderPath) return [];
-
     const validExtensions = ['.webp', '.mov', '.avi', '.mp4'];
     try {
         const files = await fs.promises.readdir(folderPath);
-        console.log(`[GET-VIDEOS] ${files.length} fichiers trouvés.`);
-        
         const videos = files.filter(file => validExtensions.includes(path.extname(file).toLowerCase()));
-        console.log(`[GET-VIDEOS] ${videos.length} fichiers vidéo compatibles trouvés.`);
-
-        if (videos.length === 0) return [];
-
         const cachePath = path.join(app.getPath('userData'), 'thumbnail_cache');
         if (!fs.existsSync(cachePath)) fs.mkdirSync(cachePath);
         
@@ -217,31 +224,25 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
             const fullVideoPath = path.join(folderPath, videoFile);
             const thumbnailFileName = `${path.basename(videoFile, path.extname(videoFile))}.png`;
             const thumbnailPath = path.join(cachePath, thumbnailFileName);
-
             if (!fs.existsSync(thumbnailPath)) {
-                console.log(`[GET-VIDEOS] Génération de la miniature pour ${videoFile}...`);
                 await new Promise((resolve, reject) => {
                     ffmpeg(fullVideoPath)
                         .on('end', resolve)
                         .on('error', (err, stdout, stderr) => {
-                            // On crée une erreur détaillée qui sera affichée en rouge
-                            const detailedError = new Error(`FFmpeg a échoué pour ${videoFile}: ${err.message}\n${stderr}`);
+                            const detailedError = new Error(`Échec FFmpeg pour ${videoFile}: ${err.message}\n${stderr}`);
                             reject(detailedError);
                         })
                         .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });
                 });
             }
-
             if (fs.existsSync(thumbnailPath)) {
                 const thumbnailData = await fs.promises.readFile(thumbnailPath, 'base64');
                 return { fileName: videoFile, videoPath: fullVideoPath, thumbnailData: `data:image/png;base64,${thumbnailData}` };
             }
-            return null; // Retourne null si la miniature n'a pas été créée
+            return null;
         });
         
-        // Promise.allSettled va attendre que toutes les miniatures soient traitées, même en cas d'erreur
         const results = await Promise.allSettled(videoDataPromises);
-        
         const successfulVideos = [];
         results.forEach(result => {
             if (result.status === 'fulfilled' && result.value) {
@@ -250,8 +251,6 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                 console.error("\x1b[31m%s\x1b[0m", `[ERREUR MINIATURE] ${result.reason}`);
             }
         });
-
-        console.log(`[GET-VIDEOS] Traitement terminé. ${successfulVideos.length} miniatures chargées.`);
         return successfulVideos;
 
     } catch (error) {

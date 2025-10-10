@@ -1,9 +1,9 @@
 {
   "name": "meomeobot",
-  "version": "5.0.0",
-  "description": "Self-hosted Twitch bot with GUI",
+  "version": "3.0.0",
+  "description": "Un bot qui miaule",
   "main": "main.js",
-  "repository": "github:VotreNomGitHub/NomDeVotreRepo",
+  "repository": "github:therealzexal/MeoMeoBot",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -31,9 +31,7 @@
     "appId": "com.meomeobot.app",
     "productName": "MeoMeoBot",
     "publish": {
-      "provider": "github",
-      "owner": "VotreNomGitHub",
-      "repo": "NomDeVotreRepo"
+      "provider": "github"
     },
     "files": [
       "main.js",
