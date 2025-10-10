@@ -11,17 +11,12 @@
     "publish": "electron-builder --publish always"
   },
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^2.1.2",
-    "castv2-client": "^1.2.0",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.1.8",
-    "fluent-ffmpeg": "^2.1.2",
-    "ip": "^2.0.1",
-    "mdns-js": "^1.0.1",
     "tmi.js": "^1.8.5"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "electron": "38.2.2",
     "electron-builder": "^24.13.3"
   },
@@ -40,16 +35,6 @@
       "index.html",
       "style.css",
       "assets/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",
-        "to": "ffmpeg.exe"
-      },
-      {
-        "from": "node_modules/@ffprobe-installer/win32-x64/ffprobe.exe",
-        "to": "ffprobe.exe"
-      }
     ],
     "win": {
       "target": "nsis",

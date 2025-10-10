@@ -16,3 +16,6 @@ yarn-error.log*
 # Fichiers système
 .DS_Store
 Thumbs.db
+
+# Fichiers de configuration locaux
+.env
