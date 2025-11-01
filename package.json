@@ -34,7 +34,6 @@
     "productName": "MeoMeoBot",
     "publish": {
       "provider": "github"
-      // 'releaseType' et 'url' ont été supprimées
     },
     "files": [
       "main.js",
