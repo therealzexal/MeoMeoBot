@@ -1,5 +1,4 @@
 require('dotenv').config();
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -99,10 +98,19 @@ function autoConnectBot() {
 
 function setupBotEvents() {
     if (!bot) return;
-    bot.onConnected = () => mainWindow.webContents.send('bot-status', { connected: true, channel: bot.getConfig().channel });
-    bot.onDisconnected = () => mainWindow.webContents.send('bot-status', { connected: false });
-    bot.onParticipantsUpdated = () => mainWindow.webContents.send('participants-updated');
-    bot.onParticipantAdded = (username) => mainWindow.webContents.send('participant-added', { username });
+
+    // Fonction de sécurité pour l'envoi d'IPC vers la fenêtre du renderer
+    const safeSend = (channel, data) => {
+        // Vérifie si mainWindow existe et n'est pas détruit avant d'envoyer l'événement
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(channel, data);
+        }
+    };
+    
+    bot.onConnected = () => safeSend('bot-status', { connected: true, channel: bot.getConfig().channel });
+    bot.onDisconnected = () => safeSend('bot-status', { connected: false });
+    bot.onParticipantsUpdated = () => safeSend('participants-updated');
+    bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
 }
 
 app.on('window-all-closed', () => {

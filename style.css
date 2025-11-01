@@ -8,6 +8,7 @@
     --success: #00b35f;
     --danger: #e91916;
     --border: #343437;
+    --update-color: #ffcc00; /* Jaune/Orange pour les mises à jour */
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -35,11 +36,75 @@ body {
 .control-btn:hover { background-color: var(--bg-tertiary); }
 #close-btn:hover { background-color: #e81123; }
 #close-btn:hover svg { fill: white; stroke: white; }
-.status { display: flex; align-items: center; gap: 8px; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 8px;}
+
+/* --- STYLES GÉNÉRAUX DE STATUT --- */
+.status { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 3px 12px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    font-weight: 500; 
+    margin-bottom: 8px;
+    position: relative; /* Pour positionner la popover */
+}
 .status.connected { background: rgba(0, 179, 95, 0.1); color: var(--success); }
 .status.disconnected { background: rgba(233, 25, 22, 0.1); color: var(--danger); }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; }
 .status.connected .status-dot { background: var(--success); animation: pulse 2s infinite; }
+
+/* --- NOUVEAUX STYLES DE STATUT DE MISE À JOUR --- */
+.status.update-available { 
+    cursor: pointer;
+    background: rgba(255, 204, 0, 0.1); 
+    color: var(--update-color); 
+}
+.status.update-available .status-dot { background: var(--update-color); }
+.status.update-available.hidden { display: none; }
+
+.status.update-available.downloading {
+    background: rgba(145, 71, 255, 0.1); 
+    color: var(--accent);
+}
+.status.update-available.downloading .status-dot { 
+    background: var(--accent); 
+    animation: pulse 2s infinite;
+}
+
+/* --- POPUP DE MISE À JOUR (POPOVER) --- */
+.update-popover {
+    position: absolute;
+    top: 100%; 
+    right: 0;
+    width: 280px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+.status.update-available.active .update-popover {
+    display: flex; /* Affiche la popover quand le statut est 'active' */
+}
+#update-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.update-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+.update-buttons .btn {
+    width: 48%; /* Répartir les boutons */
+}
+/* --- FIN STYLES DE MISE À JOUR --- */
 
 .tabs-container { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 15px; background: transparent; border: 1px solid var(--border); border-radius: 8px; -webkit-app-region: no-drag; }
 .main-tabs { display: flex; gap: 5px; }

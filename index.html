@@ -13,19 +13,20 @@
             <span>MeoMeoBot</span>
         </h2>
         <div class="header-right">
-            <div id="update-container" class="update-container hidden">
-                <div id="update-badge" class="status update-available">
-                    <span class="status-dot"></span>
-                    <span>Mise à jour</span>
-                </div>
+            
+            <div id="updateStatus" class="status update-available hidden">
+                <span class="status-dot"></span>
+                <span class="update-text-label">Mise à jour disponible</span>
+                
                 <div id="update-popover" class="update-popover">
-                    <p id="update-text">Mettre à jour ?</p>
+                    <p id="update-text">Une mise à jour est prête. Installer ?</p>
                     <div id="update-buttons" class="update-buttons">
                         <button id="update-yes-btn" class="btn btn-sm btn-success">Oui</button>
                         <button id="update-no-btn" class="btn btn-sm btn-secondary">Non</button>
                     </div>
                 </div>
             </div>
+
             <div id="connectionStatus" class="status disconnected">
                 <span class="status-dot"></span>
                 <span>Déconnecté</span>
@@ -271,34 +272,55 @@
             });
             document.getElementById('select-cast-folder-btn').addEventListener('click', selectCastFolder);
             document.getElementById('close-device-picker').addEventListener('click', hideDevicePicker);
+            
+            // Contrôles de fenêtre
             document.getElementById('minimize-btn').addEventListener('click', () => window.api.send('window-control', 'minimize'));
             document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
             document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
-            const updateContainer = document.getElementById('update-container');
-            const updateBadge = document.getElementById('update-badge');
+
+            // --- NOUVEAUX LISTENERS POUR L'INDICATEUR DE MISE À JOUR ---
+            const updateStatus = document.getElementById('updateStatus');
             const updateYesBtn = document.getElementById('update-yes-btn');
-            updateBadge.addEventListener('click', (e) => {
-                e.stopPropagation();
-                updateContainer.classList.toggle('active');
+            const updateNoBtn = document.getElementById('update-no-btn');
+
+            // Toggle la popover au clic sur le statut
+            updateStatus.addEventListener('click', (e) => {
+                // Empêche de fermer la popover si on clique sur un bouton de la popover
+                if (!e.target.closest('.update-popover') && !updateStatus.classList.contains('downloading')) {
+                    updateStatus.classList.toggle('active');
+                }
             });
-            document.getElementById('update-no-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                updateContainer.classList.remove('active');
+
+            // Clic en dehors de l'indicateur ferme la popover
+            document.addEventListener('click', (e) => {
+                if (!updateStatus.contains(e.target)) {
+                    updateStatus.classList.remove('active');
+                }
             });
+
+            // Lancement du téléchargement/installation
             updateYesBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const text = document.getElementById('update-text');
+                const updateText = document.getElementById('update-text');
+                
                 if (updateYesBtn.textContent === 'Oui') {
-                    text.textContent = "Téléchargement en cours...";
+                    updateText.textContent = "Téléchargement en cours...";
                     document.getElementById('update-buttons').style.display = 'none';
+                    updateStatus.classList.add('downloading');
+                    updateStatus.classList.remove('active');
+                    updateStatus.querySelector('.update-text-label').textContent = 'Téléchargement...';
                     window.api.send('start-download');
+                } else if (updateYesBtn.textContent === 'Redémarrer') {
+                    window.api.send('quit-and-install');
                 }
             });
-            document.addEventListener('click', (e) => {
-                if (!updateContainer.contains(e.target)) {
-                    updateContainer.classList.remove('active');
-                }
+            
+            // Annulation ou "Non"
+            updateNoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateStatus.classList.remove('active');
             });
+            // --- FIN NOUVEAUX LISTENERS ---
         }
 
         // --- NOTIFICATIONS & CONFIRMATION ---
@@ -645,23 +667,40 @@
         window.api.on('cast-status', ({ success, message }) => {
             showNotification(message, success ? 'success' : 'error');
         });
+        
+        // LOGIQUE DE MISE À JOUR AMÉLIORÉE
         window.api.on('update-available', () => {
-            document.getElementById('update-container').classList.add('update-ready');
+            const updateStatus = document.getElementById('updateStatus');
+            updateStatus.classList.remove('hidden');
+            updateStatus.querySelector('.update-text-label').textContent = 'Mise à jour disponible';
+            
+            // Afficher la popover avec la demande
+            document.getElementById('update-text').textContent = 'Une mise à jour est disponible. Voulez-vous la télécharger ?';
+            document.getElementById('update-buttons').style.display = 'flex';
+            document.getElementById('update-yes-btn').textContent = 'Oui';
+            document.getElementById('update-no-btn').textContent = 'Non';
+            
+            // Afficher la popover par défaut pour attirer l'attention
+            setTimeout(() => updateStatus.classList.add('active'), 200);
         });
+
         window.api.on('update-downloaded', () => {
-            const updateContainer = document.getElementById('update-container');
+            const updateStatus = document.getElementById('updateStatus');
+            updateStatus.classList.remove('downloading');
+            updateStatus.classList.add('update-ready');
+            updateStatus.querySelector('.update-text-label').textContent = 'Prêt à installer';
+            
             const updateText = document.getElementById('update-text');
-            const updateButtons = document.getElementById('update-buttons');
             const updateYesBtn = document.getElementById('update-yes-btn');
-            updateText.textContent = 'Prêt à redémarrer ?';
-            updateButtons.style.display = 'flex';
-            setTimeout(() => updateContainer.classList.add('active'), 200);
+
+            updateText.textContent = 'Téléchargement terminé. Redémarrer pour installer ?';
+            document.getElementById('update-buttons').style.display = 'flex';
             updateYesBtn.textContent = 'Redémarrer';
-            updateYesBtn.onclick = (e) => {
-                e.stopPropagation();
-                window.api.send('quit-and-install');
-            };
+
+            showNotification('Mise à jour téléchargée. Redémarrez pour l\'installer.', 'info');
+            setTimeout(() => updateStatus.classList.add('active'), 200);
         });
+        // FIN LOGIQUE DE MISE À JOUR AMÉLIORÉE
 
         // --- GLOBAL FUNCTIONS FOR ONCLICK ---
         window.startCommandEdit = startCommandEdit;
