@@ -20,10 +20,14 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
+// Constante pour la vérification de mise à jour (1 heure = 3600000 ms)
+const UPDATE_CHECK_INTERVAL = 3600000; 
+
 let mainWindow;
 let bot;
 let mediaServer;
 let currentlyPlayingPath = null;
+let updateCheckTimer = null; // Timer pour la vérification horaire
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -56,6 +60,8 @@ app.whenReady().then(() => {
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
+            // Démarrer la vérification horaire après le premier chargement réussi
+            startUpdateCheckLoop(); 
         }
     });
     app.on('activate', () => {
@@ -65,6 +71,8 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
+    // Nettoyer le timer avant de quitter
+    if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
 ipcMain.on('window-control', (event, action) => {
@@ -76,8 +84,21 @@ ipcMain.on('window-control', (event, action) => {
     }
 });
 
+// Boucle de vérification de mise à jour toutes les heures
+function startUpdateCheckLoop() {
+    if (updateCheckTimer) clearInterval(updateCheckTimer);
+    updateCheckTimer = setInterval(() => {
+        if (app.isPackaged) {
+            console.log('[AUTO-UPDATER] Vérification horaire des mises à jour...');
+            autoUpdater.checkForUpdates();
+        }
+    }, UPDATE_CHECK_INTERVAL);
+}
+
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
+    // Stopper la vérification automatique après avoir trouvé une mise à jour
+    if (updateCheckTimer) clearInterval(updateCheckTimer); 
 });
 autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
@@ -128,12 +149,15 @@ function startMediaServer() {
                     .videoCodec('libx264')
                     .audioCodec('aac')
                     .format('mp4')
-                    .addOutputOptions(['-preset veryfast', '-tune zerolatency', '-movflags frag_keyframe+empty_moov'])
+                    // PRÉRÉGLAGE OPTIMISÉ POUR LA VITESSE
+                    .addOutputOptions(['-preset ultrafast', '-tune zerolatency', '-movflags frag_keyframe+empty_moov'])
                     .on('error', (err, stdout, stderr) => {
+                        console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`); 
                         if (!res.headersSent) res.end();
                     })
                     .pipe(res, { end: true });
             } catch (e) {
+                console.error(`[MEDIA SERVER ERROR] Erreur lors de la mise en place du stream: ${e.message}`);
                 if (!res.headersSent) res.writeHead(404);
                 res.end();
             }
