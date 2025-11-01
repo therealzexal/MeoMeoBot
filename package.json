@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.0.13",
+  "version": "3.0.12",
   "description": "Un bot qui miaule",
   "main": "main.js",
   "repository": "github:therealzexal/MeoMeoBot",
@@ -37,7 +37,7 @@
       "releaseType": "release", 
       "url": "https://github.com/therealzexal/MeoMeoBot"
     },
-    "version": "3.0.13",
+    
     "files": [
       "main.js",
       "bot.js",
