@@ -201,6 +201,7 @@ ipcMain.handle('select-folder', async () => {
 
 ipcMain.handle('get-videos', async (event, folderPath) => {
     if (!folderPath) return [];
+    // Extensions de fichiers valides pour l'affichage (si transcodables par FFmpeg)
     const validExtensions = ['.webp', '.mov', '.avi', '.mp4'];
     try {
         const files = await fs.promises.readdir(folderPath);
@@ -212,22 +213,47 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
             const fullVideoPath = path.join(folderPath, videoFile);
             const thumbnailFileName = `${path.basename(videoFile, path.extname(videoFile))}.png`;
             const thumbnailPath = path.join(cachePath, thumbnailFileName);
+            
+            let thumbnailData = null; 
+            
+            // TENTATIVE DE CRÉATION DE LA MINIATURE (AVEC BYPASS EN CAS D'ERREUR FFmpeg)
             if (!fs.existsSync(thumbnailPath)) {
-                await new Promise((resolve, reject) => {
-                    ffmpeg(fullVideoPath)
-                        .on('end', resolve)
-                        .on('error', (err, stdout, stderr) => {
-                            const detailedError = new Error(`Échec FFmpeg pour ${videoFile}: ${err.message}\n${stderr}`);
-                            reject(detailedError);
-                        })
-                        .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });
-                });
+                try {
+                    await new Promise((resolve, reject) => {
+                        ffmpeg(fullVideoPath)
+                            .on('end', resolve)
+                            .on('error', (err, stdout, stderr) => {
+                                // En cas d'erreur de décodage/miniature, logguer et résoudre pour CONTINUER
+                                console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE] Échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
+                                resolve(); 
+                            })
+                            .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });
+                    });
+                } catch (e) {
+                    // Si l'erreur est plus critique (lecture du fichier impossible)
+                    console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE MAJEUR] Échec total de la tentative pour ${videoFile}.`);
+                }
             }
+
+            // Lecture de la miniature si elle existe (nouvelle ou déjà en cache)
             if (fs.existsSync(thumbnailPath)) {
-                const thumbnailData = await fs.promises.readFile(thumbnailPath, 'base64');
-                return { fileName: videoFile, videoPath: fullVideoPath, thumbnailData: `data:image/png;base64,${thumbnailData}` };
+                try {
+                    thumbnailData = await fs.promises.readFile(thumbnailPath, 'base64');
+                } catch (e) {
+                    // Ignorer si la lecture du fichier temporaire échoue
+                    thumbnailData = null;
+                }
             }
-            return null;
+            
+            // Placeholder SVG pour les miniatures manquantes (carré gris)
+            const placeholderSvgBase64 = 'PHN2ZyB3aWR0aD0zMjAiIGhlaWdodD0xODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0cHgiIGZpbGw9IiNmZmYiPlYgSUQnIEhBUyBUX0gVTlRTVlJPIFNWIi8+PC9zdmc+';
+
+            const finalThumbnailData = thumbnailData 
+                ? `data:image/png;base64,${thumbnailData}` 
+                : `data:image/svg+xml;base64,${placeholderSvgBase64}`;
+
+            // Retourner les données du fichier avec le placeholder si la miniature a échoué
+            return { fileName: videoFile, videoPath: fullVideoPath, thumbnailData: finalThumbnailData };
         });
         
         const results = await Promise.allSettled(videoDataPromises);
