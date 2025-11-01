@@ -34,9 +34,10 @@
     "productName": "MeoMeoBot",
     "publish": {
       "provider": "github",
-      "releaseType": "release",      
-      "vPrefixedTagName": false,      
-      "tagPrefix": "meow"         
+      "owner": "therealzexal",
+      "repo": "MeoMeoBot",
+      "releaseType": "release",
+      "vPrefixedTagName": false
     },
     "files": [
       "main.js",
@@ -45,7 +46,7 @@
       "index.html",
       "style.css",
       "assets/**/*",
-      "node_modules/**/*" 
+      "node_modules/**/*"
     ],
     "win": {
       "target": "nsis",
