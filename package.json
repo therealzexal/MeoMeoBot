@@ -33,11 +33,9 @@
     "appId": "com.meomeobot.app",
     "productName": "MeoMeoBot",
     "publish": {
-      "provider": "github",
-      "releaseType": "release", 
-      "url": "https://github.com/therealzexal/MeoMeoBot"
+      "provider": "github"
+      // 'releaseType' et 'url' ont été supprimées
     },
-    
     "files": [
       "main.js",
       "bot.js",
