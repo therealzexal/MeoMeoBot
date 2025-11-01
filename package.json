@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.0.12",
+  "version": "3.0.13",
   "description": "Un bot qui miaule",
   "main": "main.js",
   "repository": "github:therealzexal/MeoMeoBot",
@@ -33,7 +33,10 @@
     "appId": "com.meomeobot.app",
     "productName": "MeoMeoBot",
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "releaseType": "release",      
+      "vPrefixedTagName": false,      
+      "tagPrefix": "meow"         
     },
     "files": [
       "main.js",
