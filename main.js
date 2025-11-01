@@ -62,6 +62,9 @@ app.whenReady().then(() => {
             autoUpdater.checkForUpdates();
             // Démarrer la vérification horaire après le premier chargement réussi
             startUpdateCheckLoop(); 
+        } else {
+            // Envoyer un statut "À jour" en mode dev car l'updater n'est pas actif
+            mainWindow.webContents.send('update-status-check', { status: 'up-to-date' });
         }
     });
     app.on('activate', () => {
@@ -95,16 +98,32 @@ function startUpdateCheckLoop() {
     }, UPDATE_CHECK_INTERVAL);
 }
 
+autoUpdater.on('checking-for-update', () => {
+    mainWindow.webContents.send('update-status-check', { status: 'checking' });
+});
+
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
     // Stopper la vérification automatique après avoir trouvé une mise à jour
     if (updateCheckTimer) clearInterval(updateCheckTimer); 
 });
+
+autoUpdater.on('update-not-available', () => {
+    mainWindow.webContents.send('update-status-check', { status: 'up-to-date' });
+});
+
 autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
 });
+
+autoUpdater.on('error', (err) => {
+    console.error(`[AUTO-UPDATER ERROR] Erreur de mise à jour: ${err}`);
+    mainWindow.webContents.send('update-status-check', { status: 'error' });
+});
+
 ipcMain.on('start-download', () => {
     autoUpdater.downloadUpdate();
+    mainWindow.webContents.send('update-status-check', { status: 'downloading' });
 });
 ipcMain.on('quit-and-install', () => {
     autoUpdater.quitAndInstall();
@@ -149,8 +168,13 @@ function startMediaServer() {
                     .videoCodec('libx264')
                     .audioCodec('aac')
                     .format('mp4')
-                    // PRÉRÉGLAGE OPTIMISÉ POUR LA VITESSE
-                    .addOutputOptions(['-preset ultrafast', '-tune zerolatency', '-movflags frag_keyframe+empty_moov'])
+                    // OPTIONS OPTIMISÉES POUR LE CASTING H.264
+                    .addOutputOptions([
+                        '-preset ultrafast', // Vitesse maximale
+                        '-tune zerolatency', 
+                        '-movflags frag_keyframe+empty_moov',
+                        '-b:v 500k' // Débit vidéo à 500kbps pour stabiliser le flux
+                    ])
                     .on('error', (err, stdout, stderr) => {
                         console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`); 
                         if (!res.headersSent) res.end();
@@ -225,7 +249,6 @@ ipcMain.handle('select-folder', async () => {
 
 ipcMain.handle('get-videos', async (event, folderPath) => {
     if (!folderPath) return [];
-    // Extensions de fichiers valides pour l'affichage (si transcodables par FFmpeg)
     const validExtensions = ['.webp', '.mov', '.avi', '.mp4'];
     try {
         const files = await fs.promises.readdir(folderPath);
@@ -240,31 +263,28 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
             
             let thumbnailData = null; 
             
-            // TENTATIVE DE CRÉATION DE LA MINIATURE (AVEC BYPASS EN CAS D'ERREUR FFmpeg)
+            // TENTATIVE DE CRÉATION DE LA MINIATURE (AVEC BYPASS)
             if (!fs.existsSync(thumbnailPath)) {
                 try {
                     await new Promise((resolve, reject) => {
                         ffmpeg(fullVideoPath)
                             .on('end', resolve)
                             .on('error', (err, stdout, stderr) => {
-                                // En cas d'erreur de décodage/miniature, logguer et résoudre pour CONTINUER
                                 console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE] Échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
                                 resolve(); 
                             })
                             .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });
                     });
                 } catch (e) {
-                    // Si l'erreur est plus critique (lecture du fichier impossible)
                     console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE MAJEUR] Échec total de la tentative pour ${videoFile}.`);
                 }
             }
 
-            // Lecture de la miniature si elle existe (nouvelle ou déjà en cache)
+            // Lecture de la miniature si elle existe
             if (fs.existsSync(thumbnailPath)) {
                 try {
                     thumbnailData = await fs.promises.readFile(thumbnailPath, 'base64');
                 } catch (e) {
-                    // Ignorer si la lecture du fichier temporaire échoue
                     thumbnailData = null;
                 }
             }
@@ -276,7 +296,6 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                 ? `data:image/png;base64,${thumbnailData}` 
                 : `data:image/svg+xml;base64,${placeholderSvgBase64}`;
 
-            // Retourner les données du fichier avec le placeholder si la miniature a échoué
             return { fileName: videoFile, videoPath: fullVideoPath, thumbnailData: finalThumbnailData };
         });
         

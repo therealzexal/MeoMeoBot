@@ -14,9 +14,9 @@
         </h2>
         <div class="header-right">
             
-            <div id="updateStatus" class="status update-available hidden">
+            <div id="updateStatus" class="status update-available up-to-date">
                 <span class="status-dot"></span>
-                <span class="update-text-label">Mise à jour disponible</span>
+                <span class="update-text-label">À jour</span>
                 
                 <div id="update-popover" class="update-popover">
                     <p id="update-text">Une mise à jour est prête. Installer ?</p>
@@ -212,6 +212,7 @@
             await loadAllData();
             setupEventListeners();
             setupConfirmationOverlay(); 
+            updateUpdaterStatus('checking'); // Initial check visual status
         }
 
         // --- CORE UI SETUP ---
@@ -286,7 +287,7 @@
             // Toggle la popover au clic sur le statut
             updateStatus.addEventListener('click', (e) => {
                 // Empêche de fermer la popover si on clique sur un bouton de la popover
-                if (!e.target.closest('.update-popover') && !updateStatus.classList.contains('downloading')) {
+                if (!e.target.closest('.update-popover') && !updateStatus.classList.contains('downloading') && updateStatus.classList.contains('update-available')) {
                     updateStatus.classList.toggle('active');
                 }
             });
@@ -307,7 +308,7 @@
                     updateText.textContent = "Téléchargement en cours...";
                     document.getElementById('update-buttons').style.display = 'none';
                     updateStatus.classList.add('downloading');
-                    updateStatus.classList.remove('active');
+                    updateStatus.classList.remove('active', 'update-available');
                     updateStatus.querySelector('.update-text-label').textContent = 'Téléchargement...';
                     window.api.send('start-download');
                 } else if (updateYesBtn.textContent === 'Redémarrer') {
@@ -514,7 +515,7 @@
                 });
             } catch (error) {
                 console.error("Erreur dans loadCastVideos (côté rendu):", error);
-                grid.innerHTML = `<p style="color: var(--danger);">Erreur lors de la génération des miniatures. Vérifiez la console du terminal (où vous lancez 'npm start') pour les détails.</p>`;
+                grid.innerHTML = `<p style="color: var(--danger);">Erreur FFmpeg. Voir la console du terminal (où vous lancez 'npm start') pour les détails.</p>`;
                 showNotification(`Erreur FFmpeg. Voir la console.`, "error");
             }
         }
@@ -643,6 +644,52 @@
             showNotification('Liste des participants vidée.', 'info');
         }
 
+        // --- UPDATE STATUS LOGIC ---
+        function updateUpdaterStatus(status, message = null) {
+            const updateStatusElement = document.getElementById('updateStatus');
+            const label = updateStatusElement.querySelector('.update-text-label');
+
+            // Nettoyage des classes
+            updateStatusElement.classList.remove('checking', 'update-available', 'up-to-date', 'downloading', 'active');
+            updateStatusElement.style.cursor = 'default';
+
+            switch (status) {
+                case 'checking':
+                    updateStatusElement.classList.add('checking');
+                    label.textContent = 'Vérification...';
+                    break;
+                case 'up-to-date':
+                    updateStatusElement.classList.add('up-to-date');
+                    label.textContent = 'À jour';
+                    break;
+                case 'update-available':
+                    updateStatusElement.classList.add('update-available', 'active');
+                    updateStatusElement.style.cursor = 'pointer';
+                    label.textContent = 'Mise à jour dispo';
+                    document.getElementById('update-text').textContent = message || 'Une mise à jour est disponible. Voulez-vous la télécharger ?';
+                    document.getElementById('update-buttons').style.display = 'flex';
+                    document.getElementById('update-yes-btn').textContent = 'Oui';
+                    document.getElementById('update-no-btn').textContent = 'Non';
+                    break;
+                case 'downloading':
+                    updateStatusElement.classList.add('downloading');
+                    label.textContent = 'Téléchargement...';
+                    break;
+                case 'downloaded':
+                    updateStatusElement.classList.add('update-available', 'downloaded', 'active');
+                    updateStatusElement.style.cursor = 'pointer';
+                    label.textContent = 'Prêt à installer';
+                    document.getElementById('update-text').textContent = 'Téléchargement terminé. Redémarrer pour installer ?';
+                    document.getElementById('update-buttons').style.display = 'flex';
+                    document.getElementById('update-yes-btn').textContent = 'Redémarrer';
+                    break;
+                case 'error':
+                    updateStatusElement.classList.add('disconnected'); // Utiliser la couleur rouge
+                    label.textContent = 'Erreur màj';
+                    break;
+            }
+        }
+
         // --- IPC LISTENERS ---
         window.api.on('bot-status', data => updateConnectionStatus(data.connected, data.channel));
         window.api.on('participants-updated', () => loadParticipants());
@@ -668,39 +715,18 @@
             showNotification(message, success ? 'success' : 'error');
         });
         
-        // LOGIQUE DE MISE À JOUR AMÉLIORÉE
+        // LOGIQUE DE MISE À JOUR VISUELLE
+        window.api.on('update-status-check', ({ status, message }) => {
+            updateUpdaterStatus(status, message);
+        });
+
         window.api.on('update-available', () => {
-            const updateStatus = document.getElementById('updateStatus');
-            updateStatus.classList.remove('hidden');
-            updateStatus.querySelector('.update-text-label').textContent = 'Mise à jour disponible';
-            
-            // Afficher la popover avec la demande
-            document.getElementById('update-text').textContent = 'Une mise à jour est disponible. Voulez-vous la télécharger ?';
-            document.getElementById('update-buttons').style.display = 'flex';
-            document.getElementById('update-yes-btn').textContent = 'Oui';
-            document.getElementById('update-no-btn').textContent = 'Non';
-            
-            // Afficher la popover par défaut pour attirer l'attention
-            setTimeout(() => updateStatus.classList.add('active'), 200);
+            updateUpdaterStatus('update-available');
         });
 
         window.api.on('update-downloaded', () => {
-            const updateStatus = document.getElementById('updateStatus');
-            updateStatus.classList.remove('downloading');
-            updateStatus.classList.add('update-ready');
-            updateStatus.querySelector('.update-text-label').textContent = 'Prêt à installer';
-            
-            const updateText = document.getElementById('update-text');
-            const updateYesBtn = document.getElementById('update-yes-btn');
-
-            updateText.textContent = 'Téléchargement terminé. Redémarrer pour installer ?';
-            document.getElementById('update-buttons').style.display = 'flex';
-            updateYesBtn.textContent = 'Redémarrer';
-
-            showNotification('Mise à jour téléchargée. Redémarrez pour l\'installer.', 'info');
-            setTimeout(() => updateStatus.classList.add('active'), 200);
+            updateUpdaterStatus('downloaded');
         });
-        // FIN LOGIQUE DE MISE À JOUR AMÉLIORÉE
 
         // --- GLOBAL FUNCTIONS FOR ONCLICK ---
         window.startCommandEdit = startCommandEdit;

@@ -8,7 +8,8 @@
     --success: #00b35f;
     --danger: #e91916;
     --border: #343437;
-    --update-color: #ffcc00; /* Jaune/Orange pour les mises à jour */
+    --update-color-avail: #ffcc00; /* Jaune/Orange pour l'alerte */
+    --update-color-ok: #008744; /* Vert foncé pour "À jour" */
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -47,7 +48,7 @@ body {
     font-size: 12px; 
     font-weight: 500; 
     margin-bottom: 8px;
-    position: relative; /* Pour positionner la popover */
+    position: relative; 
 }
 .status.connected { background: rgba(0, 179, 95, 0.1); color: var(--success); }
 .status.disconnected { background: rgba(233, 25, 22, 0.1); color: var(--danger); }
@@ -55,21 +56,45 @@ body {
 .status.connected .status-dot { background: var(--success); animation: pulse 2s infinite; }
 
 /* --- NOUVEAUX STYLES DE STATUT DE MISE À JOUR --- */
-.status.update-available { 
-    cursor: pointer;
-    background: rgba(255, 204, 0, 0.1); 
-    color: var(--update-color); 
-}
-.status.update-available .status-dot { background: var(--update-color); }
-.status.update-available.hidden { display: none; }
 
-.status.update-available.downloading {
+/* État Initial / En Vérification */
+.status.checking { 
     background: rgba(145, 71, 255, 0.1); 
     color: var(--accent);
 }
-.status.update-available.downloading .status-dot { 
+.status.checking .status-dot { 
     background: var(--accent); 
     animation: pulse 2s infinite;
+}
+
+/* État "À Jour" */
+.status.up-to-date { 
+    background: rgba(0, 179, 95, 0.1); 
+    color: var(--update-color-ok); 
+}
+.status.up-to-date .status-dot { background: var(--update-color-ok); }
+
+/* État "Mise à jour Disponible" */
+.status.update-available { 
+    background: rgba(255, 204, 0, 0.1); 
+    color: var(--update-color-avail); 
+}
+.status.update-available .status-dot { background: var(--update-color-avail); }
+
+/* État "Téléchargement" */
+.status.downloading {
+    background: rgba(145, 71, 255, 0.1); 
+    color: var(--accent);
+}
+.status.downloading .status-dot { 
+    background: var(--accent); 
+    animation: pulse 2s infinite;
+}
+
+/* État "Prêt à installer" (téléchargé) */
+.status.downloaded {
+    background: rgba(255, 204, 0, 0.1); 
+    color: var(--update-color-avail); 
 }
 
 /* --- POPUP DE MISE À JOUR (POPOVER) --- */
@@ -89,7 +114,7 @@ body {
     flex-direction: column;
     gap: 10px;
 }
-.status.update-available.active .update-popover {
+.status.active .update-popover {
     display: flex; /* Affiche la popover quand le statut est 'active' */
 }
 #update-text {
@@ -102,7 +127,7 @@ body {
     justify-content: space-between;
 }
 .update-buttons .btn {
-    width: 48%; /* Répartir les boutons */
+    width: 48%; 
 }
 /* --- FIN STYLES DE MISE À JOUR --- */
 
