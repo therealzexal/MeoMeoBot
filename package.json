@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.0.11",
+  "version": "3.0.13",
   "description": "Un bot qui miaule",
   "main": "main.js",
   "repository": "github:therealzexal/MeoMeoBot",
@@ -33,15 +33,19 @@
     "appId": "com.meomeobot.app",
     "productName": "MeoMeoBot",
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "releaseType": "release", 
+      "url": "https://github.com/therealzexal/MeoMeoBot"
     },
+    "version": "3.0.13",
     "files": [
       "main.js",
       "bot.js",
       "preload.js",
       "index.html",
       "style.css",
-      "assets/**/*"
+      "assets/**/*",
+      "node_modules/**/*" 
     ],
     "win": {
       "target": "nsis",
