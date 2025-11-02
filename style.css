@@ -93,42 +93,47 @@ body {
 
 /* État "Prêt à installer" (téléchargé) */
 .status.downloaded {
-    background: rgba(255, 204, 0, 0.1); 
-    color: var(--update-color-avail); 
+    background: rgba(0, 179, 95, 0.1); 
+    color: var(--success); 
+}
+.status.downloaded .status-dot { background: var(--success); }
+
+/* État "Erreur" */
+.status.error {
+    background: rgba(233, 25, 22, 0.1); 
+    color: var(--danger);
+}
+.status.error .status-dot { background: var(--danger); }
+
+/* --- LOGIQUE DES ICÔNES INLINE --- */
+#update-action-container {
+    display: flex;
+    gap: 8px;
+    margin-left: 10px;
 }
 
-/* --- POPUP DE MISE À JOUR (POPOVER) --- */
-.update-popover {
-    position: absolute;
-    top: 100%; 
-    right: 0;
-    width: 280px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 5px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    z-index: 10;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
+.status .update-icon {
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    line-height: 1; /* Aligner les emojis */
 }
-.status.active .update-popover {
-    display: flex; /* Affiche la popover quand le statut est 'active' */
+
+.status .confirm-icon {
+    color: var(--success);
 }
-#update-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
+.status .deny-icon {
+    color: var(--danger);
 }
-.update-buttons {
-    display: flex;
-    justify-content: space-between;
+
+.status .update-icon:hover {
+    transform: scale(1.1);
 }
-.update-buttons .btn {
-    width: 48%; 
+
+.hidden {
+    display: none !important;
 }
+
 /* --- FIN STYLES DE MISE À JOUR --- */
 
 .tabs-container { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 15px; background: transparent; border: 1px solid var(--border); border-radius: 8px; -webkit-app-region: no-drag; }

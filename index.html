@@ -14,16 +14,13 @@
         </h2>
         <div class="header-right">
             
-            <div id="updateStatus" class="status update-available up-to-date">
+            <div id="updateStatus" class="status up-to-date">
                 <span class="status-dot"></span>
                 <span class="update-text-label">À jour</span>
                 
-                <div id="update-popover" class="update-popover">
-                    <p id="update-text">Une mise à jour est prête. Installer ?</p>
-                    <div id="update-buttons" class="update-buttons">
-                        <button id="update-yes-btn" class="btn btn-sm btn-success">Oui</button>
-                        <button id="update-no-btn" class="btn btn-sm btn-secondary">Non</button>
-                    </div>
+                <div id="update-action-container" class="hidden">
+                    <span id="update-confirm-icon" class="update-icon confirm-icon" title="Télécharger">✅</span>
+                    <span id="update-deny-icon" class="update-icon deny-icon" title="Ignorer">❌</span>
                 </div>
             </div>
 
@@ -279,47 +276,29 @@
             document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
             document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
 
-            // --- NOUVEAUX LISTENERS POUR L'INDICATEUR DE MISE À JOUR ---
+            // --- NOUVEAUX LISTENERS INLINE POUR L'UPDATER ---
             const updateStatus = document.getElementById('updateStatus');
-            const updateYesBtn = document.getElementById('update-yes-btn');
-            const updateNoBtn = document.getElementById('update-no-btn');
+            const updateConfirmIcon = document.getElementById('update-confirm-icon');
+            const updateDenyIcon = document.getElementById('update-deny-icon');
 
-            // Toggle la popover au clic sur le statut
-            updateStatus.addEventListener('click', (e) => {
-                // Empêche de fermer la popover si on clique sur un bouton de la popover
-                if (!e.target.closest('.update-popover') && !updateStatus.classList.contains('downloading') && updateStatus.classList.contains('update-available')) {
-                    updateStatus.classList.toggle('active');
-                }
-            });
-
-            // Clic en dehors de l'indicateur ferme la popover
-            document.addEventListener('click', (e) => {
-                if (!updateStatus.contains(e.target)) {
-                    updateStatus.classList.remove('active');
-                }
-            });
-
-            // Lancement du téléchargement/installation
-            updateYesBtn.addEventListener('click', (e) => {
+            // Clic sur l'icône de confirmation (Télécharger / Redémarrer)
+            updateConfirmIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const updateText = document.getElementById('update-text');
-                
-                if (updateYesBtn.textContent === 'Oui') {
-                    updateText.textContent = "Téléchargement en cours...";
-                    document.getElementById('update-buttons').style.display = 'none';
-                    updateStatus.classList.add('downloading');
-                    updateStatus.classList.remove('active', 'update-available');
-                    updateStatus.querySelector('.update-text-label').textContent = 'Téléchargement...';
+                if (updateStatus.classList.contains('update-available')) {
+                    // Lancer le téléchargement
                     window.api.send('start-download');
-                } else if (updateYesBtn.textContent === 'Redémarrer') {
+                } else if (updateStatus.classList.contains('downloaded')) {
+                    // Lancer l'installation et le redémarrage
                     window.api.send('quit-and-install');
                 }
             });
-            
-            // Annulation ou "Non"
-            updateNoBtn.addEventListener('click', (e) => {
+
+            // Clic sur l'icône de refus (Refuser / Annuler)
+            updateDenyIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                updateStatus.classList.remove('active');
+                // Simplement revenir à l'état "À jour" après un refus
+                updateUpdaterStatus('up-to-date'); 
+                showNotification('Mise à jour refusée pour le moment.', 'info');
             });
             // --- FIN NOUVEAUX LISTENERS ---
         }
@@ -502,7 +481,7 @@
                 if (result.error) { throw new Error(result.error); }
                 grid.innerHTML = '';
                 if (!result || result.length === 0) {
-                    grid.innerHTML = '<p>Aucune vidéo compatible trouvée ou les miniatures n\'ont pas pu être générées.</p>';
+                    grid.innerHTML = `<p style="color: var(--danger);">Aucune vidéo compatible trouvée ou erreur lors de la génération des miniatures. Vérifiez la console pour les erreurs FFmpeg.</p>`;
                     return;
                 }
                 result.forEach(video => {
@@ -648,10 +627,11 @@
         function updateUpdaterStatus(status, message = null) {
             const updateStatusElement = document.getElementById('updateStatus');
             const label = updateStatusElement.querySelector('.update-text-label');
+            const actionContainer = document.getElementById('update-action-container');
 
-            // Nettoyage des classes
-            updateStatusElement.classList.remove('checking', 'update-available', 'up-to-date', 'downloading', 'active');
-            updateStatusElement.style.cursor = 'default';
+            // Nettoyage initial
+            updateStatusElement.classList.remove('checking', 'update-available', 'up-to-date', 'downloading', 'downloaded', 'error');
+            actionContainer.classList.add('hidden'); // Masquer les icônes par défaut
 
             switch (status) {
                 case 'checking':
@@ -663,29 +643,26 @@
                     label.textContent = 'À jour';
                     break;
                 case 'update-available':
-                    updateStatusElement.classList.add('update-available', 'active');
-                    updateStatusElement.style.cursor = 'pointer';
-                    label.textContent = 'Mise à jour dispo';
-                    document.getElementById('update-text').textContent = message || 'Une mise à jour est disponible. Voulez-vous la télécharger ?';
-                    document.getElementById('update-buttons').style.display = 'flex';
-                    document.getElementById('update-yes-btn').textContent = 'Oui';
-                    document.getElementById('update-no-btn').textContent = 'Non';
+                    updateStatusElement.classList.add('update-available');
+                    label.textContent = 'MàJ dispo';
+                    actionContainer.classList.remove('hidden');
+                    document.getElementById('update-confirm-icon').textContent = '📥'; // Icône de téléchargement
+                    document.getElementById('update-confirm-icon').title = 'Cliquer pour télécharger';
                     break;
                 case 'downloading':
                     updateStatusElement.classList.add('downloading');
                     label.textContent = 'Téléchargement...';
                     break;
                 case 'downloaded':
-                    updateStatusElement.classList.add('update-available', 'downloaded', 'active');
-                    updateStatusElement.style.cursor = 'pointer';
+                    updateStatusElement.classList.add('downloaded');
                     label.textContent = 'Prêt à installer';
-                    document.getElementById('update-text').textContent = 'Téléchargement terminé. Redémarrer pour installer ?';
-                    document.getElementById('update-buttons').style.display = 'flex';
-                    document.getElementById('update-yes-btn').textContent = 'Redémarrer';
+                    actionContainer.classList.remove('hidden');
+                    document.getElementById('update-confirm-icon').textContent = '✅'; // Icône de validation
+                    document.getElementById('update-confirm-icon').title = 'Cliquer pour redémarrer et installer';
                     break;
                 case 'error':
-                    updateStatusElement.classList.add('disconnected'); // Utiliser la couleur rouge
-                    label.textContent = 'Erreur màj';
+                    updateStatusElement.classList.add('error'); 
+                    label.textContent = 'Erreur MàJ';
                     break;
             }
         }
