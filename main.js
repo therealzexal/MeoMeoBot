@@ -20,8 +20,8 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
-// Constante pour la vérification de mise à jour (1 heure = 3600000 ms)
-const UPDATE_CHECK_INTERVAL = 3600000; 
+// Constante pour la vérification de mise à jour (maintenant réglée sur 10 minutes)
+const UPDATE_CHECK_INTERVAL = 600000; // 600 000 ms = 10 minutes
 
 let mainWindow;
 let bot;
@@ -87,12 +87,12 @@ ipcMain.on('window-control', (event, action) => {
     }
 });
 
-// Boucle de vérification de mise à jour toutes les heures
+// Boucle de vérification de mise à jour toutes les 10 minutes
 function startUpdateCheckLoop() {
     if (updateCheckTimer) clearInterval(updateCheckTimer);
     updateCheckTimer = setInterval(() => {
         if (app.isPackaged) {
-            console.log('[AUTO-UPDATER] Vérification horaire des mises à jour...');
+            console.log('[AUTO-UPDATER] Vérification des mises à jour (10 min)...');
             autoUpdater.checkForUpdates();
         }
     }, UPDATE_CHECK_INTERVAL);
@@ -125,6 +125,8 @@ ipcMain.on('start-download', () => {
     autoUpdater.downloadUpdate();
     mainWindow.webContents.send('update-status-check', { status: 'downloading' });
 });
+
+// L'utilisateur doit cliquer pour déclencher l'installation (méthode stable)
 ipcMain.on('quit-and-install', () => {
     autoUpdater.quitAndInstall();
 });
@@ -170,7 +172,7 @@ function startMediaServer() {
                     .format('mp4')
                     // OPTIONS OPTIMISÉES POUR LE CASTING H.264
                     .addOutputOptions([
-                        '-preset ultrafast', // Vitesse maximale
+                        '-preset ultrafast', // Vitesse maximale pour éviter le buffering
                         '-tune zerolatency', 
                         '-movflags frag_keyframe+empty_moov',
                         '-b:v 500k' // Débit vidéo à 500kbps pour stabiliser le flux

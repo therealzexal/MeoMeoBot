@@ -20,4 +20,5 @@ Thumbs.db
 # Fichiers de configuration locaux
 .env
 
-cmd.txt
+# Cmd
+cmd.bat
