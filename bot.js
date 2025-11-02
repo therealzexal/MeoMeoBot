@@ -45,16 +45,27 @@ class TwitchBot {
         if (!config.channel || !config.username || !config.token) {
             throw new Error('Configuration de connexion manquante (canal, bot, token).');
         }
-        if (this.client && this.isConnected) {
-            this.client.disconnect();
+        
+        // --- VÉRIFICATION ET NETTOYAGE DE L'ANCIEN CLIENT ---
+        if (this.client) {
+            // S'assurer de nettoyer tous les anciens écouteurs pour éviter l'accumulation
+            this.client.removeAllListeners('message');
+            this.client.removeAllListeners('connected');
+            this.client.removeAllListeners('disconnected');
+            if (this.isConnected) {
+                this.client.disconnect();
+            }
         }
+        
+        // --- CRÉATION DU NOUVEAU CLIENT ---
         this.client = new tmi.Client({
             options: { debug: false },
             connection: { secure: true, reconnect: true },
             identity: { username: config.username, password: config.token },
             channels: [config.channel]
         });
-        this.client.connect().catch(console.error);
+        
+        // --- DÉFINITION DES ÉCOUTEURS D'ÉVÉNEMENTS (Une seule fois par client) ---
         this.client.on('message', (channel, tags, message, self) => {
             if (self) return;
             this.handleMessage(channel, tags, message);
@@ -67,6 +78,9 @@ class TwitchBot {
             this.isConnected = false;
             if (this.onDisconnected) this.onDisconnected();
         });
+
+        // --- CONNEXION ---
+        this.client.connect().catch(console.error);
     }
 
     disconnect() {
