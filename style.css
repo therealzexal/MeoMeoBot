@@ -8,8 +8,8 @@
     --success: #00b35f;
     --danger: #e91916;
     --border: #343437;
-    --update-color-avail: #ffcc00; /* Jaune/Orange pour l'alerte */
-    --update-color-ok: #008744; /* Vert foncé pour "À jour" */
+    --update-color-avail: #ffcc00;
+    --update-color-ok: #008744; 
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -38,7 +38,6 @@ body {
 #close-btn:hover { background-color: #e81123; }
 #close-btn:hover svg { fill: white; stroke: white; }
 
-/* --- STYLES GÉNÉRAUX DE STATUT --- */
 .status { 
     display: flex; 
     align-items: center; 
@@ -50,14 +49,13 @@ body {
     margin-bottom: 8px;
     position: relative; 
 }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
+
 .status.connected { background: rgba(0, 179, 95, 0.1); color: var(--success); }
 .status.disconnected { background: rgba(233, 25, 22, 0.1); color: var(--danger); }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; }
 .status.connected .status-dot { background: var(--success); animation: pulse 2s infinite; }
+.status.disconnected .status-dot { background: var(--danger); }
 
-/* --- NOUVEAUX STYLES DE STATUT DE MISE À JOUR --- */
-
-/* État Initial / En Vérification */
 .status.checking { 
     background: rgba(145, 71, 255, 0.1); 
     color: var(--accent);
@@ -67,21 +65,20 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* État "À Jour" */
 .status.up-to-date { 
     background: rgba(0, 179, 95, 0.1); 
     color: var(--update-color-ok); 
 }
 .status.up-to-date .status-dot { background: var(--update-color-ok); }
+.status.up-to-date.hidden { display: none; } 
 
-/* État "Mise à jour Disponible" */
 .status.update-available { 
+    cursor: pointer;
     background: rgba(255, 204, 0, 0.1); 
     color: var(--update-color-avail); 
 }
 .status.update-available .status-dot { background: var(--update-color-avail); }
 
-/* État "Téléchargement" */
 .status.downloading {
     background: rgba(145, 71, 255, 0.1); 
     color: var(--accent);
@@ -91,21 +88,19 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* État "Prêt à installer" (téléchargé) */
 .status.downloaded {
+    cursor: pointer;
     background: rgba(0, 179, 95, 0.1); 
     color: var(--success); 
 }
 .status.downloaded .status-dot { background: var(--success); }
 
-/* État "Erreur" */
 .status.error {
     background: rgba(233, 25, 22, 0.1); 
     color: var(--danger);
 }
 .status.error .status-dot { background: var(--danger); }
 
-/* --- LOGIQUE DES ICÔNES INLINE --- */
 #update-action-container {
     display: flex;
     gap: 8px;
@@ -116,7 +111,7 @@ body {
     font-size: 16px;
     cursor: pointer;
     transition: transform 0.1s ease;
-    line-height: 1; /* Aligner les emojis */
+    line-height: 1;
 }
 
 .status .confirm-icon {
@@ -132,9 +127,7 @@ body {
 
 .hidden {
     display: none !important;
-}
-
-/* --- FIN STYLES DE MISE À JOUR --- */
+}Z
 
 .tabs-container { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 15px; background: transparent; border: 1px solid var(--border); border-radius: 8px; -webkit-app-region: no-drag; }
 .main-tabs { display: flex; gap: 5px; }
@@ -188,7 +181,7 @@ body {
 .moderation-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; height: 100%; }
 .moderation-layout .card { height: 100%; }
 #config-tab { display: flex; justify-content: center; align-items: center; }
-.login-card { max-width: 450px; width: 100%; padding: 20px; /* Ajout de padding pour cette carte specifique */}
+.login-card { max-width: 450px; width: 100%; padding: 20px; }
 
 label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
 input, textarea { width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px; transition: all 0.2s ease-in-out; }
@@ -202,6 +195,7 @@ textarea { resize: vertical; }
 .btn-success { background: var(--success); color: white; }
 .btn-danger { background: var(--danger); color: white; }
 .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+.btn.btn-sm { padding: 5px 10px; font-size: 12px; }
 .unified-button-row { display: flex; gap: 10px; margin: 20px 0px 10px 0px; }
 .unified-button-row .btn { flex-grow: 1; width: auto; }
 .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

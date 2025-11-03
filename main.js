@@ -20,14 +20,13 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
-// Constante pour la vérification de mise à jour (maintenant réglée sur 10 minutes)
-const UPDATE_CHECK_INTERVAL = 600000; // 600 000 ms = 10 minutes
+const UPDATE_CHECK_INTERVAL = 600000; 
 
 let mainWindow;
 let bot;
 let mediaServer;
 let currentlyPlayingPath = null;
-let updateCheckTimer = null; // Timer pour la vérification horaire
+let updateCheckTimer = null; 
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -60,10 +59,8 @@ app.whenReady().then(() => {
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
-            // Démarrer la vérification horaire après le premier chargement réussi
             startUpdateCheckLoop(); 
         } else {
-            // Envoyer un statut "À jour" en mode dev car l'updater n'est pas actif
             mainWindow.webContents.send('update-status-check', { status: 'up-to-date' });
         }
     });
@@ -74,7 +71,6 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
-    // Nettoyer le timer avant de quitter
     if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
@@ -87,7 +83,6 @@ ipcMain.on('window-control', (event, action) => {
     }
 });
 
-// Boucle de vérification de mise à jour toutes les 10 minutes
 function startUpdateCheckLoop() {
     if (updateCheckTimer) clearInterval(updateCheckTimer);
     updateCheckTimer = setInterval(() => {
@@ -104,7 +99,6 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
-    // Stopper la vérification automatique après avoir trouvé une mise à jour
     if (updateCheckTimer) clearInterval(updateCheckTimer); 
 });
 
@@ -126,7 +120,6 @@ ipcMain.on('start-download', () => {
     mainWindow.webContents.send('update-status-check', { status: 'downloading' });
 });
 
-// L'utilisateur doit cliquer pour déclencher l'installation (méthode stable)
 ipcMain.on('quit-and-install', () => {
     autoUpdater.quitAndInstall();
 });
@@ -141,9 +134,7 @@ function autoConnectBot() {
 function setupBotEvents() {
     if (!bot) return;
 
-    // Fonction de sécurité pour l'envoi d'IPC vers la fenêtre du renderer
     const safeSend = (channel, data) => {
-        // Vérifie si mainWindow existe et n'est pas détruit avant d'envoyer l'événement
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send(channel, data);
         }
@@ -170,12 +161,11 @@ function startMediaServer() {
                     .videoCodec('libx264')
                     .audioCodec('aac')
                     .format('mp4')
-                    // OPTIONS OPTIMISÉES POUR LE CASTING H.264
                     .addOutputOptions([
-                        '-preset ultrafast', // Vitesse maximale pour éviter le buffering
+                        '-preset ultrafast', 
                         '-tune zerolatency', 
                         '-movflags frag_keyframe+empty_moov',
-                        '-b:v 500k' // Débit vidéo à 500kbps pour stabiliser le flux
+                        '-b:v 500k'
                     ])
                     .on('error', (err, stdout, stderr) => {
                         console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`); 
@@ -265,7 +255,6 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
             
             let thumbnailData = null; 
             
-            // TENTATIVE DE CRÉATION DE LA MINIATURE (AVEC BYPASS)
             if (!fs.existsSync(thumbnailPath)) {
                 try {
                     await new Promise((resolve, reject) => {
@@ -282,7 +271,6 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                 }
             }
 
-            // Lecture de la miniature si elle existe
             if (fs.existsSync(thumbnailPath)) {
                 try {
                     thumbnailData = await fs.promises.readFile(thumbnailPath, 'base64');
@@ -291,7 +279,6 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                 }
             }
             
-            // Placeholder SVG pour les miniatures manquantes (carré gris)
             const placeholderSvgBase64 = 'PHN2ZyB3aWR0aD0zMjAiIGhlaWdodD0xODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0cHgiIGZpbGw9IiNmZmYiPlYgSUQnIEhBUyBUX0gVTlRTVlJPIFNWIi8+PC9zdmc+';
 
             const finalThumbnailData = thumbnailData 
@@ -321,7 +308,16 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
 ipcMain.handle('connect-bot', async () => { try { await bot.connect(); return { success: true }; } catch (error) { return { success: false, error: error.message }; } });
 ipcMain.handle('disconnect-bot', async () => { bot.disconnect(); return { success: true }; });
 ipcMain.handle('get-config', () => bot.getConfig());
-ipcMain.handle('update-config', (event, newConfig) => { bot.updateConfig(newConfig); if (newConfig.channel || newConfig.username || newConfig.token) { setTimeout(() => bot.connect(), 500); } return { success: true }; });
+ipcMain.handle('update-config', (event, newConfig) => { 
+    bot.updateConfig(newConfig); 
+    if (newConfig.clipCooldown !== undefined) {
+        bot.setClipCooldown(newConfig.clipCooldown);
+    }
+    if (newConfig.channel || newConfig.username || newConfig.token) { 
+        setTimeout(() => bot.connect(), 500); 
+    } 
+    return { success: true }; 
+});
 ipcMain.handle('get-commands', () => ({ commands: bot.getCommands() }));
 ipcMain.handle('add-command', (event, command, response) => { bot.addCommand(command, response); return { success: true }; });
 ipcMain.handle('remove-command', (event, command) => { bot.removeCommand(command); return { success: true }; });

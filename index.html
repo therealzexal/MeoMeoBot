@@ -138,6 +138,13 @@
                     <input type="number" id="autoMessageInterval" value="40" min="1">
                 </div>
                 <button class="btn btn-primary form-button" id="saveAutoMessage">Sauvegarder</button>
+                
+                <h3 class="card-title" style="margin-top: 20px;">Commande !clip</h3>
+                <div class="form-group">
+                    <label>Cooldown de la commande (secondes)</label>
+                    <input type="number" id="clipCooldown" value="60" min="10">
+                </div>
+                <button class="btn btn-primary form-button" id="saveClipConfig">Sauvegarder Clip</button>
             </div>
         </div>
     </div>
@@ -250,17 +257,21 @@
             document.getElementById('connectBtn').addEventListener('click', connectBot);
             document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
             document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
+            document.getElementById('saveClipConfig').addEventListener('click', saveClipConfig);
+            
             const addCommandBtn = document.getElementById('addCommandBtn');
             const newCommandInput = document.getElementById('newCommand');
             const commandResponseInput = document.getElementById('commandResponse');
             addCommandBtn.addEventListener('click', addCommand);
             newCommandInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') commandResponseInput.focus(); });
             commandResponseInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCommand(); }});
+            
             document.getElementById('saveGiveawayConfig').addEventListener('click', saveGiveawayConfig);
             document.getElementById('startGiveawayBtn').addEventListener('click', startGiveaway);
             document.getElementById('stopGiveawayBtn').addEventListener('click', stopGiveaway);
             document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
             document.getElementById('clearParticipantsBtn').addEventListener('click', () => showConfirmation('Vider la liste des participants ?', clearParticipants));
+            
             const addBannedWordBtn = document.getElementById('addBannedWordBtn');
             const newBannedWordInput = document.getElementById('newBannedWord');
             addBannedWordBtn.addEventListener('click', addBannedWord);
@@ -268,10 +279,10 @@
             document.getElementById('clearBannedWordsBtn').addEventListener('click', () => {
                 showConfirmation('Vider toute la liste des mots bannis ? Cette action est irréversible.', clearBannedWords);
             });
+            
             document.getElementById('select-cast-folder-btn').addEventListener('click', selectCastFolder);
             document.getElementById('close-device-picker').addEventListener('click', hideDevicePicker);
             
-            // Contrôles de fenêtre
             document.getElementById('minimize-btn').addEventListener('click', () => window.api.send('window-control', 'minimize'));
             document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
             document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
@@ -281,26 +292,32 @@
             const updateConfirmIcon = document.getElementById('update-confirm-icon');
             const updateDenyIcon = document.getElementById('update-deny-icon');
 
-            // Clic sur l'icône de confirmation (Télécharger / Redémarrer)
+            updateStatus.addEventListener('click', (e) => {
+                if (!e.target.closest('.update-popover') && updateStatus.classList.contains('update-available')) {
+                     updateStatus.classList.toggle('active');
+                }
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!updateStatus.contains(e.target)) {
+                    updateStatus.classList.remove('active');
+                }
+            });
+
             updateConfirmIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (updateStatus.classList.contains('update-available')) {
-                    // Lancer le téléchargement
                     window.api.send('start-download');
                 } else if (updateStatus.classList.contains('downloaded')) {
-                    // Lancer l'installation et le redémarrage
                     window.api.send('quit-and-install');
                 }
             });
 
-            // Clic sur l'icône de refus (Refuser / Annuler)
             updateDenyIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Simplement revenir à l'état "À jour" après un refus
                 updateUpdaterStatus('up-to-date'); 
                 showNotification('Mise à jour refusée pour le moment.', 'info');
             });
-            // --- FIN NOUVEAUX LISTENERS ---
         }
 
         // --- NOTIFICATIONS & CONFIRMATION ---
@@ -481,7 +498,7 @@
                 if (result.error) { throw new Error(result.error); }
                 grid.innerHTML = '';
                 if (!result || result.length === 0) {
-                    grid.innerHTML = `<p style="color: var(--danger);">Aucune vidéo compatible trouvée ou erreur lors de la génération des miniatures. Vérifiez la console pour les erreurs FFmpeg.</p>`;
+                    grid.innerHTML = '<p>Aucune vidéo compatible trouvée ou les miniatures n\'ont pas pu être générées.</p>';
                     return;
                 }
                 result.forEach(video => {
@@ -494,7 +511,7 @@
                 });
             } catch (error) {
                 console.error("Erreur dans loadCastVideos (côté rendu):", error);
-                grid.innerHTML = `<p style="color: var(--danger);">Erreur FFmpeg. Voir la console du terminal (où vous lancez 'npm start') pour les détails.</p>`;
+                grid.innerHTML = `<p style="color: var(--danger);">Erreur lors de la génération des miniatures. Vérifiez la console du terminal (où vous lancez 'npm start') pour les détails.</p>`;
                 showNotification(`Erreur FFmpeg. Voir la console.`, "error");
             }
         }
@@ -527,6 +544,7 @@
             document.getElementById('oauthToken').value = config.token || '';
             document.getElementById('autoMessage').value = config.autoMessage || '';
             document.getElementById('autoMessageInterval').value = config.autoMessageInterval || 40;
+            document.getElementById('clipCooldown').value = config.clipCooldown || 60;
             document.getElementById('giveawayCommand').value = config.giveawayCommand || '!giveaway';
             document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage || '';
             document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || '';
@@ -546,6 +564,12 @@
                 autoMessageInterval: parseInt(document.getElementById('autoMessageInterval').value)
             });
             showNotification('Message automatique sauvegardé !', 'success');
+        }
+        async function saveClipConfig() {
+            await window.api.invoke('update-config', {
+                clipCooldown: parseInt(document.getElementById('clipCooldown').value)
+            });
+            showNotification('Configuration du clip sauvegardée !', 'success');
         }
         async function saveGiveawayConfig() {
             await window.api.invoke('update-config', {
@@ -646,7 +670,7 @@
                     updateStatusElement.classList.add('update-available');
                     label.textContent = 'MàJ dispo';
                     actionContainer.classList.remove('hidden');
-                    document.getElementById('update-confirm-icon').textContent = '📥'; // Icône de téléchargement
+                    document.getElementById('update-confirm-icon').textContent = '📥'; 
                     document.getElementById('update-confirm-icon').title = 'Cliquer pour télécharger';
                     break;
                 case 'downloading':
@@ -657,7 +681,7 @@
                     updateStatusElement.classList.add('downloaded');
                     label.textContent = 'Prêt à installer';
                     actionContainer.classList.remove('hidden');
-                    document.getElementById('update-confirm-icon').textContent = '✅'; // Icône de validation
+                    document.getElementById('update-confirm-icon').textContent = '✅'; 
                     document.getElementById('update-confirm-icon').title = 'Cliquer pour redémarrer et installer';
                     break;
                 case 'error':

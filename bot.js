@@ -16,7 +16,8 @@ class TwitchBot {
                     giveawayStopMessage: "🎉 Giveaway fermé ! Merci à tous les participants !",
                     giveawayWinMessage: "Félicitations @{winner}, tu as gagné le giveaway ! 🎉",
                     bannedWords: [],
-                    castFolderPath: ""
+                    castFolderPath: "",
+                    clipCooldown: 60 
                 },
                 commands: {
                     "!discord": "Rejoins notre discord: https://discord.gg/example",
@@ -31,8 +32,15 @@ class TwitchBot {
         this.client = null;
         this.isConnected = false;
         this.messageCount = 0;
+        
+        this.clipCooldown = this.getConfig().clipCooldown * 1000; 
+        this.onCooldown = false;
     }
 
+    setClipCooldown(seconds) {
+        this.clipCooldown = parseInt(seconds, 10) * 1000;
+    }
+    
     getConfig() { return this.store.get('config'); }
     getCommands() { return this.store.get('commands'); }
     getBannedWords() { return this.store.get('config.bannedWords', []); }
@@ -46,18 +54,13 @@ class TwitchBot {
             throw new Error('Configuration de connexion manquante (canal, bot, token).');
         }
         
-        // --- VÉRIFICATION ET NETTOYAGE DE L'ANCIEN CLIENT ---
         if (this.client) {
-            // S'assurer de nettoyer tous les anciens écouteurs pour éviter l'accumulation
-            this.client.removeAllListeners('message');
-            this.client.removeAllListeners('connected');
-            this.client.removeAllListeners('disconnected');
+            this.client.removeAllListeners();
             if (this.isConnected) {
                 this.client.disconnect();
             }
         }
         
-        // --- CRÉATION DU NOUVEAU CLIENT ---
         this.client = new tmi.Client({
             options: { debug: false },
             connection: { secure: true, reconnect: true },
@@ -65,7 +68,6 @@ class TwitchBot {
             channels: [config.channel]
         });
         
-        // --- DÉFINITION DES ÉCOUTEURS D'ÉVÉNEMENTS (Une seule fois par client) ---
         this.client.on('message', (channel, tags, message, self) => {
             if (self) return;
             this.handleMessage(channel, tags, message);
@@ -79,7 +81,6 @@ class TwitchBot {
             if (this.onDisconnected) this.onDisconnected();
         });
 
-        // --- CONNEXION ---
         this.client.connect().catch(console.error);
     }
 
@@ -102,6 +103,23 @@ class TwitchBot {
         }
         if (message.startsWith('!')) {
             const command = message.split(' ')[0].toLowerCase();
+
+            if (command === '!clip') {
+                if (this.isConnected && !this.onCooldown) {
+                    this.client.clip(channel)
+                        .then((clipData) => {
+                            console.log('Clip créé avec succès:', clipData); 
+                        }).catch(err => {
+                            console.error('Erreur lors de la création du clip:', err);
+                            this.client.say(channel, `Désolé @${tags.username}, je n'ai pas pu créer le clip. (Le bot doit être Modérateur ou Editeur)`);
+                        });
+                    
+                    this.onCooldown = true;
+                    setTimeout(() => { this.onCooldown = false; }, this.clipCooldown);
+                }
+                return; 
+            }
+
             if (this.isGiveawayActive() && command === config.giveawayCommand) {
                 const participants = new Set(this.getParticipants());
                 if (!participants.has(tags.username)) {
@@ -111,6 +129,7 @@ class TwitchBot {
                 }
                 return;
             }
+
             const commands = this.getCommands();
             if (commands[command]) {
                 this.client.say(channel, commands[command]);
@@ -123,7 +142,11 @@ class TwitchBot {
         return this.getBannedWords().some(word => lowerMessage.includes(word.toLowerCase()));
     }
 
-    updateConfig(newConfig) { this.store.set('config', { ...this.getConfig(), ...newConfig }); }
+    updateConfig(newConfig) { 
+        const currentConfig = this.getConfig();
+        this.store.set('config', { ...currentConfig, ...newConfig }); 
+    }
+    
     addCommand(command, response) { this.store.set(`commands.${command}`, response); }
     removeCommand(command) { this.store.delete(`commands.${command}`); }
     
