@@ -25,7 +25,9 @@ Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.
 - **Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
 
 ## Stockage des configs
-Toutes vos configurations personnalisées (commandes, mots bannis, etc.) sont stockées **localement** sur votre machine par `electron-store`. La mise à jour de l'application n'écrase jamais ces données.
+Toutes vos configurations personnalisées (commandes, mots bannis, etc.) sont stockées **localement** sur votre machine par `electron-store`. </br>
+La mise à jour de l'application n'écrase jamais ces données.
 
 ## Build l'app
-Incrémenter la version dans `package.json` et ajouter le `GH_TOKEN` dans l'env puis `set GH_TOKEN=VOTRE_JETON && npm run publish` dans une invite de commande.
+Incrémenter la version dans `package.json` et ajouter le `GH_TOKEN` dans l'env.</br>
+`set GH_TOKEN=VOTRE_JETON && npm run publish` dans une invite de commande.
