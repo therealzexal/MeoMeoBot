@@ -10,7 +10,6 @@
   </span>
 </div>
 </br>
----
 
 ## Fonctionnalités :
 - **Commandes** : permet d'input n'importe quelle commande avec une réponse directe dans le tchat Twitch.
