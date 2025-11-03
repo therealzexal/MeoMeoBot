@@ -4,9 +4,10 @@
 
 
 <div align="center">
-  Développé pour [Soo_Meo ](https://www.twitch.tv/soo_meo) <br/>
-  Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.
+  # Développé pour [Soo_Meo ](https://www.twitch.tv/soo_meo) <br/>
+  ## Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.>
 </div>
+</br>
 ---
 
 ## Fonctionnalités :
