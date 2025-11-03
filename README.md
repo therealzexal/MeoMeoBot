@@ -2,8 +2,8 @@
   <img src="./assets/icon.png" alt="MeoMeoBot Icon" width="100"/>
 </p>
 
-Développé pour [Soo_Meo ](https://www.twitch.tv/soo_meo) </br>
-Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.
+<align="center">Développé pour [Soo_Meo ](https://www.twitch.tv/soo_meo) </br>
+Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.</align>
 ---
 
 ## Fonctionnalités :
