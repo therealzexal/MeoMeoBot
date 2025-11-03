@@ -20,7 +20,7 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
-const UPDATE_CHECK_INTERVAL = 600000; 
+const UPDATE_CHECK_INTERVAL = 900000; 
 
 let mainWindow;
 let bot;

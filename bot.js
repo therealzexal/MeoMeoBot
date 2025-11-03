@@ -12,16 +12,16 @@ class TwitchBot {
                     autoMessageInterval: 40,
                     autoMessage: "",
                     giveawayCommand: "!giveaway",
-                    giveawayStartMessage: "🎉 Giveaway ouvert ! Utilise !giveaway pour participer !",
-                    giveawayStopMessage: "🎉 Giveaway fermé ! Merci à tous les participants !",
+                    giveawayStartMessage: "Giveaway ouvert ! Utilise !giveaway pour participer !",
+                    giveawayStopMessage: "Giveaway fermé !",
                     giveawayWinMessage: "Félicitations @{winner}, tu as gagné le giveaway ! 🎉",
                     bannedWords: [],
                     castFolderPath: "",
                     clipCooldown: 60 
                 },
                 commands: {
-                    "!discord": "Rejoins notre discord: https://discord.gg/example",
-                    "!twitter": "Suis-nous sur Twitter: https://twitter.com/example"
+                    "!discord": "Placeholder",
+                    "!twitter": "Placeholder"
                 },
                 giveaway: {
                     isActive: false,
