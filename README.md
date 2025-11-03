@@ -14,15 +14,15 @@ Basé sur Electron pour modérer, gérer les commandes + giveaway et chromecast.
 - **Mise à jour auto** : recherche les nouvelles versions sur les *Releases* publiques de ce dépôt
 
 ## Cast & Flux
-**Transcodage FFmpeg :** pour transcoder le flux à la volée
-**Codecs Cibles :** vidéo au codec **H.264** et audio au codec **AAC**
-**Stabilité :** débit binaire est optimisé à *500 kbps* pour le streaming à faible latence
+- **Transcodage FFmpeg :** pour transcoder le flux à la volée
+- **Codecs Cibles :** vidéo au codec **H.264** et audio au codec **AAC**
+- **Stabilité :** débit binaire est optimisé à *500 kbps* pour le streaming à faible latence
 > ⚠️ Si la diffusion ne démarre pas, vérifiez que le **Pare-feu Windows** autorise l'exécutable principal du bot à ouvrir des ports réseau (règle de trafic entrant/sortant)
 
 ## Connexion & Sécurité
-**Canal Twitch** : nom de chaîne
-**Nom du bot** : nom du compte Twitch utilisé
-**Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
+- **Canal Twitch** : nom de chaîne
+- **Nom du bot** : nom du compte Twitch utilisé
+- **Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
 
 ## Stockage des configs
 Toutes vos configurations personnalisées (commandes, mots bannis, etc.) sont stockées **localement** sur votre machine par `electron-store`. La mise à jour de l'application n'écrase jamais ces données.
