@@ -38,6 +38,7 @@ body {
 #close-btn:hover { background-color: #e81123; }
 #close-btn:hover svg { fill: white; stroke: white; }
 
+
 .status { 
     display: flex; 
     align-items: center; 
@@ -51,6 +52,7 @@ body {
 }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; }
 
+/* Connexion Bot */
 .status.connected { background: rgba(0, 179, 95, 0.1); color: var(--success); }
 .status.disconnected { background: rgba(233, 25, 22, 0.1); color: var(--danger); }
 .status.connected .status-dot { background: var(--success); animation: pulse 2s infinite; }
@@ -111,7 +113,7 @@ body {
     font-size: 16px;
     cursor: pointer;
     transition: transform 0.1s ease;
-    line-height: 1;
+    line-height: 1; 
 }
 
 .status .confirm-icon {
@@ -127,7 +129,7 @@ body {
 
 .hidden {
     display: none !important;
-}Z
+}
 
 .tabs-container { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 15px; background: transparent; border: 1px solid var(--border); border-radius: 8px; -webkit-app-region: no-drag; }
 .main-tabs { display: flex; gap: 5px; }
@@ -176,7 +178,7 @@ body {
 .giveaway-main .winner-display { padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px; flex-shrink: 0; }
 .giveaway-main .card.full-height-card { flex-grow: 1; min-height: 0; }
 #saveGiveawayConfig { margin-bottom: 12px; margin-top: auto;}
-#saveAutoMessage { margin-bottom: 12px; margin-top: auto;}
+#saveAutoMessage #saveClipConfig { margin-bottom: 12px;}
 
 .moderation-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; height: 100%; }
 .moderation-layout .card { height: 100%; }
