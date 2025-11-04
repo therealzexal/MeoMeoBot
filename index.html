@@ -127,8 +127,7 @@
                 </div>
                 <div class="list-container" id="bannedWordsList"></div>
             </div>
-            
-            <div class="moderation-settings-col">
+             <div class="moderation-settings-col">
                 <div class="card">
                     <h3 class="card-title">Message Automatique</h3>
                     <div class="form-group">
@@ -148,7 +147,7 @@
                         <label>Cooldown de la commande (secondes)</label>
                         <input type="number" id="clipCooldown" value="60" min="10">
                     </div>
-                    <button class="btn btn-primary form-button" id="saveClipConfig">Sauvegarder Clip</sbutton>
+                    <button class="btn btn-primary form-button" id="saveClipConfig">Sauvegarder</button>
                 </div>
             </div>
         </div>
@@ -315,7 +314,8 @@
 
             updateDenyIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                updateStatus.classList.remove('active'); 
+                updateUpdaterStatus('up-to-date'); 
+                showNotification('Mise à jour refusée pour le moment.', 'info');
             });
         }
 
@@ -478,12 +478,11 @@
             }
         }
         
-        // --- CAST FUNCTIONS ---
-        async function selectCastFolder() {
-            const folderPath = await window.api.invoke('select-folder');
+        function selectCastFolder() {
+            const folderPath = window.api.invoke('select-folder');
             if (folderPath) {
-                await window.api.invoke('update-config', { castFolderPath: folderPath });
-                await loadCastVideos(folderPath);
+                window.api.invoke('update-config', { castFolderPath: folderPath });
+                loadCastVideos(folderPath);
             }
         }
         async function loadCastVideos(folderPath) {
