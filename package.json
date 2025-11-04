@@ -3,7 +3,7 @@
   "version": "3.1.0",
   "description": "Un bot qui miaule",
   "main": "main.js",
-  "repository": "github:therealzexal/MeoMeoBot",
+  "repository": "github:Zexaaaal//MeoMeoBot",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
