@@ -21,4 +21,4 @@ Thumbs.db
 .env
 
 # Cmd
-cmd.bat
+publish.bat
