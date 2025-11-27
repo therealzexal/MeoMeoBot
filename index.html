@@ -169,16 +169,20 @@
             <p>URL du Serveur Local: <code id="widgetUrlDisplay">Chargement...</code></p>
             
             <h4 style="margin-top: 15px;">Widgets Disponibles:</h4>
-            <div id="widgetList" class="list-container">
-                <div class="list-item" data-widget="chat">
-                    <div class="content">
-                        <strong>Chat Overlay</strong>
-                    </div>
-                    <div class="controls">
-                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Éditer CSS</button>
-                    </div>
+            <div class="list-item" data-widget="chat">
+                <div class="content"><strong>Chat Overlay</strong></div>
+                <div class="controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <label><input type="checkbox" data-badge="moderator">Mod</label>
+                    <label><input type="checkbox" data-badge="vip">VIP</label>
+                    <label><input type="checkbox" data-badge="subscriber">Sub</label>
+                    <label><input type="checkbox" data-badge="founder">Founder</label>
+                    <label><input type="checkbox" data-badge="partner">Partner</label>
+                    <label><input type="checkbox" data-badge="staff">Staff</label>
+                    <label><input type="checkbox" data-badge="premium">Prime</label>
+                    <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Éditer CSS</button>
+                    <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
                 </div>
-            </div>
+             </div>
         </div>
     </div>
 
@@ -236,6 +240,7 @@
         async function initializeApp() {
             setupTabs();
             await loadAllData();
+            await loadBadgePrefs();
             setupEventListeners();
             setupConfirmationOverlay(); 
             updateUpdaterStatus('checking');
@@ -281,6 +286,11 @@
             document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
             document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
             document.getElementById('saveClipConfig').addEventListener('click', saveClipConfig);
+            document.getElementById('saveBadgePrefs').addEventListener('click', saveBadgePrefs);
+            const saveBadgeBtn = document.getElementById('saveBadgePrefs');
+            if (saveBadgeBtn) saveBadgeBtn.addEventListener('click', saveBadgePrefs);
+
+
             
             const addCommandBtn = document.getElementById('addCommandBtn');
             const newCommandInput = document.getElementById('newCommand');
@@ -406,7 +416,7 @@
             if (originalCommandName !== finalCommand) {
                 await window.api.invoke('remove-command', originalCommandName);
             }
-            await window.api.invoke('add-command', finalCommand, newResponse);
+            await window.api.invoke('add-command', finalCommand, response);
             activeInlineEdit = null;
             await loadCommands();
             showNotification('Commande modifiée !', 'success');
@@ -456,6 +466,22 @@
                 `;
                 list.appendChild(item);
             }
+        }
+        async function loadBadgePrefs() {
+            const cfg = await window.api.invoke('get-widget-config', 'chat');
+            const prefs = (cfg && cfg.badgePrefs) || {};
+            document.querySelectorAll('#widgetList input[data-badge]').forEach(inp => {
+                const key = inp.dataset.badge;
+                inp.checked = prefs[key] !== false;
+            });
+        }
+        async function saveBadgePrefs() {
+            const prefs = {};
+            document.querySelectorAll('#widgetList input[data-badge]').forEach(inp => {
+                prefs[inp.dataset.badge] = inp.checked;
+            });
+            await window.api.invoke('save-widget-config', 'chat', { badgePrefs: prefs });
+            showNotification('Badges mis à jour', 'success');
         }
         async function commandDelete(command) {
             await window.api.invoke('remove-command', command);

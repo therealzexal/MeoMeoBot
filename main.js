@@ -268,12 +268,17 @@ function startWidgetServer() {
                 const chatConfig = bot.getWidgetConfig('chat');
                 const customCSS = chatConfig.customCSS || '';
                 const maxMessages = chatConfig.maxMessages || 10;
+                const badgePrefs = chatConfig.badgePrefs || {
+                moderator: true, vip: true, subscriber: true,
+                founder: true, partner: true, staff: true, premium: true
+                };
 
                 let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
                 content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
-
+                content = content.replace('const BADGE_PREFS = {};', `const BADGE_PREFS = ${JSON.stringify(badgePrefs)};`);
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
+
             });
         } else {
             res.statusCode = 404;

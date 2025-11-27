@@ -23,7 +23,16 @@ class TwitchBot {
                 widgets: {
                     chat: {
                         customCSS: "/* Styles par défaut: */\n\n#chat-container {\n    max-height: 500px; \n    font-size: 16px;\n}\n\n.message {\n    padding: 10px;\n    border-radius: 8px;\n}\n\n.username {\n    font-weight: bold;\n    text-shadow: none;\n}",
-                        maxMessages: 10
+                        maxMessages: 10,
+                        badgePrefs: {
+                            moderator: true,
+                            vip: true,
+                            subscriber: true,
+                            founder: true,
+                            partner: true,
+                            staff: true,
+                            premium: true
+                        }
                     }
                 },
                 commands: {
@@ -119,7 +128,8 @@ class TwitchBot {
             text: message,
             color: tags.color || '#FFFFFF',
             badgesRaw: tags['badges-raw'] || '',
-            emotes: tags.emotes || null 
+            badgesObj: tags.badges || null,
+            emotes: tags.emotes || null
         };
 
         if (this.onChatMessage) {

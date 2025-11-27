@@ -313,6 +313,7 @@ textarea { resize: vertical; }
     padding: 0;
     overflow: hidden;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    height: 770px;
 }
 .css-editor-shell { display: flex; flex-direction: column; height: 100vh; background: linear-gradient(135deg, #1a1a1d 0%, #0e0e10 100%); }
 .css-editor-titlebar {
@@ -320,8 +321,9 @@ textarea { resize: vertical; }
     padding: 12px 16px;
     background: linear-gradient(90deg, rgba(145, 71, 255, 0.15), rgba(145, 71, 255, 0.05));
     border-bottom: 1px solid var(--border);
+    height: 40px;
 }
-.css-editor-titlebar h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; color: var(--text-primary); }
+.css-editor-titlebar h2 { margin: 0; font-size: 15px; font-weight: 400; color: var(--text-primary); }
 .css-editor-close {
     background: var(--bg-tertiary); border: 1px solid var(--border);
     color: var(--text-secondary); cursor: pointer; padding: 6px 10px;
@@ -372,3 +374,27 @@ textarea { resize: vertical; }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(100%);} }
 @keyframes slideUpIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+#badgePrefs .badge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+}
+#badgePrefs label {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+#widgetList label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+
+#widgetList input[type="checkbox"] { margin: 0; }
