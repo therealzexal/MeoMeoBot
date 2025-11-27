@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Editeur CSS Widget</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Layout dédié à l'éditeur (complète style.css si besoin) */
+        .css-editor-body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .css-editor-shell { display: flex; flex-direction: column; height: 100vh; background: linear-gradient(135deg, #1a1a1d 0%, #0e0e10 100%); }
+        .css-editor-titlebar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px;
+            background: linear-gradient(90deg, rgba(145, 71, 255, 0.15), rgba(145, 71, 255, 0.05));
+            border-bottom: 1px solid var(--border);
+        }
+        .css-editor-titlebar h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; color: var(--text-primary); }
+        .css-editor-close {
+            background: var(--bg-tertiary); border: 1px solid var(--border);
+            color: var(--text-secondary); cursor: pointer; padding: 6px 10px;
+            border-radius: 8px; transition: all 0.15s ease;
+        }
+        .css-editor-close:hover { color: #fff; border-color: var(--accent); }
+
+        .css-editor-main {
+            display: grid;
+            grid-template-columns: 1fr 0.9fr;
+            gap: 14px;
+            padding: 14px;
+            flex: 1;
+            min-height: 0;
+        }
+        .css-editor-left { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+        .css-editor-textarea {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+            min-height: 360px;
+            font-family: Consolas, "Fira Code", monospace;
+            width: 100%;
+            resize: vertical;
+        }
+        .css-editor-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .css-editor-status { font-size: 12px; color: var(--text-secondary); min-height: 18px; }
+        .css-editor-status.ok { color: var(--success); }
+        .css-editor-status.err { color: var(--danger); }
+
+        .css-preview-block {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+        .css-preview-toolbar { display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); font-size: 12px; }
+        #preview-frame-wrapper { height: 100%; min-height: 360px; border-radius: 8px; overflow: hidden; }
+        #preview-frame { width: 100%; height: 100%; border: none; background: transparent; }
+    </style>
+</head>
+<body class="css-editor-body">
+    <div class="css-editor-shell">
+        <div class="css-editor-titlebar">
+            <h2>CSS Widget : <span id="widgetNameLabel">chat</span></h2>
+            <button class="css-editor-close" id="close-btn" title="Fermer">✕</button>
+        </div>
+
+        <div class="css-editor-main">
+            <!-- Éditeur gauche -->
+            <div class="css-editor-left">
+                <div>
+                    <label for="customCss">CSS personnalisé</label>
+                    <textarea id="customCss" class="css-editor-textarea" spellcheck="false"></textarea>
+                </div>
+                <div>
+                    <label for="maxMessages">Nombre max de messages (chat)</label>
+                    <input id="maxMessages" type="number" min="1" value="10">
+                </div>
+                <div class="css-editor-actions">
+                    <button class="btn btn-primary" id="save-btn">Sauvegarder</button>
+                    <button class="btn btn-secondary" id="reset-btn">Remettre par défaut</button>
+                </div>
+                <div class="css-editor-status" id="statusBar"></div>
+            </div>
+
+            <!-- Preview droite -->
+            <div class="css-preview-block">
+                <div class="css-preview-toolbar">
+                    <span>Aperçu en direct (5 messages simulés)</span>
+                </div>
+                <div id="preview-frame-wrapper">
+                    <iframe id="preview-frame" title="chat preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultCss = {
+            chat: `/*
+Selectors & helpers:
+ - body
+ - #chat-container
+ - .message (wrapper) + per-user class: .user-<username-sanitized>
+ - .message__meta (row for badges + username)
+ - .username (text wrapper)
+ - .message__body (text wrapper)
+ - .badge (img)
+ - Per message CSS variables set by the app:
+     --user-color: twitch color or derived fallback
+     --user-color-soft: translucent version of user color
+*/
+body { background: transparent; }
+
+#chat-container {
+    padding: 10px;
+    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.message {
+    border: 1px solid var(--user-color, #6dd4ff);
+    background: var(--user-color-soft, rgba(109, 212, 255, 0.12));
+    border-radius: 16px;
+    padding: 10px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.message__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.username {
+    font-weight: 700;
+    color: var(--user-color, #6dd4ff);
+    letter-spacing: 0.1px;
+}
+
+.message__body {
+    color: #e7eef5;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.badge {
+    width: 16px;
+    height: 16px;
+}
+`
+        };
+
+        let currentWidget = 'chat';
+        const cssInput = document.getElementById('customCss');
+        const maxMessagesInput = document.getElementById('maxMessages');
+        const statusBar = document.getElementById('statusBar');
+        const nameLabel = document.getElementById('widgetNameLabel');
+
+        function setStatus(msg, type = '') {
+            statusBar.className = `css-editor-status ${type}`;
+            statusBar.textContent = msg || '';
+        }
+
+        async function loadWidgetConfig(widgetName = 'chat') {
+            currentWidget = widgetName || 'chat';
+            nameLabel.textContent = currentWidget;
+            setStatus('Chargement...');
+            try {
+                const config = await window.api.invoke('get-widget-config', currentWidget);
+                const storedCss = config && typeof config.customCSS === 'string' ? config.customCSS.trim() : '';
+                cssInput.value = storedCss || defaultCss[currentWidget] || '';
+                maxMessagesInput.value = (config && config.maxMessages) || 10;
+                setStatus('Configuration chargée', 'ok');
+            } catch (e) {
+                cssInput.value = defaultCss[currentWidget] || '';
+                maxMessagesInput.value = 10;
+                setStatus('Erreur de chargement, valeurs par défaut chargées.', 'err');
+            }
+        }
+
+        async function saveWidgetConfig() {
+            const maxVal = parseInt(maxMessagesInput.value, 10);
+            const safeMax = Number.isInteger(maxVal) && maxVal > 0 ? maxVal : 10;
+            try {
+                await window.api.invoke('save-widget-config', currentWidget, {
+                    customCSS: cssInput.value,
+                    maxMessages: safeMax
+                });
+                setStatus('CSS sauvegardé', 'ok');
+                renderPreview();
+            } catch (e) {
+                setStatus('Erreur de sauvegarde: ' + (e.message || e), 'err');
+            }
+        }
+
+        function getPreviewHtml(customCss, maxMessages) {
+            return `<!DOCTYPE html>
+<html>
+<head>
+<style>
+body{background:#0a0a0a;margin:0;padding:10px;color:#fff;font-family:Inter,Segoe UI,sans-serif;}
+#chat-container{display:flex;flex-direction:column;gap:10px;justify-content:flex-end;}
+.message{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.08);}
+.message__meta{display:inline-flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.username{font-weight:700;margin-right:4px;color:#6dd4ff;}
+.message__body{line-height:1.4;}
+.badge-img{width:18px;height:18px;object-fit:contain;}
+${customCss || ''}
+</style>
+</head>
+<body>
+<div id="chat-container"></div>
+<script>
+const MAX_MESSAGES = ${maxMessages || 10};
+const container = document.getElementById('chat-container');
+const demo = [
+ {u:'Alice',c:'#6dd4ff',b:[{set:'staff',version:'1'}],t:'Hello world!'},
+ {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Ceci est un test.'},
+ {u:'Chloe',c:'#9b59b6',b:[],t:'Nice overlay!'},
+ {u:'Dave',c:'#2ecc71',b:[{set:'premium',version:'1'}],t:'Wrap check.'},
+ {u:'Eve',c:'#e67e22',b:[],t:'Short msg.'}
+];
+function add(m){
+  const wrap=document.createElement('div');
+  wrap.className='message';
+  wrap.style.setProperty('--user-color', m.c);
+  wrap.style.setProperty('--user-color-soft', 'rgba(255,255,255,0.05)');
+  const meta=document.createElement('div');
+  meta.className='message__meta';
+  const u=document.createElement('span');
+  u.className='username';
+  u.textContent=m.u;
+  u.style.color=m.c;
+  meta.appendChild(u);
+  (m.b||[]).forEach(b=>{
+    const img=document.createElement('img');
+    img.className='badge-img';
+    img.src='https://static-cdn.jtvnw.net/badges/v1/'+b.set+'/'+b.version+'/1';
+    img.alt=b.set;
+    img.onerror=()=>img.remove();
+    meta.appendChild(img);
+  });
+  const body=document.createElement('div');
+  body.className='message__body';
+  body.textContent=m.t;
+  wrap.appendChild(meta);
+  wrap.appendChild(body);
+  container.appendChild(wrap);
+}
+demo.slice(-MAX_MESSAGES).forEach(add);
+<\/script>
+</body>
+</html>`;
+        }
+
+        function renderPreview() {
+            const frame = document.getElementById('preview-frame');
+            if (!frame) return;
+            const css = (cssInput.value || '').trim() || defaultCss[currentWidget] || '';
+            const max = parseInt(maxMessagesInput.value, 10) || 10;
+            frame.srcdoc = getPreviewHtml(css, max);
+        }
+
+        document.getElementById('save-btn').addEventListener('click', saveWidgetConfig);
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            cssInput.value = defaultCss[currentWidget] || '';
+            setStatus('Valeurs par défaut rétablies (pense à sauvegarder)', 'ok');
+            renderPreview();
+        });
+        document.getElementById('close-btn').addEventListener('click', () => window.close());
+
+        cssInput.addEventListener('input', renderPreview);
+        maxMessagesInput.addEventListener('input', renderPreview);
+
+        window.api.on('load-css-editor', ({ widgetName }) => { loadWidgetConfig(widgetName).then(renderPreview); });
+        document.addEventListener('DOMContentLoaded', () => { loadWidgetConfig().then(renderPreview); });
+    </script>
+</body>
+</html>

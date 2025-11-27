@@ -9,6 +9,7 @@ const ip = require('ip');
 const mdns = require('mdns-js');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
+const WebSocket = require('ws');
 
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
@@ -20,11 +21,16 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
-const UPDATE_CHECK_INTERVAL = 900000; 
+const UPDATE_CHECK_INTERVAL = 900000;
+const DEFAULT_WIDGET_PORT = 8087;
 
 let mainWindow;
+let cssEditorWindow = null; 
 let bot;
 let mediaServer;
+let widgetServer; 
+let widgetServerPort = 0; 
+let wss; 
 let currentlyPlayingPath = null;
 let updateCheckTimer = null; 
 
@@ -53,9 +59,47 @@ function createWindow() {
     autoConnectBot();
 }
 
+function openCssEditorWindow(widgetName = 'chat') {
+    if (cssEditorWindow) {
+        cssEditorWindow.focus();
+        cssEditorWindow.webContents.send('load-css-editor', { widgetName });
+        return;
+    }
+    
+    cssEditorWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        title: 'Editeur CSS Widget',
+        parent: mainWindow,
+        modal: true,
+        show: false,
+        frame: false,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        }
+    });
+
+    cssEditorWindow.loadFile('css_editor.html');
+    cssEditorWindow.setMenu(null);
+
+    cssEditorWindow.on('ready-to-show', () => {
+        cssEditorWindow.show();
+        cssEditorWindow.webContents.send('load-css-editor', { widgetName });
+    });
+
+    cssEditorWindow.on('closed', () => {
+        cssEditorWindow = null;
+    });
+}
+ipcMain.handle('open-css-editor', (event, widgetName) => openCssEditorWindow(widgetName));
+
+
 app.whenReady().then(() => {
     createWindow();
     startMediaServer();
+    startWidgetServer();
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
@@ -71,15 +115,17 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
+    if (widgetServer) widgetServer.close();
     if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
 ipcMain.on('window-control', (event, action) => {
-    if (!mainWindow) return;
+    const window = BrowserWindow.getFocusedWindow();
+    if (!window) return;
     switch (action) {
-        case 'minimize': mainWindow.minimize(); break;
-        case 'maximize': mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(); break;
-        case 'close': mainWindow.close(); break;
+        case 'minimize': window.minimize(); break;
+        case 'maximize': window.isMaximized() ? window.unmaximize() : window.maximize(); break;
+        case 'close': window.close(); break;
     }
 });
 
@@ -87,7 +133,7 @@ function startUpdateCheckLoop() {
     if (updateCheckTimer) clearInterval(updateCheckTimer);
     updateCheckTimer = setInterval(() => {
         if (app.isPackaged) {
-            console.log('[AUTO-UPDATER] Vérification des mises à jour (10 min)...');
+            console.log('[AUTO-UPDATER] Vérification des mises à jour (15 min)...');
             autoUpdater.checkForUpdates();
         }
     }, UPDATE_CHECK_INTERVAL);
@@ -144,12 +190,26 @@ function setupBotEvents() {
     bot.onDisconnected = () => safeSend('bot-status', { connected: false });
     bot.onParticipantsUpdated = () => safeSend('participants-updated');
     bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
+    
+    bot.onChatMessage = (messageData) => {
+        sendChatToWidgets(messageData);
+    };
 }
 
 app.on('window-all-closed', () => {
     if (bot) bot.disconnect();
     if (process.platform !== 'darwin') app.quit();
 });
+
+function sendChatToWidgets(messageData) {
+    if (wss && wss.clients) {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(messageData));
+            }
+        });
+    }
+}
 
 function startMediaServer() {
     mediaServer = http.createServer((req, res) => {
@@ -165,7 +225,7 @@ function startMediaServer() {
                         '-preset ultrafast', 
                         '-tune zerolatency', 
                         '-movflags frag_keyframe+empty_moov',
-                        '-b:v 500k'
+                        '-b:v 500k' 
                     ])
                     .on('error', (err, stdout, stderr) => {
                         console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`); 
@@ -183,6 +243,80 @@ function startMediaServer() {
         }
     }).listen(0, () => {});
 }
+
+function resolveWidgetPort() {
+    const storedPort = bot?.getConfig?.()?.widgetPort;
+    const parsed = parseInt(storedPort, 10);
+    if (Number.isInteger(parsed) && parsed > 0 && parsed < 65536) {
+        return parsed;
+    }
+    console.warn(`[WIDGET PORT] Port invalide ou manquant (${storedPort}). Utilisation du port ${DEFAULT_WIDGET_PORT}.`);
+    if (bot?.updateConfig) bot.updateConfig({ widgetPort: DEFAULT_WIDGET_PORT });
+    return DEFAULT_WIDGET_PORT;
+}
+
+function startWidgetServer() {
+    const portInitial = resolveWidgetPort();
+
+    widgetServer = http.createServer((req, res) => {
+        if (req.url === '/widget/chat') {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            const filePath = path.join(__dirname, 'chat_widget.html');
+            fs.readFile(filePath, 'utf8', (err, data) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end('Error loading widget file');
+                } else {
+                    const chatConfig = bot.getWidgetConfig('chat');
+                    const customCSS = chatConfig.customCSS || '';
+                    const maxMessages = chatConfig.maxMessages || 10;
+                    
+                    let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
+                    content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
+
+                    res.end(content);
+                }
+            });
+        } else {
+            res.writeHead(404);
+            res.end('Widget Not Found');
+        }
+    }).listen(portInitial, () => {
+        widgetServerPort = widgetServer.address().port;
+        console.log(`Serveur Widget HTTP démarré sur port: ${widgetServerPort}`);
+        
+        if (widgetServerPort !== portInitial) { 
+            console.warn(`ATTENTION: Le port ${portInitial} était occupé. Le serveur utilise le port ${widgetServerPort}.`);
+            bot.updateConfig({ widgetPort: widgetServerPort });
+        }
+        
+        wss = new WebSocket.Server({ server: widgetServer });
+        
+        wss.on('connection', (ws) => {
+            console.log('Nouveau client Widget connecté.');
+            ws.on('close', () => console.log('Client Widget déconnecté.'));
+        });
+    }).on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`[WIDGET SERVER ERROR] Le port ${portInitial} est déjà utilisé. Changez 'widgetPort' ou libérez le port.`);
+        } else {
+            console.error(`[WIDGET SERVER ERROR] ${err.message}`);
+        }
+    });
+}
+
+ipcMain.handle('get-widget-config', (event, widgetName) => {
+    return bot.getWidgetConfig(widgetName);
+});
+ipcMain.handle('save-widget-config', (event, widgetName, config) => {
+    bot.saveWidgetConfig(widgetName, config);
+    return { success: true };
+});
+
+ipcMain.handle('get-widget-url', async () => {
+    const localIp = ip.address();
+    return `http://${localIp}:${widgetServerPort}/widget/chat`; 
+});
 
 ipcMain.handle('discover-devices', async () => {
     mainWindow.webContents.send('device-discovery-status', 'Recherche en cours...');
@@ -261,7 +395,7 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                         ffmpeg(fullVideoPath)
                             .on('end', resolve)
                             .on('error', (err, stdout, stderr) => {
-                                console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE] Échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
+                                console.error("\x1b[33m%s\x1B[0m", `[AVERTISSEMENT MINIATURE] Échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
                                 resolve(); 
                             })
                             .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });

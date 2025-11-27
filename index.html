@@ -42,6 +42,7 @@
             <div class="tab" data-tab="giveaway">Giveaway</div>
             <div class="tab" data-tab="moderation">Modération</div>
             <div class="tab" data-tab="cast">Cast</div>
+            <div class="tab" data-tab="widgets">Widgets</div>
         </div>
         <div class="settings-tab">
             <div class="tab icon-tab" data-tab="config" title="Configuration">
@@ -162,6 +163,25 @@
         </div>
     </div>
 
+    <div class="tab-content" id="widgets-tab">
+        <div class="card full-height-card">
+            <h3 class="card-title">Configuration des Widgets</h3>
+            <p>URL du Serveur Local: <code id="widgetUrlDisplay">Chargement...</code></p>
+            
+            <h4 style="margin-top: 15px;">Widgets Disponibles:</h4>
+            <div id="widgetList" class="list-container">
+                <div class="list-item" data-widget="chat">
+                    <div class="content">
+                        <strong>Chat Overlay</strong>
+                    </div>
+                    <div class="controls">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Éditer CSS</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-content" id="config-tab">
         <div class="card login-card">
             <h3 class="card-title">Connexion à Twitch</h3>
@@ -219,6 +239,9 @@
             setupEventListeners();
             setupConfirmationOverlay(); 
             updateUpdaterStatus('checking');
+            window.api.invoke('get-widget-url').then(url => {
+                document.getElementById('widgetUrlDisplay').textContent = url;
+            });
         }
 
         function setupTabs() {
@@ -314,8 +337,14 @@
 
             updateDenyIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                updateStatus.classList.remove('active'); 
+                updateUpdaterStatus('up-to-date'); 
+                showNotification('Mise à jour refusée pour le moment.', 'info');
             });
+            
+            window.editWidgetCss = function(widgetName) {
+            window.api.invoke('open-css-editor', widgetName || 'chat');
+          };
+
         }
 
         function showNotification(message, type = 'info') {

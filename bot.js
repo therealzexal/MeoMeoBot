@@ -12,16 +12,23 @@ class TwitchBot {
                     autoMessageInterval: 40,
                     autoMessage: "",
                     giveawayCommand: "!giveaway",
-                    giveawayStartMessage: "Giveaway ouvert ! Utilise !giveaway pour participer !",
-                    giveawayStopMessage: "Giveaway fermé !",
-                    giveawayWinMessage: "Félicitations @{winner}, tu as gagné le giveaway ! 🎉",
+                    giveawayStartMessage: "🎉 Giveaway ouvert ! Utilise !giveaway pour participer !",
+                    giveawayStopMessage: "🔒 Giveaway fermé ! Merci à tous les participants !",
+                    giveawayWinMessage: "Félicitations @{winner}, tu as gagné le giveaway ! 🎁",
                     bannedWords: [],
                     castFolderPath: "",
-                    clipCooldown: 60 
+                    clipCooldown: 60,
+                    widgetPort: 8087
+                },
+                widgets: {
+                    chat: {
+                        customCSS: "/* Styles par défaut: */\n\n#chat-container {\n    max-height: 500px; \n    font-size: 16px;\n}\n\n.message {\n    padding: 10px;\n    border-radius: 8px;\n}\n\n.username {\n    font-weight: bold;\n    text-shadow: none;\n}",
+                        maxMessages: 10
+                    }
                 },
                 commands: {
-                    "!discord": "Placeholder",
-                    "!twitter": "Placeholder"
+                    "!discord": "Rejoins notre discord: https://discord.gg/example",
+                    "!twitter": "Suis-nous sur Twitter: https://twitter.com/example"
                 },
                 giveaway: {
                     isActive: false,
@@ -32,15 +39,15 @@ class TwitchBot {
         this.client = null;
         this.isConnected = false;
         this.messageCount = 0;
-        
-        this.clipCooldown = this.getConfig().clipCooldown * 1000; 
+
+        this.clipCooldown = this.getConfig().clipCooldown * 1000;
         this.onCooldown = false;
     }
 
     setClipCooldown(seconds) {
         this.clipCooldown = parseInt(seconds, 10) * 1000;
     }
-    
+
     getConfig() { return this.store.get('config'); }
     getCommands() { return this.store.get('commands'); }
     getBannedWords() { return this.store.get('config.bannedWords', []); }
@@ -48,26 +55,35 @@ class TwitchBot {
     getParticipantsCount() { return this.getParticipants().length; }
     isGiveawayActive() { return this.store.get('giveaway.isActive'); }
 
+    getWidgetConfig(widgetName) {
+        return this.store.get(`widgets.${widgetName}`);
+    }
+
+    saveWidgetConfig(widgetName, newConfig) {
+        const currentConfig = this.getWidgetConfig(widgetName) || {};
+        this.store.set(`widgets.${widgetName}`, { ...currentConfig, ...newConfig });
+    }
+
     connect() {
         const config = this.getConfig();
         if (!config.channel || !config.username || !config.token) {
             throw new Error('Configuration de connexion manquante (canal, bot, token).');
         }
-        
+
         if (this.client) {
             this.client.removeAllListeners();
             if (this.isConnected) {
                 this.client.disconnect();
             }
         }
-        
+
         this.client = new tmi.Client({
             options: { debug: false },
             connection: { secure: true, reconnect: true },
             identity: { username: config.username, password: config.token },
             channels: [config.channel]
         });
-        
+
         this.client.on('message', (channel, tags, message, self) => {
             if (self) return;
             this.handleMessage(channel, tags, message);
@@ -95,6 +111,20 @@ class TwitchBot {
             this.client.deletemessage(channel, tags.id).catch(console.error);
             return;
         }
+
+        const messageData = {
+            type: 'chat',
+            username: tags.username,
+            displayName: tags['display-name'] || tags.username,
+            text: message,
+            color: tags.color || '#FFFFFF',
+            badgesRaw: tags['badges-raw'] || ''
+        };
+
+        if (this.onChatMessage) {
+            this.onChatMessage(messageData);
+        }
+
         const config = this.getConfig();
         this.messageCount++;
         if (config.autoMessage && this.messageCount >= config.autoMessageInterval) {
@@ -108,16 +138,16 @@ class TwitchBot {
                 if (this.isConnected && !this.onCooldown) {
                     this.client.clip(channel)
                         .then((clipData) => {
-                            console.log('Clip créé avec succès:', clipData); 
+                            console.log('Clip créé avec succès:', clipData);
                         }).catch(err => {
                             console.error('Erreur lors de la création du clip:', err);
                             this.client.say(channel, `Désolé @${tags.username}, je n'ai pas pu créer le clip. (Le bot doit être Modérateur ou Editeur)`);
                         });
-                    
+
                     this.onCooldown = true;
                     setTimeout(() => { this.onCooldown = false; }, this.clipCooldown);
                 }
-                return; 
+                return;
             }
 
             if (this.isGiveawayActive() && command === config.giveawayCommand) {
@@ -142,14 +172,14 @@ class TwitchBot {
         return this.getBannedWords().some(word => lowerMessage.includes(word.toLowerCase()));
     }
 
-    updateConfig(newConfig) { 
+    updateConfig(newConfig) {
         const currentConfig = this.getConfig();
-        this.store.set('config', { ...currentConfig, ...newConfig }); 
+        this.store.set('config', { ...currentConfig, ...newConfig });
     }
-    
+
     addCommand(command, response) { this.store.set(`commands.${command}`, response); }
     removeCommand(command) { this.store.delete(`commands.${command}`); }
-    
+
     addBannedWord(word) {
         const words = new Set(this.getBannedWords());
         words.add(word);
