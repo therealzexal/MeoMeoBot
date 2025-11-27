@@ -118,7 +118,8 @@ class TwitchBot {
             displayName: tags['display-name'] || tags.username,
             text: message,
             color: tags.color || '#FFFFFF',
-            badgesRaw: tags['badges-raw'] || ''
+            badgesRaw: tags['badges-raw'] || '',
+            emotes: tags.emotes || null 
         };
 
         if (this.onChatMessage) {

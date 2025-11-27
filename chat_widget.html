@@ -118,7 +118,14 @@
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'chat') {
-                    addMessage(data.username, data.displayName || data.username, data.text, data.color, data.badgesRaw || data.badges);
+                    addMessage(
+                        data.username,
+                        data.displayName || data.username,
+                        data.text,
+                        data.color,
+                        data.badgesRaw || data.badges,
+                        data.emotes || null
+                    );
                 }
             };
 
@@ -133,17 +140,17 @@
             };
         }
 
-        function parseBadgesRaw(badgesRaw) {
-            if (!badgesRaw) return [];
-            return badgesRaw.split(',')
-                .map(entry => entry.trim())
-                .filter(Boolean)
-                .map(entry => {
-                    const [set, version] = entry.split('/');
-                    return set && version ? { set, version } : null;
-                })
-                .filter(Boolean);
-        }
+            function parseBadgesRaw(badgesRaw) {
+                if (!badgesRaw) return [];
+                return badgesRaw.split(',')
+                    .map(entry => entry.trim())
+                    .filter(Boolean)
+                    .map(entry => {
+                        const [set, version] = entry.split('/');
+                        return set && version ? { set, version } : null;
+                    })
+                    .filter(Boolean);
+            }
 
         function createBadgeImg(entry) {
             const img = document.createElement('img');
@@ -154,40 +161,77 @@
             return img;
         }
 
-        function addMessage(username, displayName, text, color, badgesRaw) {
-            const msgElement = document.createElement('div');
-            const userClass = sanitizeClass(username);
-            const { solid, soft } = computeColors(color);
-
-            msgElement.className = `message user-${userClass}`;
-            msgElement.style.setProperty('--user-color', solid);
-            msgElement.style.setProperty('--user-color-soft', soft);
-
-            const metaRow = document.createElement('div');
-            metaRow.className = 'message__meta';
-
-            const userSpan = document.createElement('span');
-            userSpan.className = 'username';
-            userSpan.textContent = displayName || username;
-            userSpan.style.color = solid;
-            metaRow.appendChild(userSpan);
-
-            parseBadgesRaw(badgesRaw).forEach(entry => {
-                metaRow.appendChild(createBadgeImg(entry));
-            });
-
-            const body = document.createElement('div');
-            body.className = 'message__body';
-            body.textContent = text;
-
-            msgElement.appendChild(metaRow);
-            msgElement.appendChild(body);
-            container.appendChild(msgElement);
-
-            while (container.children.length > MAX_MESSAGES) {
-                container.removeChild(container.children[0]);
-            }
+        function emoteUrl(emoteId) {
+         return `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/1.0`;
         }
+
+        function renderTextWithEmotes(text, emotesMap) {
+            const frag = document.createDocumentFragment();
+            if (!emotesMap || typeof emotesMap !== 'object') {
+                frag.appendChild(document.createTextNode(text));
+                return frag;
+            }
+            // Construire les spans/emotes par positions
+            const parts = [];
+            Object.keys(emotesMap).forEach(id => {
+                emotesMap[id].forEach(pos => {
+                    parts.push({ id, start: pos.start, end: pos.end });
+                });
+            });
+            parts.sort((a, b) => a.start - b.start);
+
+            let cursor = 0;
+            for (const part of parts) {
+                if (cursor < part.start) {
+                    frag.appendChild(document.createTextNode(text.slice(cursor, part.start)));
+                }
+                const emoteImg = document.createElement('img');
+                emoteImg.src = emoteUrl(part.id);
+                emoteImg.alt = text.slice(part.start, part.end + 1);
+                emoteImg.style.verticalAlign = 'middle';
+                frag.appendChild(emoteImg);
+                cursor = part.end + 1;
+            }
+            if (cursor < text.length) {
+                frag.appendChild(document.createTextNode(text.slice(cursor)));
+            }
+            return frag;
+        }
+
+        function addMessage(username, displayName, text, color, badgesRaw, emotes) {
+        const msgElement = document.createElement('div');
+        const userClass = sanitizeClass(username);
+        const { solid, soft } = computeColors(color);
+
+        msgElement.className = `message user-${userClass}`;
+        msgElement.style.setProperty('--user-color', solid);
+        msgElement.style.setProperty('--user-color-soft', soft);
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'message__meta';
+
+        const userSpan = document.createElement('span');
+        userSpan.className = 'username';
+        userSpan.textContent = displayName || username;
+        userSpan.style.color = solid;
+        metaRow.appendChild(userSpan);
+
+        parseBadgesRaw(badgesRaw).forEach(entry => {
+            metaRow.appendChild(createBadgeImg(entry));
+        });
+
+        const body = document.createElement('div');
+        body.className = 'message__body';
+        body.appendChild(renderTextWithEmotes(text, emotes));
+
+        msgElement.appendChild(metaRow);
+        msgElement.appendChild(body);
+        container.appendChild(msgElement);
+
+        while (container.children.length > MAX_MESSAGES) {
+            container.removeChild(container.children[0]);
+        }
+    }
 
         connectWebSocket();
     </script>
