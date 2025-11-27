@@ -25,14 +25,14 @@ const UPDATE_CHECK_INTERVAL = 900000;
 const DEFAULT_WIDGET_PORT = 8087;
 
 let mainWindow;
-let cssEditorWindow = null; 
+let cssEditorWindow = null;
 let bot;
 let mediaServer;
-let widgetServer; 
-let widgetServerPort = 0; 
-let wss; 
+let widgetServer;
+let widgetServerPort = 0;
+let wss;
 let currentlyPlayingPath = null;
-let updateCheckTimer = null; 
+let updateCheckTimer = null;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -65,7 +65,7 @@ function openCssEditorWindow(widgetName = 'chat') {
         cssEditorWindow.webContents.send('load-css-editor', { widgetName });
         return;
     }
-    
+
     cssEditorWindow = new BrowserWindow({
         width: 800,
         height: 600,
@@ -95,7 +95,6 @@ function openCssEditorWindow(widgetName = 'chat') {
 }
 ipcMain.handle('open-css-editor', (event, widgetName) => openCssEditorWindow(widgetName));
 
-
 app.whenReady().then(() => {
     createWindow();
     startMediaServer();
@@ -103,7 +102,7 @@ app.whenReady().then(() => {
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
-            startUpdateCheckLoop(); 
+            startUpdateCheckLoop();
         } else {
             mainWindow.webContents.send('update-status-check', { status: 'up-to-date' });
         }
@@ -145,7 +144,7 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
-    if (updateCheckTimer) clearInterval(updateCheckTimer); 
+    if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
 autoUpdater.on('update-not-available', () => {
@@ -185,12 +184,12 @@ function setupBotEvents() {
             mainWindow.webContents.send(channel, data);
         }
     };
-    
+
     bot.onConnected = () => safeSend('bot-status', { connected: true, channel: bot.getConfig().channel });
     bot.onDisconnected = () => safeSend('bot-status', { connected: false });
     bot.onParticipantsUpdated = () => safeSend('participants-updated');
     bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
-    
+
     bot.onChatMessage = (messageData) => {
         sendChatToWidgets(messageData);
     };
@@ -216,19 +215,18 @@ function startMediaServer() {
         if (req.url === '/media' && currentlyPlayingPath) {
             const videoPath = currentlyPlayingPath;
             try {
-                res.writeHead(200, { 'Content-Type': 'video/mp4' });
                 ffmpeg(videoPath)
                     .videoCodec('libx264')
                     .audioCodec('aac')
                     .format('mp4')
                     .addOutputOptions([
-                        '-preset ultrafast', 
-                        '-tune zerolatency', 
+                        '-preset ultrafast',
+                        '-tune zerolatency',
                         '-movflags frag_keyframe+empty_moov',
-                        '-b:v 500k' 
+                        '-b:v 500k'
                     ])
-                    .on('error', (err, stdout, stderr) => {
-                        console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`); 
+                    .on('error', (err) => {
+                        console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`);
                         if (!res.headersSent) res.end();
                     })
                     .pipe(res, { end: true });
@@ -260,38 +258,38 @@ function startWidgetServer() {
 
     widgetServer = http.createServer((req, res) => {
         if (req.url === '/widget/chat') {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
             const filePath = path.join(__dirname, 'chat_widget.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
-                    res.writeHead(500);
-                    res.end('Error loading widget file');
-                } else {
-                    const chatConfig = bot.getWidgetConfig('chat');
-                    const customCSS = chatConfig.customCSS || '';
-                    const maxMessages = chatConfig.maxMessages || 10;
-                    
-                    let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
-                    content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
-
-                    res.end(content);
+                    res.statusCode = 500;
+                    return res.end('Error loading widget file');
                 }
+
+                const chatConfig = bot.getWidgetConfig('chat');
+                const customCSS = chatConfig.customCSS || '';
+                const maxMessages = chatConfig.maxMessages || 10;
+
+                let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
+                content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(content);
             });
         } else {
-            res.writeHead(404);
+            res.statusCode = 404;
             res.end('Widget Not Found');
         }
     }).listen(portInitial, () => {
         widgetServerPort = widgetServer.address().port;
         console.log(`Serveur Widget HTTP démarré sur port: ${widgetServerPort}`);
-        
-        if (widgetServerPort !== portInitial) { 
+
+        if (widgetServerPort !== portInitial) {
             console.warn(`ATTENTION: Le port ${portInitial} était occupé. Le serveur utilise le port ${widgetServerPort}.`);
             bot.updateConfig({ widgetPort: widgetServerPort });
         }
-        
+
         wss = new WebSocket.Server({ server: widgetServer });
-        
+
         wss.on('connection', (ws) => {
             console.log('Nouveau client Widget connecté.');
             ws.on('close', () => console.log('Client Widget déconnecté.'));
@@ -315,7 +313,7 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
 
 ipcMain.handle('get-widget-url', async () => {
     const localIp = ip.address();
-    return `http://${localIp}:${widgetServerPort}/widget/chat`; 
+    return `http://${localIp}:${widgetServerPort}/widget/chat`;
 });
 
 ipcMain.handle('discover-devices', async () => {
@@ -341,7 +339,7 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
     const serverPort = mediaServer.address().port;
     const localIp = ip.address();
     const videoUrl = `http://${localIp}:${serverPort}/media`;
-    
+
     const client = new Client();
     client.connect({ host: deviceHost, port: devicePort }, (err) => {
         if (err) {
@@ -355,7 +353,7 @@ ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) 
                 return;
             }
             const media = { contentId: videoUrl, contentType: 'video/mp4', streamType: 'BUFFERED' };
-            player.load(media, { autoplay: true }, (err, status) => {
+            player.load(media, { autoplay: true }, (err) => {
                 client.close();
                 if (err) {
                     mainWindow.webContents.send('cast-status', { success: false, message: 'Impossible de charger la vidéo.' });
@@ -381,27 +379,27 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
         const videos = files.filter(file => validExtensions.includes(path.extname(file).toLowerCase()));
         const cachePath = path.join(app.getPath('userData'), 'thumbnail_cache');
         if (!fs.existsSync(cachePath)) fs.mkdirSync(cachePath);
-        
+
         const videoDataPromises = videos.map(async (videoFile) => {
             const fullVideoPath = path.join(folderPath, videoFile);
             const thumbnailFileName = `${path.basename(videoFile, path.extname(videoFile))}.png`;
             const thumbnailPath = path.join(cachePath, thumbnailFileName);
-            
-            let thumbnailData = null; 
-            
+
+            let thumbnailData = null;
+
             if (!fs.existsSync(thumbnailPath)) {
                 try {
-                    await new Promise((resolve, reject) => {
+                    await new Promise((resolve) => {
                         ffmpeg(fullVideoPath)
                             .on('end', resolve)
-                            .on('error', (err, stdout, stderr) => {
-                                console.error("\x1b[33m%s\x1B[0m", `[AVERTISSEMENT MINIATURE] Échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
-                                resolve(); 
+                            .on('error', (err) => {
+                                console.error("\x1b[33m%s\x1B[0m", `[AVERTISSEMENT MINIATURE] échec pour ${videoFile}: ${err.message}. Utilisation d'un placeholder.`);
+                                resolve();
                             })
                             .screenshots({ timestamps: ['1%'], filename: thumbnailFileName, folder: cachePath, size: '320x180' });
                     });
                 } catch (e) {
-                    console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE MAJEUR] Échec total de la tentative pour ${videoFile}.`);
+                    console.error("\x1b[33m%s\x1b[0m", `[AVERTISSEMENT MINIATURE MAJEUR] échec total de la tentative pour ${videoFile}.`);
                 }
             }
 
@@ -412,16 +410,16 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
                     thumbnailData = null;
                 }
             }
-            
+
             const placeholderSvgBase64 = 'PHN2ZyB3aWR0aD0zMjAiIGhlaWdodD0xODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0cHgiIGZpbGw9IiNmZmYiPlYgSUQnIEhBUyBUX0gVTlRTVlJPIFNWIi8+PC9zdmc+';
 
-            const finalThumbnailData = thumbnailData 
-                ? `data:image/png;base64,${thumbnailData}` 
+            const finalThumbnailData = thumbnailData
+                ? `data:image/png;base64,${thumbnailData}`
                 : `data:image/svg+xml;base64,${placeholderSvgBase64}`;
 
             return { fileName: videoFile, videoPath: fullVideoPath, thumbnailData: finalThumbnailData };
         });
-        
+
         const results = await Promise.allSettled(videoDataPromises);
         const successfulVideos = [];
         results.forEach(result => {
@@ -442,15 +440,15 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
 ipcMain.handle('connect-bot', async () => { try { await bot.connect(); return { success: true }; } catch (error) { return { success: false, error: error.message }; } });
 ipcMain.handle('disconnect-bot', async () => { bot.disconnect(); return { success: true }; });
 ipcMain.handle('get-config', () => bot.getConfig());
-ipcMain.handle('update-config', (event, newConfig) => { 
-    bot.updateConfig(newConfig); 
+ipcMain.handle('update-config', (event, newConfig) => {
+    bot.updateConfig(newConfig);
     if (newConfig.clipCooldown !== undefined) {
         bot.setClipCooldown(newConfig.clipCooldown);
     }
-    if (newConfig.channel || newConfig.username || newConfig.token) { 
-        setTimeout(() => bot.connect(), 500); 
-    } 
-    return { success: true }; 
+    if (newConfig.channel || newConfig.username || newConfig.token) {
+        setTimeout(() => bot.connect(), 500);
+    }
+    return { success: true };
 });
 ipcMain.handle('get-commands', () => ({ commands: bot.getCommands() }));
 ipcMain.handle('add-command', (event, command, response) => { bot.addCommand(command, response); return { success: true }; });
