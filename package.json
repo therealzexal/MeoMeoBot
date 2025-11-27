@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Un bot qui miaule",
   "main": "main.js",
   "repository": "github:Zexaaaal/MeoMeoBot",
@@ -46,6 +46,8 @@
       "preload.js",
       "index.html",
       "style.css",
+      "chat_widget.html",
+      "css_editor.html",
       "assets/**/*",
       "node_modules/**/*"
     ],
