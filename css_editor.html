@@ -12,8 +12,7 @@
             <button class="css-editor-close" id="close-btn" title="Fermer">✕</button>
         </div>
 
-        <div class="css-editor-main">
-            <!-- Éditeur gauche -->
+        <div class="css-editor-main"></div>
             <div class="css-editor-left">
                 <div>
                     <label for="customCss">CSS personnalisé</label>
@@ -30,7 +29,6 @@
                 <div class="css-editor-status" id="statusBar"></div>
             </div>
 
-            <!-- Preview droite -->
             <div class="css-preview-block">
                 <div class="css-preview-toolbar">
                     <span>Aperçu en direct (5 messages simulés)</span>
@@ -44,61 +42,85 @@
 
     <script>
         const defaultCss = {
-            chat: `/*
-Selectors & helpers:
+    chat: `/*
+Classes cibles (widget) :
  - body
  - #chat-container
- - .message (wrapper) + per-user class: .user-<username-sanitized>
- - .message__meta (row for badges + username)
- - .username (text wrapper)
- - .message__body (text wrapper)
- - .badge (img)
- - Per message CSS variables set by the app:
-     --user-color: twitch color or derived fallback
-     --user-color-soft: translucent version of user color
+ - .msg-group (wrapper par user) + .user-<username>
+ - .msg-header (ligne badges+username)
+ - .msg-username
+ - .msg-badges
+ - .badge-img (img de badge)
+ - .msg-messages (pile des messages d'un user)
+ - .msg-line (chaque ligne de texte)
+Variables dispo :
+ - --user-color : couleur twitch de l'user
+ - --user-color-soft : version translucide de la couleur user
 */
 body { background: transparent; }
 
 #chat-container {
-    padding: 10px;
-    gap: 12px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    gap: 12px;
+    padding: 10px 10px 24px 10px;
     font-family: "Inter", "Segoe UI", sans-serif;
 }
 
-.message {
-    border: 1px solid var(--user-color, #6dd4ff);
+.msg-group {
+    padding: 10px 12px;
     background: var(--user-color-soft, rgba(109, 212, 255, 0.12));
-    border-radius: 16px;
-    padding: 10px 14px;
+    border: 1px solid var(--user-color, #6dd4ff);
+    border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    animation: fadeIn 0.4s ease-out;
 }
 
-.message__meta {
+.msg-header {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     flex-wrap: wrap;
 }
 
-.username {
+.msg-username {
     font-weight: 700;
     color: var(--user-color, #6dd4ff);
     letter-spacing: 0.1px;
 }
 
-.message__body {
+.msg-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.msg-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.msg-line {
     color: #e7eef5;
-    font-weight: 500;
     line-height: 1.4;
 }
 
-.badge {
-    width: 16px;
-    height: 16px;
+.msg-line img {
+    vertical-align: middle;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 `
         };

@@ -269,16 +269,22 @@ function startWidgetServer() {
                 const customCSS = chatConfig.customCSS || '';
                 const maxMessages = chatConfig.maxMessages || 10;
                 const badgePrefs = chatConfig.badgePrefs || {
-                moderator: true, vip: true, subscriber: true,
-                founder: true, partner: true, staff: true, premium: true
+                    moderator: true, vip: true, subscriber: true,
+                    founder: true, partner: true, staff: true, premium: true
                 };
 
                 let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
                 content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
                 content = content.replace('const BADGE_PREFS = {};', `const BADGE_PREFS = ${JSON.stringify(badgePrefs)};`);
+
+                const cfg = bot.getConfig ? bot.getConfig() : {};
+                const clientId = process.env.TWITCH_CLIENT_ID || cfg.twitchClientId || '';
+                const appToken = process.env.TWITCH_APP_TOKEN || cfg.twitchAppToken || '';
+                content = content.replace('__TWITCH_CLIENT_ID__', clientId);
+                content = content.replace('__TWITCH_APP_TOKEN__', appToken);
+
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
-
             });
         } else {
             res.statusCode = 404;
@@ -297,6 +303,14 @@ function startWidgetServer() {
 
         wss.on('connection', (ws) => {
             console.log('Nouveau client Widget connecté.');
+            const chatConfig = bot.getWidgetConfig('chat');
+            if (chatConfig) {
+                ws.send(JSON.stringify({
+                    type: 'config-update',
+                    widget: 'chat',
+                    config: chatConfig
+                }));
+            }
             ws.on('close', () => console.log('Client Widget déconnecté.'));
         });
     }).on('error', (err) => {
@@ -313,6 +327,14 @@ ipcMain.handle('get-widget-config', (event, widgetName) => {
 });
 ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     bot.saveWidgetConfig(widgetName, config);
+    if (wss && wss.clients) {
+        const payload = JSON.stringify({ type: 'config-update', widget: widgetName, config });
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(payload);
+            }
+        });
+    }
     return { success: true };
 });
 

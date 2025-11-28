@@ -29,6 +29,14 @@
 - **Nom du bot** : nom du compte Twitch utilisé
 - **Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
 
+Pour les badges de tchat : 
+- **Twitch Client ID** : votre App ID (Website Intégration)
+- **Twitch App Access Token** : à générer via Powershell :
+```$cid    = "AppID"
+$secret = "AppSecret"
+iwr -Method Post "https://id.twitch.tv/oauth2/token?client_id=$cid&client_secret=$secret&grant_type=client_credentials" | Select-Object -ExpandProperty Content
+```
+
 ## Stockage des configs
 Toutes vos configurations personnalisées (commandes, mots bannis, etc.) sont stockées **localement** sur votre machine par `electron-store`. </br>
 La mise à jour de l'application n'écrase jamais ces données.

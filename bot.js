@@ -1,5 +1,6 @@
 const tmi = require('tmi.js');
 const Store = require('electron-store');
+const fetch = require('node-fetch');
 
 class TwitchBot {
     constructor() {
@@ -48,6 +49,8 @@ class TwitchBot {
         this.client = null;
         this.isConnected = false;
         this.messageCount = 0;
+        this.appAccessToken = null;
+        this.tokenExpiry = null;
 
         this.clipCooldown = this.getConfig().clipCooldown * 1000;
         this.onCooldown = false;
@@ -115,10 +118,16 @@ class TwitchBot {
         }
     }
 
-    handleMessage(channel, tags, message) {
+    async handleMessage(channel, tags, message) {
         if (this.containsBannedWords(message)) {
             this.client.deletemessage(channel, tags.id).catch(console.error);
             return;
+        }
+
+        try {
+            await this.ensureAppAccessToken();
+        } catch (err) {
+            console.error("Impossible d'obtenir un App Access Token, les badges ne fonctionneront pas.", err);
         }
 
         const messageData = {
@@ -129,12 +138,15 @@ class TwitchBot {
             color: tags.color || '#FFFFFF',
             badgesRaw: tags['badges-raw'] || '',
             badgesObj: tags.badges || null,
-            emotes: tags.emotes || null
+            emotes: tags.emotes || null,
+            roomId: tags['room-id'] || null,
+            apiAuth: {
+                clientId: process.env.TWITCH_CLIENT_ID,
+                token: this.appAccessToken
+            }
         };
 
-        if (this.onChatMessage) {
-            this.onChatMessage(messageData);
-        }
+        if (this.onChatMessage) this.onChatMessage(messageData);
 
         const config = this.getConfig();
         this.messageCount++;
@@ -181,6 +193,33 @@ class TwitchBot {
     containsBannedWords(message) {
         const lowerMessage = message.toLowerCase();
         return this.getBannedWords().some(word => lowerMessage.includes(word.toLowerCase()));
+    }
+
+    async ensureAppAccessToken() {
+        // Si le token est encore valide, on ne fait rien
+        if (this.appAccessToken && this.tokenExpiry > Date.now()) {
+            return;
+        }
+
+        const clientId = process.env.TWITCH_CLIENT_ID;
+        const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+
+        if (!clientId || !clientSecret) {
+            throw new Error("TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquant dans le fichier .env");
+        }
+
+        console.log("Génération d'un nouveau App Access Token Twitch...");
+        const response = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erreur de l'API Twitch: ${response.status} ${await response.text()}`);
+        }
+
+        const data = await response.json();
+        this.appAccessToken = data.access_token;
+        this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Marge de sécurité de 60s
     }
 
     updateConfig(newConfig) {

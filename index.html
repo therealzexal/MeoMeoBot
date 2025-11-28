@@ -201,6 +201,14 @@
                 <label>Token OAuth</label>
                 <input type="password" id="oauthToken">
             </div>
+            <div class="form-group">
+                <label for="twitchClientId">Twitch Client ID</label>
+                <input id="twitchClientId" type="text" class="form-control" placeholder="ex: abc123..." autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="twitchAppToken">Twitch App Access Token</label>
+                <input id="twitchAppToken" type="password" class="form-control" placeholder="Token app (Helix)" autocomplete="off">
+            </div>
             <div class="unified-button-row">
                 <button class="btn btn-primary" id="saveConfigBtn">Sauvegarder</button>
                 <button class="btn btn-success" id="connectBtn">Connecter</button>
@@ -470,18 +478,18 @@
         async function loadBadgePrefs() {
             const cfg = await window.api.invoke('get-widget-config', 'chat');
             const prefs = (cfg && cfg.badgePrefs) || {};
-            document.querySelectorAll('#widgetList input[data-badge]').forEach(inp => {
+            document.querySelectorAll('.list-item[data-widget="chat"] input[data-badge]').forEach(inp => {
                 const key = inp.dataset.badge;
                 inp.checked = prefs[key] !== false;
             });
         }
         async function saveBadgePrefs() {
             const prefs = {};
-            document.querySelectorAll('#widgetList input[data-badge]').forEach(inp => {
+            document.querySelectorAll('.list-item[data-widget="chat"] input[data-badge]').forEach(inp => {
                 prefs[inp.dataset.badge] = inp.checked;
             });
             await window.api.invoke('save-widget-config', 'chat', { badgePrefs: prefs });
-            showNotification('Badges mis à jour', 'success');
+            showNotification('Préférences des badges mises à jour !', 'success');
         }
         async function commandDelete(command) {
             await window.api.invoke('remove-command', command);
@@ -590,6 +598,8 @@
             document.getElementById('channelName').value = config.channel || '';
             document.getElementById('botUsername').value = config.username || '';
             document.getElementById('oauthToken').value = config.token || '';
+            document.getElementById('twitchClientId').value = config.twitchClientId || '';
+        document.getElementById('twitchAppToken').value = config.twitchAppToken || '';
             document.getElementById('autoMessage').value = config.autoMessage || '';
             document.getElementById('autoMessageInterval').value = config.autoMessageInterval || 40;
             document.getElementById('clipCooldown').value = config.clipCooldown || 60;
@@ -602,7 +612,9 @@
             await window.api.invoke('update-config', {
                 channel: document.getElementById('channelName').value.trim(),
                 username: document.getElementById('botUsername').value.trim(),
-                token: document.getElementById('oauthToken').value.trim()
+                token: document.getElementById('oauthToken').value.trim(),
+                twitchClientId: document.getElementById('twitchClientId').value.trim(),
+                twitchAppToken: document.getElementById('twitchAppToken').value.trim()
             });
             showNotification('Configuration de connexion sauvegardée !', 'success');
         }

@@ -22,3 +22,6 @@ Thumbs.db
 
 # Cmd
 publish.bat
+
+# Json
+package-lock.json
