@@ -102,7 +102,15 @@ function createSpotifyWidgetServer(bot, {
         const resp = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (resp.status === 204) return null;
+        if (resp.status === 204) {
+            return {
+                isPlaying: false,
+                trackTitle: '',
+                trackArtist: '',
+                trackAlbum: '',
+                coverUrl: ''
+            };
+        }
         if (resp.status === 401) {
             bot.updateConfig({ spotifyAccessToken: '' });
             return null;
@@ -112,7 +120,15 @@ function createSpotifyWidgetServer(bot, {
             return null;
         }
         const data = await resp.json();
-        if (!data || !data.item) return null;
+        if (!data || !data.item) {
+            return {
+                isPlaying: false,
+                trackTitle: '',
+                trackArtist: '',
+                trackAlbum: '',
+                coverUrl: ''
+            };
+        }
 
         const track = data.item;
         const title = track.name || 'Titre du morceau';
@@ -120,7 +136,13 @@ function createSpotifyWidgetServer(bot, {
         const album = (track.album && track.album.name) || 'Album';
         const coverUrl = (track.album && track.album.images && track.album.images[0] && track.album.images[0].url) || '';
 
-        return { trackTitle: title, trackArtist: artist, trackAlbum: album, coverUrl };
+        return {
+            isPlaying: data.is_playing !== false,
+            trackTitle: title,
+            trackArtist: artist,
+            trackAlbum: album,
+            coverUrl
+        };
     };
 
     const broadcastConfig = (config) => {
@@ -145,14 +167,16 @@ function createSpotifyWidgetServer(bot, {
         if (spotifyPollTimer) clearInterval(spotifyPollTimer);
         const tokens = getStoredTokens();
         if (!tokens.refreshToken && !tokens.accessToken) return;
-        spotifyPollTimer = setInterval(async () => {
+        const pollOnce = async () => {
             try {
                 const track = await fetchCurrentTrack();
                 if (track) updateTrackConfig(track);
             } catch (err) {
                 console.warn('[SPOTIFY] Polling error', err.message);
             }
-        }, pollInterval);
+        };
+        pollOnce();
+        spotifyPollTimer = setInterval(pollOnce, pollInterval);
     };
 
     const stopPolling = () => {
@@ -171,10 +195,11 @@ function createSpotifyWidgetServer(bot, {
                 const spotifyConfig = bot.getWidgetConfig('spotify') || {};
                 const customCSS = spotifyConfig.customCSS || '';
                 const initialConfig = {
-                    title: spotifyConfig.trackTitle || 'Titre du morceau',
-                    artist: spotifyConfig.trackArtist || 'Artiste',
-                    album: spotifyConfig.trackAlbum || 'Album',
-                    coverUrl: spotifyConfig.coverUrl || ''
+                    trackTitle: spotifyConfig.trackTitle || 'Titre du morceau',
+                    trackArtist: spotifyConfig.trackArtist || 'Artiste',
+                    trackAlbum: spotifyConfig.trackAlbum || 'Album',
+                    coverUrl: spotifyConfig.coverUrl || '',
+                    isPlaying: spotifyConfig.isPlaying === undefined ? false : !!spotifyConfig.isPlaying
                 };
 
                 let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);

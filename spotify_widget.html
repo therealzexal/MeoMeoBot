@@ -18,6 +18,11 @@
             justify-content: center;
             width: 100vw;
             height: 100vh;
+            transition: opacity 0.35s ease;
+        }
+        #spotify-wrapper.is-hidden {
+            opacity: 0;
+            pointer-events: none;
         }
         .spotify-card {
             display: grid;
@@ -100,11 +105,17 @@ function applyConfig(cfg) {
     const title = document.getElementById('spotifyTitle');
     const artist = document.getElementById('spotifyArtist');
     const album = document.getElementById('spotifyAlbum');
+    const wrapper = document.getElementById('spotify-wrapper');
 
     if (cover) cover.src = safe.coverUrl || FALLBACK_COVER;
     if (title) title.textContent = safe.trackTitle || 'Titre du morceau';
     if (artist) artist.textContent = safe.trackArtist || 'Artiste';
     if (album) album.textContent = safe.trackAlbum || 'Album';
+
+    const isPlaying = safe.isPlaying !== false && !!(safe.trackTitle || safe.trackArtist || safe.coverUrl);
+    if (wrapper) {
+        wrapper.classList.toggle('is-hidden', !isPlaying);
+    }
 }
 
 function connectWebSocket() {
