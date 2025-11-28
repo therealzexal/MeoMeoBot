@@ -2,7 +2,6 @@
   <img src="./assets/icon.png" alt="MeoMeoBot Icon" width="100"/>
 </p>
 
-
 <div align="center">
   <span style="font-size: 1.1em; font-weight: bold;">
     Développé pour <a href="https://www.twitch.tv/soo_meo">Soo_Meo</a> <br/>
@@ -32,7 +31,8 @@
 Pour les badges de tchat : 
 - **Twitch Client ID** : votre App ID (Website Intégration)
 - **Twitch App Access Token** : à générer via Powershell :
-```$cid    = "AppID"
+```
+$cid    = "AppID"
 $secret = "AppSecret"
 iwr -Method Post "https://id.twitch.tv/oauth2/token?client_id=$cid&client_secret=$secret&grant_type=client_credentials" | Select-Object -ExpandProperty Content
 ```

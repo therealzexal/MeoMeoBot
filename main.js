@@ -21,7 +21,7 @@ if (app.isPackaged) {
   ffmpeg.setFfprobePath(ffprobePath);
 }
 
-const UPDATE_CHECK_INTERVAL = 900000;
+const UPDATE_CHECK_INTERVAL = 800000;
 const DEFAULT_WIDGET_PORT = 8087;
 
 let mainWindow;
