@@ -215,7 +215,7 @@ body {
 #config-tab { display: flex; justify-content: center; align-items: center; }
 .login-card { max-width: 450px; width: 100%; padding: 20px; }
 
-label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+label { display: flex; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; align-items: center; gap: 4px;}
 input, textarea { width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px; transition: all 0.2s ease-in-out; }
 input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.2); outline: none; }
 input[readonly] { background-color: #111; color: var(--text-secondary); cursor: default; }
@@ -386,12 +386,36 @@ textarea { resize: vertical; }
 }
 
 #widgetList label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.badge-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: auto;
+    gap: 8px;
 }
 
 #widgetList input[type="checkbox"] { margin: 0; }
+
+.list-item[data-widget="chat"] .badge-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 10px 12px;
+    align-items: center;
+}
+
+.list-item[data-widget="chat"] .badge-grid {
+    display: contents;
+}
+
+.list-item[data-widget="chat"] .badge-actions {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}

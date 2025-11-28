@@ -168,30 +168,36 @@
             <h3 class="card-title">Configuration des Widgets</h3>
 
             <div class="list-item" data-widget="chat">
-                <div class="content"><strong>Chat Overlay</strong></div>
-                <p>URL du Serveur Local: <code id="widgetUrlDisplay">Chargement...</code></p>
-                <div class="controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <label><input type="checkbox" data-badge="moderator">Mod</label>
-                    <label><input type="checkbox" data-badge="vip">VIP</label>
-                    <label><input type="checkbox" data-badge="subscriber">Sub</label>
-                    <label><input type="checkbox" data-badge="founder">Founder</label>
-                    <label><input type="checkbox" data-badge="partner">Partner</label>
-                    <label><input type="checkbox" data-badge="staff">Staff</label>
-                    <label><input type="checkbox" data-badge="premium">Prime</label>
-                    <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Editer CSS</button>
-                    <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">Save</button>
+                <div class="content"><strong>Tchat</strong></div>
+                <p><code id="widgetUrlDisplay">Chargement...</code></p>
+                <div class="controls badge-controls">
+                    <div class="badge-grid">
+                        <label><input type="checkbox" data-badge="moderator"> Modo</label>
+                        <label><input type="checkbox" data-badge="vip"> VIP</label>
+                        <label><input type="checkbox" data-badge="subscriber"> Sub</label>
+                        <label><input type="checkbox" data-badge="founder"> Founder</label>
+                        <label><input type="checkbox" data-badge="partner"> Partner</label>
+                        <label><input type="checkbox" data-badge="staff"> Staff</label>
+                        <label><input type="checkbox" data-badge="premium"> Prime</label>
+                    </div>
+                    <div class="badge-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Editer CSS</button>
+                        <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">Save</button>
+                    </div>
                 </div>
              </div>
 
             <div class="list-item" data-widget="spotify">
-                <div class="content"><strong>Spotify Now Playing</strong></div>
-                <p>URL du Serveur Local: <code id="spotifyWidgetUrlDisplay">Chargement...</code></p>
+                <div class="content"><strong>Spotify</strong></div>
+                <div style="display:flex;flex-direction:column">
+                    <p><code id="spotifyWidgetUrlDisplay">Chargement...</code></p>
+                    <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">Dashboard : <code id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code></p>
+                 </div>
                 <div class="controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Editer CSS</button>
-                    <button class="btn btn-primary btn-sm" id="spotifyAuthBtn" title="Connexion Spotify">Connexion Spotify (OAuth)</button>
+                <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Editer CSS</button>
+                <button class="btn btn-primary btn-sm" id="spotifyAuthBtn" title="Connexion">Connexion OAuth</button>
                 </div>
-                <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">URI de redirection &agrave; ajouter dans le Dashboard Spotify : <code id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code></p>
-             </div>
+            </div>
         </div>
     </div>
     <div class="tab-content" id="config-tab">
