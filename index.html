@@ -168,10 +168,9 @@
             <h3 class="card-title">Configuration des Widgets</h3>
 
             <div class="list-item" data-widget="chat">
-                <div class="content"><strong>Tchat</strong></div>
-                <p><code id="widgetUrlDisplay">Chargement...</code></p>
-                <div class="controls badge-controls">
-                    <div class="badge-grid">
+                    <div class="chat-widget-name"><strong>Tchat</strong></div>
+                    <p class="chat-widget-url">Source OBS : <code class="chat-widget-url" id="widgetUrlDisplay">Chargement...</code></p>
+                    <div class="badge-grid badge-grid-4x2">
                         <label><input type="checkbox" data-badge="moderator"> Modo</label>
                         <label><input type="checkbox" data-badge="vip"> VIP</label>
                         <label><input type="checkbox" data-badge="subscriber"> Sub</label>
@@ -182,15 +181,14 @@
                     </div>
                     <div class="badge-actions">
                         <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Editer CSS</button>
-                        <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">Save</button>
-                    </div>
+                        <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
                 </div>
-             </div>
+            </div>
 
             <div class="list-item" data-widget="spotify">
                 <div class="content"><strong>Spotify</strong></div>
                 <div style="display:flex;flex-direction:column">
-                    <p><code id="spotifyWidgetUrlDisplay">Chargement...</code></p>
+                    <p class="chat-widget-url">Source OBS : <code class="chat-widget-url" id="spotifyWidgetUrlDisplay">Chargement...</code></p>
                     <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">Dashboard : <code id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code></p>
                  </div>
                 <div class="controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">

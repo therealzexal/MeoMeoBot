@@ -35,7 +35,73 @@ module.exports = {
             }
         },
         spotify: {
-            customCSS: "/* Styles par defaut pour Spotify */\n#spotify-wrapper { display:flex; justify-content:center; align-items:center; width:100vw; height:100vh; background:transparent; }\n.spotify-card { display:grid; grid-template-columns:140px 1fr; gap:12px; padding:14px; border-radius:16px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); box-shadow:0 15px 40px rgba(0,0,0,0.45); backdrop-filter:blur(8px); color:#f5f7fb; font-family:\"Inter\",\"Segoe UI\",sans-serif; max-width:520px; }\n.spotify-cover { width:140px; height:140px; border-radius:12px; object-fit:cover; box-shadow:0 10px 25px rgba(0,0,0,0.4); background:#111; }\n.spotify-infos { display:flex; flex-direction:column; gap:6px; }\n.spotify-title { font-size:20px; font-weight:700; line-height:1.2; }\n.spotify-artist { font-size:16px; color:#9fb4d1; }\n.spotify-album { font-size:14px; color:#6f7c92; }\n.pill { align-self:flex-start; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.08); font-size:12px; letter-spacing:0.5px; text-transform:uppercase; color:#d3deef; }\n",
+            customCSS: `/* Styles par defaut pour Spotify */
+#spotify-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+}
+
+.spotify-card {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    color: #f5f7fb;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    max-width: 520px;
+}
+
+.spotify-cover {
+    width: 140px;
+    height: 140px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    background: #111;
+}
+
+.spotify-infos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.spotify-title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.spotify-artist {
+    font-size: 16px;
+    color: #9fb4d1;
+}
+
+.spotify-album {
+    font-size: 14px;
+    color: #6f7c92;
+}
+
+.pill {
+    align-self: flex-start;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #d3deef;
+}
+`,
             trackTitle: "Mon titre",
             trackArtist: "Artiste",
             trackAlbum: "Album",

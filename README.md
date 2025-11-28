@@ -29,13 +29,17 @@
 - **Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
 
 Pour les badges de tchat : 
-- **Twitch Client ID** : votre App ID (Website Intégration)
-- **Twitch App Access Token** : à générer via Powershell :
+- **Twitch Client ID** : votre App ID [https://dev.twitch.tv/console/apps]((Website Intégration))
+- **Twitch App Access Token** : à générer via Powershell
 ```
 $cid    = "AppID"
 $secret = "AppSecret"
 iwr -Method Post "https://id.twitch.tv/oauth2/token?client_id=$cid&client_secret=$secret&grant_type=client_credentials" | Select-Object -ExpandProperty Content
 ```
+Pour le plugin Spotify :
+- **Spotify Client ID** : depuis le [https://developer.spotify.com/dashboard](Dashboard Spotify)
+- **Spotify Client Secret** : également depuis le dashboard
+Puis Widgets > Spotify > Connexion OAuth
 
 ## Stockage des configs
 Toutes vos configurations personnalisées (commandes, mots bannis, etc.) sont stockées **localement** sur votre machine par `electron-store`. </br>
