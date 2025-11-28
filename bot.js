@@ -51,6 +51,7 @@ class TwitchBot {
         this.messageCount = 0;
         this.appAccessToken = null;
         this.tokenExpiry = null;
+        this.badgesWarningLogged = false;
 
         this.clipCooldown = this.getConfig().clipCooldown * 1000;
         this.onCooldown = false;
@@ -201,11 +202,27 @@ class TwitchBot {
             return;
         }
 
-        const clientId = process.env.TWITCH_CLIENT_ID;
+        const cfg = this.getConfig ? this.getConfig() : {};
+        const configClientId = cfg.twitchClientId;
+        const configAppToken = cfg.twitchAppToken;
+
+        // Si l'utilisateur a fourni un token app directement dans la config, on l'utilise
+        if (configClientId && configAppToken) {
+            this.appAccessToken = configAppToken;
+            // Durée arbitraire pour éviter de redemander à chaque message (les tokens app expirent en général en 60 j)
+            this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
+            return;
+        }
+
+        const clientId = process.env.TWITCH_CLIENT_ID || configClientId;
         const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
         if (!clientId || !clientSecret) {
-            throw new Error("TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquant dans le fichier .env");
+            if (!this.badgesWarningLogged) {
+                console.warn("Badges désactivés : fournissez TWITCH_CLIENT_ID/TWITCH_CLIENT_SECRET dans .env ou twitchClientId/twitchAppToken dans la config.");
+                this.badgesWarningLogged = true;
+            }
+            return;
         }
 
         console.log("Génération d'un nouveau App Access Token Twitch...");

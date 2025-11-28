@@ -235,7 +235,6 @@ textarea { resize: vertical; }
 .winner-display { font-size: 18px; font-weight: bold; color: var(--accent); text-align: center; padding: 20px 0; }
 
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 6px; margin-bottom: 8px; font-size: 14px; animation: slideUpIn 0.4s ease-out; }
-.list-item .content { flex-grow: 1; display: flex; align-items: center; gap: 15px; word-break: break-all; }
 .list-item .controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .list-item .inline-confirm { display: none; align-items: center; gap: 8px; color: var(--text-secondary); font-weight: 500; }
 .list-item.is-deleting .controls { display: none; }
