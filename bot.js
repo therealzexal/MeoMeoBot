@@ -1,51 +1,11 @@
 const tmi = require('tmi.js');
 const Store = require('electron-store');
 const fetch = require('node-fetch');
+const defaults = require('./config/defaults');
 
 class TwitchBot {
     constructor() {
-        this.store = new Store({
-            defaults: {
-                config: {
-                    channel: "",
-                    username: "",
-                    token: "",
-                    autoMessageInterval: 40,
-                    autoMessage: "",
-                    giveawayCommand: "!giveaway",
-                    giveawayStartMessage: "🎉 Giveaway ouvert ! Utilise !giveaway pour participer !",
-                    giveawayStopMessage: "🔒 Giveaway fermé ! Merci à tous les participants !",
-                    giveawayWinMessage: "Félicitations @{winner}, tu as gagné le giveaway ! 🎁",
-                    bannedWords: [],
-                    castFolderPath: "",
-                    clipCooldown: 60,
-                    widgetPort: 8087
-                },
-                widgets: {
-                    chat: {
-                        customCSS: "/* Styles par défaut: */\n\n#chat-container {\n    max-height: 500px; \n    font-size: 16px;\n}\n\n.message {\n    padding: 10px;\n    border-radius: 8px;\n}\n\n.username {\n    font-weight: bold;\n    text-shadow: none;\n}",
-                        maxMessages: 10,
-                        badgePrefs: {
-                            moderator: true,
-                            vip: true,
-                            subscriber: true,
-                            founder: true,
-                            partner: true,
-                            staff: true,
-                            premium: true
-                        }
-                    }
-                },
-                commands: {
-                    "!discord": "Rejoins notre discord: https://discord.gg/example",
-                    "!twitter": "Suis-nous sur Twitter: https://twitter.com/example"
-                },
-                giveaway: {
-                    isActive: false,
-                    participants: []
-                }
-            }
-        });
+        this.store = new Store({ defaults });
         this.client = null;
         this.isConnected = false;
         this.messageCount = 0;

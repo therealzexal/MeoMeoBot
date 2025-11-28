@@ -47,7 +47,11 @@
       "index.html",
       "style.css",
       "chat_widget.html",
+      "spotify_widget.html",
       "css_editor.html",
+      "renderer/**/*",
+      "server/**/*",
+      "config/defaults.js",
       "assets/**/*",
       "node_modules/**/*"
     ],

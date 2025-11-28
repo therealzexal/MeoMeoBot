@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const TwitchBot = require('./bot.js');
@@ -10,6 +10,8 @@ const mdns = require('mdns-js');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
 const WebSocket = require('ws');
+const { createChatWidgetServer } = require('./server/chatWidgetServer');
+const { createSpotifyWidgetServer } = require('./server/spotifyWidgetServer');
 
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
@@ -23,14 +25,14 @@ if (app.isPackaged) {
 
 const UPDATE_CHECK_INTERVAL = 800000;
 const DEFAULT_WIDGET_PORT = 8087;
+const DEFAULT_SPOTIFY_WIDGET_PORT = 8090;
 
 let mainWindow;
 let cssEditorWindow = null;
 let bot;
 let mediaServer;
-let widgetServer;
-let widgetServerPort = 0;
-let wss;
+let chatServer;
+let spotifyServer;
 let currentlyPlayingPath = null;
 let updateCheckTimer = null;
 
@@ -98,7 +100,14 @@ ipcMain.handle('open-css-editor', (event, widgetName) => openCssEditorWindow(wid
 app.whenReady().then(() => {
     createWindow();
     startMediaServer();
-    startWidgetServer();
+
+    chatServer = createChatWidgetServer(bot, DEFAULT_WIDGET_PORT);
+    spotifyServer = createSpotifyWidgetServer(bot, {
+        defaultPort: DEFAULT_SPOTIFY_WIDGET_PORT
+    });
+    chatServer.start();
+    spotifyServer.start();
+
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
@@ -114,7 +123,8 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
-    if (widgetServer) widgetServer.close();
+    if (chatServer) chatServer.stop();
+    if (spotifyServer) spotifyServer.stop();
     if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
@@ -201,12 +211,8 @@ app.on('window-all-closed', () => {
 });
 
 function sendChatToWidgets(messageData) {
-    if (wss && wss.clients) {
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(messageData));
-            }
-        });
+    if (chatServer) {
+        chatServer.broadcastChat(messageData);
     }
 }
 
@@ -242,105 +248,37 @@ function startMediaServer() {
     }).listen(0, () => {});
 }
 
-function resolveWidgetPort() {
-    const storedPort = bot?.getConfig?.()?.widgetPort;
-    const parsed = parseInt(storedPort, 10);
-    if (Number.isInteger(parsed) && parsed > 0 && parsed < 65536) {
-        return parsed;
-    }
-    console.warn(`[WIDGET PORT] Port invalide ou manquant (${storedPort}). Utilisation du port ${DEFAULT_WIDGET_PORT}.`);
-    if (bot?.updateConfig) bot.updateConfig({ widgetPort: DEFAULT_WIDGET_PORT });
-    return DEFAULT_WIDGET_PORT;
-}
-
-function startWidgetServer() {
-    const portInitial = resolveWidgetPort();
-
-    widgetServer = http.createServer((req, res) => {
-        if (req.url === '/widget/chat') {
-            const filePath = path.join(__dirname, 'chat_widget.html');
-            fs.readFile(filePath, 'utf8', (err, data) => {
-                if (err) {
-                    res.statusCode = 500;
-                    return res.end('Error loading widget file');
-                }
-
-                const chatConfig = bot.getWidgetConfig('chat');
-                const customCSS = chatConfig.customCSS || '';
-                const maxMessages = chatConfig.maxMessages || 10;
-                const badgePrefs = chatConfig.badgePrefs || {
-                    moderator: true, vip: true, subscriber: true,
-                    founder: true, partner: true, staff: true, premium: true
-                };
-
-                let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
-                content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
-                content = content.replace('const BADGE_PREFS = {};', `const BADGE_PREFS = ${JSON.stringify(badgePrefs)};`);
-
-                const cfg = bot.getConfig ? bot.getConfig() : {};
-                const clientId = process.env.TWITCH_CLIENT_ID || cfg.twitchClientId || '';
-                const appToken = process.env.TWITCH_APP_TOKEN || cfg.twitchAppToken || '';
-                content = content.replace('__TWITCH_CLIENT_ID__', clientId);
-                content = content.replace('__TWITCH_APP_TOKEN__', appToken);
-
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(content);
-            });
-        } else {
-            res.statusCode = 404;
-            res.end('Widget Not Found');
-        }
-    }).listen(portInitial, () => {
-        widgetServerPort = widgetServer.address().port;
-        console.log(`Serveur Widget HTTP démarré sur port: ${widgetServerPort}`);
-
-        if (widgetServerPort !== portInitial) {
-            console.warn(`ATTENTION: Le port ${portInitial} était occupé. Le serveur utilise le port ${widgetServerPort}.`);
-            bot.updateConfig({ widgetPort: widgetServerPort });
-        }
-
-        wss = new WebSocket.Server({ server: widgetServer });
-
-        wss.on('connection', (ws) => {
-            console.log('Nouveau client Widget connecté.');
-            const chatConfig = bot.getWidgetConfig('chat');
-            if (chatConfig) {
-                ws.send(JSON.stringify({
-                    type: 'config-update',
-                    widget: 'chat',
-                    config: chatConfig
-                }));
-            }
-            ws.on('close', () => console.log('Client Widget déconnecté.'));
-        });
-    }).on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.error(`[WIDGET SERVER ERROR] Le port ${portInitial} est déjà utilisé. Changez 'widgetPort' ou libérez le port.`);
-        } else {
-            console.error(`[WIDGET SERVER ERROR] ${err.message}`);
-        }
-    });
-}
-
 ipcMain.handle('get-widget-config', (event, widgetName) => {
     return bot.getWidgetConfig(widgetName);
 });
 ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     bot.saveWidgetConfig(widgetName, config);
-    if (wss && wss.clients) {
-        const payload = JSON.stringify({ type: 'config-update', widget: widgetName, config });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(payload);
-            }
-        });
+    if (widgetName === 'spotify' && spotifyServer) {
+        spotifyServer.broadcastConfig(config);
+    } else if (chatServer) {
+        chatServer.broadcastConfig(config);
     }
     return { success: true };
 });
 
-ipcMain.handle('get-widget-url', async () => {
+ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
     const localIp = ip.address();
-    return `http://${localIp}:${widgetServerPort}/widget/chat`;
+    if (widgetName === 'spotify' && spotifyServer) {
+        return spotifyServer.getUrl(localIp);
+    }
+    return chatServer ? chatServer.getUrl(localIp) : '';
+});
+
+ipcMain.handle('spotify-start-auth', async () => {
+    if (!spotifyServer) return { success: false };
+    const url = spotifyServer.getLoginUrl();
+    shell.openExternal(url);
+    return { url };
+});
+
+ipcMain.handle('spotify-redirect-uri', async () => {
+    if (!spotifyServer) return '';
+    return spotifyServer.getRedirectUri();
 });
 
 ipcMain.handle('discover-devices', async () => {

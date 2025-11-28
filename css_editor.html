@@ -18,7 +18,7 @@
                     <label for="customCss">CSS personnalisé</label>
                     <textarea id="customCss" class="css-editor-textarea" spellcheck="false"></textarea>
                 </div>
-                <div>
+                <div id="maxMessagesRow">
                     <label for="maxMessages">Nombre max de messages (chat)</label>
                     <input id="maxMessages" type="number" min="1" value="10">
                 </div>
@@ -31,10 +31,10 @@
 
             <div class="css-preview-block">
                 <div class="css-preview-toolbar">
-                    <span>Aperçu en direct (5 messages simulés)</span>
+                    <span id="previewTitle">Aperçu en direct</span>
                 </div>
                 <div id="preview-frame-wrapper">
-                    <iframe id="preview-frame" title="chat preview"></iframe>
+                    <iframe id="preview-frame" title="widget preview"></iframe>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
 
     <script>
         const defaultCss = {
-    chat: `/*
+            chat: `/*
 Classes cibles (widget) :
  - body
  - #chat-container
@@ -122,14 +122,37 @@ body { background: transparent; }
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-`
+`,
+            spotify: `/* Classes cibles (widget Spotify) :
+- body
+- #spotify-wrapper
+- .spotify-card
+- .spotify-cover
+- .spotify-infos
+- .spotify-title
+- .spotify-artist
+- .spotify-album
+- .pill
+*/
+body { background: transparent; margin: 0; padding: 0; color: #f5f7fb; }
+#spotify-wrapper { display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+.spotify-card { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 14px; border-radius: 16px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 15px 40px rgba(0,0,0,0.45); backdrop-filter: blur(8px); font-family: "Inter","Segoe UI",sans-serif; max-width: 520px; }
+.spotify-cover { width: 140px; height: 140px; border-radius: 12px; object-fit: cover; box-shadow: 0 10px 25px rgba(0,0,0,0.4); background: #111; }
+.spotify-infos { display: flex; flex-direction: column; gap: 6px; }
+.spotify-title { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.spotify-artist { font-size: 16px; color: #9fb4d1; }
+.spotify-album { font-size: 14px; color: #6f7c92; }
+.pill { align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: #d3deef; }`
         };
 
         let currentWidget = 'chat';
+        let currentWidgetConfig = {};
         const cssInput = document.getElementById('customCss');
         const maxMessagesInput = document.getElementById('maxMessages');
+        const maxMessagesRow = document.getElementById('maxMessagesRow');
         const statusBar = document.getElementById('statusBar');
         const nameLabel = document.getElementById('widgetNameLabel');
+        const previewTitle = document.getElementById('previewTitle');
 
         function setStatus(msg, type = '') {
             statusBar.className = `css-editor-status ${type}`;
@@ -139,14 +162,18 @@ body { background: transparent; }
         async function loadWidgetConfig(widgetName = 'chat') {
             currentWidget = widgetName || 'chat';
             nameLabel.textContent = currentWidget;
+            previewTitle.textContent = currentWidget === 'chat' ? 'Aperçu chat' : 'Aperçu Spotify';
+            maxMessagesRow.style.display = currentWidget === 'chat' ? 'block' : 'none';
             setStatus('Chargement...');
             try {
                 const config = await window.api.invoke('get-widget-config', currentWidget);
+                currentWidgetConfig = config || {};
                 const storedCss = config && typeof config.customCSS === 'string' ? config.customCSS.trim() : '';
                 cssInput.value = storedCss || defaultCss[currentWidget] || '';
                 maxMessagesInput.value = (config && config.maxMessages) || 10;
                 setStatus('Configuration chargée', 'ok');
             } catch (e) {
+                currentWidgetConfig = {};
                 cssInput.value = defaultCss[currentWidget] || '';
                 maxMessagesInput.value = 10;
                 setStatus('Erreur de chargement, valeurs par défaut chargées.', 'err');
@@ -157,10 +184,11 @@ body { background: transparent; }
             const maxVal = parseInt(maxMessagesInput.value, 10);
             const safeMax = Number.isInteger(maxVal) && maxVal > 0 ? maxVal : 10;
             try {
-                await window.api.invoke('save-widget-config', currentWidget, {
-                    customCSS: cssInput.value,
-                    maxMessages: safeMax
-                });
+                const payload = { customCSS: cssInput.value };
+                if (currentWidget === 'chat') {
+                    payload.maxMessages = safeMax;
+                }
+                await window.api.invoke('save-widget-config', currentWidget, payload);
                 setStatus('CSS sauvegardé', 'ok');
                 renderPreview();
             } catch (e) {
@@ -168,7 +196,7 @@ body { background: transparent; }
             }
         }
 
-        function getPreviewHtml(customCss, maxMessages) {
+        function getChatPreviewHtml(customCss, maxMessages) {
             return `<!DOCTYPE html>
 <html>
 <head>
@@ -193,7 +221,7 @@ const container = document.getElementById('chat-container');
 const demo = [
  {u:'Alice',c:'#6dd4ff',b:[{set:'staff',version:'1'}],t:'Hello world!'},
  {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Ceci est un test.'},
- {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Deuxième ligne même user.'},
+ {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Deuxieme ligne meme user.'},
  {u:'Chloe',c:'#9b59b6',b:[],t:'Nice overlay!'},
  {u:'Eve',c:'#e67e22',b:[],t:'Short msg.'}
 ];
@@ -267,12 +295,53 @@ demo.slice(-MAX_MESSAGES).forEach(addMessage);
 </html>`;
         }
 
+        function getSpotifyPreviewHtml(customCss, cfg) {
+            const safeCfg = cfg || {};
+            const title = safeCfg.trackTitle || 'Mon titre';
+            const artist = safeCfg.trackArtist || 'Artiste';
+            const album = safeCfg.trackAlbum || 'Album';
+            const cover = safeCfg.coverUrl || 'https://i.scdn.co/image/ab67616d0000b2738c0e06848d16c69ea4cbe5b7';
+            return `<!DOCTYPE html>
+<html>
+<head>
+<style>
+body{background:#0a0a0a;margin:0;padding:10px;color:#fff;font-family:Inter,Segoe UI,sans-serif;}
+#spotify-wrapper{display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;}
+.spotify-card{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.08);box-shadow:0 10px 25px rgba(0,0,0,0.4);box-sizing:border-box;font-family:Inter,Segoe UI,sans-serif;}
+.spotify-cover{width:140px;height:140px;border-radius:12px;object-fit:cover;background:#111;}
+.spotify-infos{display:flex;flex-direction:column;gap:6px;}
+.spotify-title{font-size:20px;font-weight:700;}
+.spotify-artist{font-size:16px;color:#cdd7e5;}
+.spotify-album{font-size:14px;color:#9fb4d1;}
+.pill{align-self:flex-start;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.1);font-size:12px;letter-spacing:0.5px;text-transform:uppercase;color:#d3deef;}
+${customCss || ''}
+</style>
+</head>
+<body>
+<div id="spotify-wrapper">
+  <div class="spotify-card">
+    <img class="spotify-cover" src="${cover}" alt="cover">
+    <div class="spotify-infos">
+      <div class="pill">En lecture</div>
+      <div class="spotify-title">${title}</div>
+      <div class="spotify-artist">${artist}</div>
+      <div class="spotify-album">${album}</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+        }
+
         function renderPreview() {
             const frame = document.getElementById('preview-frame');
             if (!frame) return;
             const css = (cssInput.value || '').trim() || defaultCss[currentWidget] || '';
             const max = parseInt(maxMessagesInput.value, 10) || 10;
-            frame.srcdoc = getPreviewHtml(css, max);
+            const html = currentWidget === 'spotify'
+                ? getSpotifyPreviewHtml(css, currentWidgetConfig)
+                : getChatPreviewHtml(css, max);
+            frame.srcdoc = html;
         }
 
         document.getElementById('save-btn').addEventListener('click', saveWidgetConfig);
