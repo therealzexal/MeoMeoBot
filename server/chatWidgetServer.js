@@ -48,6 +48,34 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
             });
+        } else if (req.url === '/widget/emote-wall') {
+            const filePath = path.join(__dirname, '..', 'emote_wall_widget.html');
+            fs.readFile(filePath, 'utf8', (err, data) => {
+                if (err) {
+                    res.statusCode = 500;
+                    return res.end('Error loading widget file');
+                }
+
+                const cfg = bot.getConfig ? bot.getConfig() : {};
+                const clientId = process.env.TWITCH_CLIENT_ID || cfg.twitchClientId || '';
+                const appToken = process.env.TWITCH_APP_TOKEN || cfg.twitchAppToken || '';
+
+                const emoteWallConfig = bot.getWidgetConfig('emote-wall') || {};
+                const animationDuration = emoteWallConfig.animationDuration || 5000;
+                const spawnInterval = emoteWallConfig.spawnInterval || 100;
+                const minSize = emoteWallConfig.minSize || 32;
+                const maxSize = emoteWallConfig.maxSize || 96;
+
+                let content = data.replace('__TWITCH_CLIENT_ID__', clientId);
+                content = content.replace('__TWITCH_APP_TOKEN__', appToken);
+                content = content.replace('const ANIMATION_DURATION = 5000;', `const ANIMATION_DURATION = ${animationDuration};`);
+                content = content.replace('const SPAWN_INTERVAL = 100;', `const SPAWN_INTERVAL = ${spawnInterval};`);
+                content = content.replace('const MIN_SIZE = 32;', `const MIN_SIZE = ${minSize};`);
+                content = content.replace('const MAX_SIZE = 96;', `const MAX_SIZE = ${maxSize};`);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(content);
+            });
         } else {
             res.statusCode = 404;
             res.end('Widget Not Found');
@@ -107,7 +135,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
         if (wss) wss.close();
     };
 
-    const getUrl = (localIp) => `http://${localIp}:${port}/widget/chat`;
+    const getUrl = (localIp, widgetType = 'chat') => `http://${localIp}:${port}/widget/${widgetType}`;
 
     return { start, stop, getPort: () => port, broadcastChat, broadcastConfig, getUrl };
 }

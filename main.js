@@ -16,11 +16,11 @@ const { createSpotifyWidgetServer } = require('./server/spotifyWidgetServer');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 if (app.isPackaged) {
-  ffmpeg.setFfmpegPath(path.join(process.resourcesPath, 'ffmpeg.exe'));
-  ffmpeg.setFfprobePath(path.join(process.resourcesPath, 'ffprobe.exe'));
+    ffmpeg.setFfmpegPath(path.join(process.resourcesPath, 'ffmpeg.exe'));
+    ffmpeg.setFfprobePath(path.join(process.resourcesPath, 'ffprobe.exe'));
 } else {
-  ffmpeg.setFfmpegPath(ffmpegPath);
-  ffmpeg.setFfprobePath(ffprobePath);
+    ffmpeg.setFfmpegPath(ffmpegPath);
+    ffmpeg.setFfprobePath(ffprobePath);
 }
 
 const UPDATE_CHECK_INTERVAL = 800000;
@@ -245,7 +245,7 @@ function startMediaServer() {
             res.writeHead(404);
             res.end();
         }
-    }).listen(0, () => {});
+    }).listen(0, () => { });
 }
 
 ipcMain.handle('get-widget-config', (event, widgetName) => {
@@ -266,7 +266,7 @@ ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
     if (widgetName === 'spotify' && spotifyServer) {
         return spotifyServer.getUrl(localIp);
     }
-    return chatServer ? chatServer.getUrl(localIp) : '';
+    return chatServer ? chatServer.getUrl(localIp, widgetName) : '';
 });
 
 ipcMain.handle('spotify-start-auth', async () => {
@@ -293,7 +293,7 @@ ipcMain.handle('discover-devices', async () => {
         }
     });
     setTimeout(() => {
-        try { browser.stop(); } catch(e) {}
+        try { browser.stop(); } catch (e) { }
         mainWindow.webContents.send('device-discovery-status', 'Recherche terminée.');
     }, 10000);
     return true;
