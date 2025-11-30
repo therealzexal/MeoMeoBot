@@ -5,8 +5,8 @@ const fs = require('fs');
 const TwitchBot = require('./bot.js');
 const ffmpeg = require('fluent-ffmpeg');
 const http = require('http');
-const ip = require('ip');
-const mdns = require('mdns-js');
+const os = require('os');
+const { Bonjour } = require('bonjour-service');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
 const WebSocket = require('ws');
@@ -35,6 +35,19 @@ let chatServer;
 let spotifyServer;
 let currentlyPlayingPath = null;
 let updateCheckTimer = null;
+let bonjourInstance = null;
+
+function getLocalIp() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return '127.0.0.1';
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -68,12 +81,17 @@ function openCssEditorWindow(widgetName = 'chat') {
         return;
     }
 
+    const config = bot.getConfig ? bot.getConfig() : {};
+    const bounds = config.cssEditorBounds || { width: 900, height: 720 };
+
     cssEditorWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
         title: 'Editeur CSS Widget',
         parent: mainWindow,
-        modal: true,
+        modal: false,
         show: false,
         frame: false,
         webPreferences: {
@@ -91,8 +109,19 @@ function openCssEditorWindow(widgetName = 'chat') {
         cssEditorWindow.webContents.send('load-css-editor', { widgetName });
     });
 
+    cssEditorWindow.on('close', () => {
+        if (bot.updateConfig) {
+            const bounds = cssEditorWindow.getBounds();
+            bot.updateConfig({ cssEditorBounds: bounds });
+        }
+    });
+
     cssEditorWindow.on('closed', () => {
         cssEditorWindow = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
     });
 }
 ipcMain.handle('open-css-editor', (event, widgetName) => openCssEditorWindow(widgetName));
@@ -125,6 +154,9 @@ app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
     if (chatServer) chatServer.stop();
     if (spotifyServer) spotifyServer.stop();
+    if (bonjourInstance) {
+        try { bonjourInstance.destroy(); } catch (e) { }
+    }
     if (updateCheckTimer) clearInterval(updateCheckTimer);
 });
 
@@ -220,32 +252,76 @@ function startMediaServer() {
     mediaServer = http.createServer((req, res) => {
         if (req.url === '/media' && currentlyPlayingPath) {
             const videoPath = currentlyPlayingPath;
-            try {
-                ffmpeg(videoPath)
-                    .videoCodec('libx264')
-                    .audioCodec('aac')
-                    .format('mp4')
-                    .addOutputOptions([
-                        '-preset ultrafast',
-                        '-tune zerolatency',
-                        '-movflags frag_keyframe+empty_moov',
-                        '-b:v 500k'
-                    ])
-                    .on('error', (err) => {
-                        console.error(`[FFMPEG STREAM ERROR] Échec du transcodage: ${err.message}`);
-                        if (!res.headersSent) res.end();
-                    })
-                    .pipe(res, { end: true });
-            } catch (e) {
-                console.error(`[MEDIA SERVER ERROR] Erreur lors de la mise en place du stream: ${e.message}`);
-                if (!res.headersSent) res.writeHead(404);
-                res.end();
+            const ext = path.extname(videoPath).toLowerCase();
+            const isCompatible = ['.mp4', '.m4v', '.webm'].includes(ext);
+
+            if (isCompatible) {
+                try {
+                    const stat = fs.statSync(videoPath);
+                    const fileSize = stat.size;
+                    const range = req.headers.range;
+
+                    if (range) {
+                        const parts = range.replace(/bytes=/, "").split("-");
+                        const start = parseInt(parts[0], 10);
+                        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                        const chunksize = (end - start) + 1;
+                        const file = fs.createReadStream(videoPath, { start, end });
+                        const head = {
+                            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                            'Accept-Ranges': 'bytes',
+                            'Content-Length': chunksize,
+                            'Content-Type': 'video/mp4',
+                        };
+                        res.writeHead(206, head);
+                        file.pipe(res);
+                    } else {
+                        const head = {
+                            'Content-Length': fileSize,
+                            'Content-Type': 'video/mp4',
+                        };
+                        res.writeHead(200, head);
+                        fs.createReadStream(videoPath).pipe(res);
+                    }
+                } catch (err) {
+                    console.error(`[MEDIA SERVER ERROR] Direct stream error: ${err.message}`);
+                    if (!res.headersSent) res.writeHead(500);
+                    res.end();
+                }
+            } else {
+                try {
+                    ffmpeg(videoPath)
+                        .videoCodec('libx264')
+                        .audioCodec('aac')
+                        .format('mp4')
+                        .addOutputOptions([
+                            '-preset ultrafast',
+                            '-tune zerolatency',
+                            '-movflags frag_keyframe+empty_moov',
+                            '-b:v 2500k',
+                            '-maxrate 2500k',
+                            '-bufsize 5000k'
+                        ])
+                        .on('error', (err) => {
+                            if (err.message !== 'Output stream closed') {
+                                console.error(`[FFMPEG STREAM ERROR] Transcoding failed: ${err.message}`);
+                            }
+                            if (!res.headersSent) res.end();
+                        })
+                        .pipe(res, { end: true });
+                } catch (e) {
+                    console.error(`[MEDIA SERVER ERROR] Transcoding setup error: ${e.message}`);
+                    if (!res.headersSent) res.writeHead(404);
+                    res.end();
+                }
             }
         } else {
             res.writeHead(404);
             res.end();
         }
-    }).listen(0, () => { });
+    }).listen(0, () => {
+        console.log(`Media server started on port ${mediaServer.address().port}`);
+    });
 }
 
 ipcMain.handle('get-widget-config', (event, widgetName) => {
@@ -261,12 +337,156 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     return { success: true };
 });
 
+ipcMain.handle('get-themes', async (event, widgetType) => {
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    const configPath = path.join(themesDir, 'themes.json');
+
+    if (!fs.existsSync(themesDir)) {
+        fs.mkdirSync(themesDir, { recursive: true });
+        return [];
+    }
+
+    let themeConfig = {};
+    try {
+        if (fs.existsSync(configPath)) {
+            const content = await fs.promises.readFile(configPath, 'utf8');
+            themeConfig = JSON.parse(content);
+        }
+    } catch (e) { console.error('Error reading theme config:', e); }
+
+    try {
+        const files = await fs.promises.readdir(themesDir);
+        const themes = files
+            .filter(f => f.endsWith('.css') && f.startsWith(widgetType + '_'))
+            .map(f => ({
+                filename: f,
+                name: themeConfig[f] || f,
+                path: path.join(themesDir, f)
+            }));
+        return themes;
+    } catch (e) {
+        console.error('Error reading themes directory:', e);
+        return [];
+    }
+});
+
+ipcMain.handle('get-theme-content', async (event, filename) => {
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    const themePath = path.join(themesDir, filename);
+
+    if (!path.resolve(themePath).startsWith(path.resolve(themesDir))) {
+        throw new Error('Invalid theme path');
+    }
+    return await fs.promises.readFile(themePath, 'utf8');
+});
+
+ipcMain.handle('get-theme-config', async () => {
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    const configPath = path.join(themesDir, 'themes.json');
+    try {
+        if (fs.existsSync(configPath)) {
+            return await fs.promises.readFile(configPath, 'utf8');
+        }
+    } catch (e) { }
+    return '{}';
+});
+
+ipcMain.handle('save-theme-config', async (event, content) => {
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    if (!fs.existsSync(themesDir)) fs.mkdirSync(themesDir, { recursive: true });
+    const configPath = path.join(themesDir, 'themes.json');
+    await fs.promises.writeFile(configPath, content, 'utf8');
+    return { success: true };
+});
+
+ipcMain.handle('create-theme', async (event, widgetType, themeName, content) => {
+    if (!widgetType || !themeName) return { success: false, message: 'Missing arguments' };
+
+    const safeName = themeName.replace(/[^a-z0-9_-]/gi, '_');
+    const filename = `${widgetType}_${safeName}.css`;
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    const destPath = path.join(themesDir, filename);
+
+    if (!fs.existsSync(themesDir)) fs.mkdirSync(themesDir, { recursive: true });
+
+    try {
+        await fs.promises.writeFile(destPath, content, 'utf8');
+
+        const configPath = path.join(themesDir, 'themes.json');
+        let config = {};
+        try {
+            if (fs.existsSync(configPath)) {
+                config = JSON.parse(await fs.promises.readFile(configPath, 'utf8'));
+            }
+        } catch (e) { }
+
+        config[filename] = themeName;
+        await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+        return { success: true, filename };
+    } catch (e) {
+        console.error('Error creating theme:', e);
+        throw e;
+    }
+});
+
+ipcMain.handle('import-theme', async (event, widgetType) => {
+    const { dialog } = require('electron');
+    const { filePaths } = await dialog.showOpenDialog({
+        title: 'Importer un thème CSS',
+        filters: [{ name: 'Fichiers CSS', extensions: ['css'] }],
+        properties: ['openFile']
+    });
+
+    if (!filePaths || filePaths.length === 0) return { success: false, message: 'Annulé' };
+
+    const srcPath = filePaths[0];
+    let filename = path.basename(srcPath);
+
+    if (widgetType && !filename.startsWith(widgetType + '_')) {
+        filename = `${widgetType}_${filename}`;
+    }
+
+    const themesDir = path.join(app.getPath('userData'), 'themes');
+    const destPath = path.join(themesDir, filename);
+
+    if (!fs.existsSync(themesDir)) fs.mkdirSync(themesDir, { recursive: true });
+
+    try {
+        await fs.promises.copyFile(srcPath, destPath);
+        return { success: true, filename, message: 'Thème importé !' };
+    } catch (e) {
+        console.error('Error importing theme:', e);
+        throw e;
+    }
+});
+
 ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
-    const localIp = ip.address();
+    const localIp = getLocalIp();
     if (widgetName === 'spotify' && spotifyServer) {
         return spotifyServer.getUrl(localIp);
     }
     return chatServer ? chatServer.getUrl(localIp, widgetName) : '';
+});
+
+ipcMain.handle('get-widget-urls', async () => {
+    const localIp = getLocalIp();
+    return {
+        chat: chatServer ? chatServer.getUrl(localIp, 'chat') : '',
+        spotify: spotifyServer ? spotifyServer.getUrl(localIp) : '',
+        emoteWall: chatServer ? chatServer.getUrl(localIp, 'emote-wall') : ''
+    };
+});
+
+ipcMain.handle('get-badge-prefs', () => {
+    const config = bot.getWidgetConfig('chat') || {};
+    return config.badgePrefs || {};
+});
+
+ipcMain.handle('save-badge-prefs', (event, prefs) => {
+    bot.saveWidgetConfig('chat', { badgePrefs: prefs });
+    if (chatServer) chatServer.broadcastConfig({ badgePrefs: prefs });
+    return { success: true };
 });
 
 ipcMain.handle('spotify-start-auth', async () => {
@@ -283,17 +503,31 @@ ipcMain.handle('spotify-redirect-uri', async () => {
 
 ipcMain.handle('discover-devices', async () => {
     mainWindow.webContents.send('device-discovery-status', 'Recherche en cours...');
-    const browser = mdns.createBrowser(mdns.tcp('googlecast'));
+
+    if (bonjourInstance) {
+        try { bonjourInstance.destroy(); } catch (e) { }
+    }
+    bonjourInstance = new Bonjour();
+
     const devices = [];
-    browser.on('ready', () => browser.discover());
-    browser.on('update', (service) => {
-        if (service.fullname && !devices.some(d => d.host === service.host)) {
-            devices.push({ name: service.fullname.replace('._googlecast._tcp.local', ''), host: service.host, port: service.port });
+    const browser = bonjourInstance.find({ type: 'googlecast' });
+
+    browser.on('up', (service) => {
+        if (service.name && !devices.some(d => d.host === service.referer.address)) {
+            devices.push({
+                name: service.name,
+                host: service.referer.address,
+                port: service.port
+            });
             mainWindow.webContents.send('cast-devices-found', devices);
         }
     });
+
     setTimeout(() => {
-        try { browser.stop(); } catch (e) { }
+        try {
+            browser.stop();
+
+        } catch (e) { }
         mainWindow.webContents.send('device-discovery-status', 'Recherche terminée.');
     }, 10000);
     return true;
@@ -302,7 +536,7 @@ ipcMain.handle('discover-devices', async () => {
 ipcMain.handle('play-on-device', (event, { deviceHost, devicePort, videoPath }) => {
     currentlyPlayingPath = videoPath;
     const serverPort = mediaServer.address().port;
-    const localIp = ip.address();
+    const localIp = getLocalIp();
     const videoUrl = `http://${localIp}:${serverPort}/media`;
 
     const client = new Client();
@@ -405,6 +639,7 @@ ipcMain.handle('get-videos', async (event, folderPath) => {
 ipcMain.handle('connect-bot', async () => { try { await bot.connect(); return { success: true }; } catch (error) { return { success: false, error: error.message }; } });
 ipcMain.handle('disconnect-bot', async () => { bot.disconnect(); return { success: true }; });
 ipcMain.handle('get-config', () => bot.getConfig());
+
 ipcMain.handle('update-config', (event, newConfig) => {
     bot.updateConfig(newConfig);
     if (newConfig.clipCooldown !== undefined) {
@@ -422,8 +657,28 @@ ipcMain.handle('start-giveaway', () => { bot.startGiveaway(); return { success: 
 ipcMain.handle('stop-giveaway', () => { bot.stopGiveaway(); return { success: true }; });
 ipcMain.handle('draw-winner', () => { const winner = bot.drawWinner(); return { success: true, winner }; });
 ipcMain.handle('clear-participants', () => { bot.clearParticipants(); return { success: true }; });
+ipcMain.handle('get-participants', () => bot.getParticipants());
+ipcMain.handle('is-giveaway-active', () => bot.isGiveawayActive());
+ipcMain.handle('save-config', (event, config) => {
+    bot.updateConfig(config);
+    if (config.clipCooldown !== undefined) bot.setClipCooldown(config.clipCooldown);
+    if (config.channel || config.username || config.token) setTimeout(() => bot.connect(), 500);
+    return { success: true };
+});
+ipcMain.handle('start-spotify-auth', async () => {
+    if (!spotifyServer) return { success: false };
+    const url = spotifyServer.getLoginUrl();
+    shell.openExternal(url);
+    return { url };
+});
+
 ipcMain.handle('get-participants-count', () => ({ count: bot.getParticipantsCount(), participants: bot.getParticipants() }));
 ipcMain.handle('get-banned-words', () => ({ bannedWords: bot.getBannedWords() }));
 ipcMain.handle('add-banned-word', (event, word) => { const bannedWords = bot.addBannedWord(word); return { success: true, bannedWords }; });
 ipcMain.handle('remove-banned-word', (event, word) => { const bannedWords = bot.removeBannedWord(word); return { success: true, bannedWords }; });
 ipcMain.handle('clear-banned-words', async () => { if (bot) { bot.clearBannedWords(); return { success: true }; } return { success: false }; });
+ipcMain.handle('get-bot-status', () => ({ connected: bot.isConnected, channel: bot.getConfig().channel }));
+ipcMain.handle('open-external-url', async (event, url) => {
+    await shell.openExternal(url);
+    return { success: true };
+});

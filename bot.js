@@ -1,11 +1,9 @@
 const tmi = require('tmi.js');
-const Store = require('electron-store');
-const fetch = require('node-fetch');
-const defaults = require('./config/defaults');
+const configManager = require('./config/configManager');
 
 class TwitchBot {
     constructor() {
-        this.store = new Store({ defaults });
+        this.configManager = configManager;
         this.client = null;
         this.isConnected = false;
         this.messageCount = 0;
@@ -13,7 +11,9 @@ class TwitchBot {
         this.tokenExpiry = null;
         this.badgesWarningLogged = false;
 
-        this.clipCooldown = this.getConfig().clipCooldown * 1000;
+        this.userId = null;
+        this.clientId = null;
+        this.clipCooldown = (this.getConfig().clipCooldown || 30) * 1000;
         this.onCooldown = false;
     }
 
@@ -21,39 +21,108 @@ class TwitchBot {
         this.clipCooldown = parseInt(seconds, 10) * 1000;
     }
 
-    getConfig() { return this.store.get('config'); }
-    getCommands() { return this.store.get('commands'); }
-    getBannedWords() { return this.store.get('config.bannedWords', []); }
-    getParticipants() { return this.store.get('giveaway.participants', []); }
+    updateConfig(newConfig) {
+        this.configManager.updateConfig(newConfig);
+    }
+
+    getConfig() { return this.configManager.getConfig() || {}; }
+    getCommands() { return this.configManager.getCommands() || []; }
+    getBannedWords() { return this.configManager.getBannedWords() || []; }
+    getParticipants() { return this.configManager.getGiveawayParticipants() || []; }
     getParticipantsCount() { return this.getParticipants().length; }
-    isGiveawayActive() { return this.store.get('giveaway.isActive'); }
+    isGiveawayActive() { return this.configManager.isGiveawayActive(); }
 
     getWidgetConfig(widgetName) {
-        return this.store.get(`widgets.${widgetName}`);
+        return this.configManager.getWidgetConfig(widgetName);
     }
 
     saveWidgetConfig(widgetName, newConfig) {
-        const currentConfig = this.getWidgetConfig(widgetName) || {};
-        this.store.set(`widgets.${widgetName}`, { ...currentConfig, ...newConfig });
+        this.configManager.saveWidgetConfig(widgetName, newConfig);
     }
 
-    connect() {
+    async validateToken(token) {
+        try {
+            // Remove oauth: prefix if present for the API call header
+            const cleanToken = token.replace('oauth:', '');
+            const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+                headers: {
+                    'Authorization': `OAuth ${cleanToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Token validation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            this.clientId = data.client_id;
+            this.userId = data.user_id;
+            console.log(`[AUTH] Token validé. ClientID: ${this.clientId}, UserID: ${this.userId}`);
+            return true;
+        } catch (error) {
+            console.error('[AUTH] Erreur validation token:', error);
+            return false;
+        }
+    }
+
+    async banUser(broadcasterId, userId, duration, reason) {
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${broadcasterId}&moderator_id=${this.userId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    data: {
+                        user_id: userId,
+                        duration: duration,
+                        reason: reason
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${errorData.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('[MOD] Helix Ban/Timeout success:', data);
+            return true;
+        } catch (error) {
+            console.error('[MOD] Helix Ban/Timeout error:', error);
+            throw error;
+        }
+    }
+
+    async connect() {
         const config = this.getConfig();
         if (!config.channel || !config.username || !config.token) {
-            throw new Error('Configuration de connexion manquante (canal, bot, token).');
+            console.error('Configuration de connexion manquante (canal, bot, token).');
+            return;
         }
 
         if (this.client) {
             this.client.removeAllListeners();
             if (this.isConnected) {
-                this.client.disconnect();
+                this.client.disconnect().catch(err => console.error('Erreur déconnexion:', err));
             }
         }
+
+        const token = config.token.startsWith('oauth:') ? config.token : `oauth:${config.token}`;
+
+        // Validate token first to get IDs
+        await this.validateToken(token);
 
         this.client = new tmi.Client({
             options: { debug: false },
             connection: { secure: true, reconnect: true },
-            identity: { username: config.username, password: config.token },
+            identity: { username: config.username, password: token },
             channels: [config.channel]
         });
 
@@ -79,16 +148,75 @@ class TwitchBot {
         }
     }
 
+    async deleteMessage(broadcasterId, messageId) {
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/moderation/chat?broadcaster_id=${broadcasterId}&moderator_id=${this.userId}&message_id=${messageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json(); // Body might be empty for 204
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+
+            console.log('[MOD] Helix Delete success');
+            return true;
+        } catch (error) {
+            console.error('[MOD] Helix Delete error:', error);
+            // Don't throw, just log
+        }
+    }
+
+    async createClip(broadcasterId) {
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${response.status} ${errorData.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                const clipInfo = data.data[0];
+                console.log('[CLIP] Clip created:', clipInfo);
+                return clipInfo;
+            }
+            return null;
+        } catch (error) {
+            console.error('[CLIP] Error creating clip:', error);
+            throw error;
+        }
+    }
+
     async handleMessage(channel, tags, message) {
         if (this.containsBannedWords(message)) {
-            this.client.deletemessage(channel, tags.id).catch(console.error);
+            if (this.userId && this.clientId && tags['room-id'] && tags['user-id']) {
+                await this.deleteMessage(tags['room-id'], tags.id);
+            }
             return;
         }
 
         try {
             await this.ensureAppAccessToken();
         } catch (err) {
-            console.error("Impossible d'obtenir un App Access Token, les badges ne fonctionneront pas.", err);
+            console.error(err);
         }
 
         const messageData = {
@@ -120,13 +248,28 @@ class TwitchBot {
 
             if (command === '!clip') {
                 if (this.isConnected && !this.onCooldown) {
-                    this.client.clip(channel)
-                        .then((clipData) => {
-                            console.log('Clip créé avec succès:', clipData);
-                        }).catch(err => {
-                            console.error('Erreur lors de la création du clip:', err);
-                            this.client.say(channel, `Désolé @${tags.username}, je n'ai pas pu créer le clip. (Le bot doit être Modérateur ou Editeur)`);
-                        });
+                    // Utilisation de l'API Helix pour créer le clip
+                    if (tags['room-id']) {
+                        this.createClip(tags['room-id'])
+                            .then((clipData) => {
+                                if (clipData) {
+                                    // Le clip est créé, on envoie le lien d'édition ou l'ID
+                                    // L'URL publique est généralement https://clips.twitch.tv/[id]
+                                    // Mais elle peut mettre quelques secondes à être active.
+                                    // On envoie l'URL directe.
+                                    const clipUrl = `https://clips.twitch.tv/${clipData.id}`;
+                                    this.client.say(channel, `🎬 Clip créé ! ${clipUrl}`);
+                                } else {
+                                    this.client.say(channel, `Erreur: Impossible de créer le clip.`);
+                                }
+                            })
+                            .catch(err => {
+                                console.error('[CLIP] Error:', err);
+                                this.client.say(channel, `Erreur lors de la création du clip: ${err.message}`);
+                            });
+                    } else {
+                        this.client.say(channel, `Erreur: Impossible de récupérer l'ID de la chaîne.`);
+                    }
 
                     this.onCooldown = true;
                     setTimeout(() => { this.onCooldown = false; }, this.clipCooldown);
@@ -134,17 +277,19 @@ class TwitchBot {
                 return;
             }
 
-            if (this.isGiveawayActive() && command === config.giveawayCommand) {
+            const giveawayCommand = config.giveawayCommand || '!giveaway';
+            if (this.isGiveawayActive() && command === giveawayCommand) {
                 const participants = new Set(this.getParticipants());
                 if (!participants.has(tags.username)) {
-                    participants.add(tags.username);
-                    this.store.set('giveaway.participants', [...participants]);
+                    this.configManager.addGiveawayParticipant(tags.username);
                     if (this.onParticipantAdded) this.onParticipantAdded(tags.username);
+                    if (this.onParticipantsUpdated) this.onParticipantsUpdated();
                 }
                 return;
             }
 
             const commands = this.getCommands();
+
             if (commands[command]) {
                 this.client.say(channel, commands[command]);
             }
@@ -157,19 +302,16 @@ class TwitchBot {
     }
 
     async ensureAppAccessToken() {
-        // Si le token est encore valide, on ne fait rien
         if (this.appAccessToken && this.tokenExpiry > Date.now()) {
             return;
         }
 
-        const cfg = this.getConfig ? this.getConfig() : {};
+        const cfg = this.getConfig();
         const configClientId = cfg.twitchClientId;
         const configAppToken = cfg.twitchAppToken;
 
-        // Si l'utilisateur a fourni un token app directement dans la config, on l'utilise
         if (configClientId && configAppToken) {
             this.appAccessToken = configAppToken;
-            // Durée arbitraire pour éviter de redemander à chaque message (les tokens app expirent en général en 60 j)
             this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
             return;
         }
@@ -196,62 +338,68 @@ class TwitchBot {
 
         const data = await response.json();
         this.appAccessToken = data.access_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Marge de sécurité de 60s
+        this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
     }
 
-    updateConfig(newConfig) {
-        const currentConfig = this.getConfig();
-        this.store.set('config', { ...currentConfig, ...newConfig });
+    addCommand(command, response) {
+        this.configManager.setCommand(command, response);
     }
 
-    addCommand(command, response) { this.store.set(`commands.${command}`, response); }
-    removeCommand(command) { this.store.delete(`commands.${command}`); }
+    removeCommand(command) {
+        this.configManager.removeCommand(command);
+    }
 
     addBannedWord(word) {
-        const words = new Set(this.getBannedWords());
-        words.add(word);
-        this.store.set('config.bannedWords', [...words]);
-        return [...words];
+        this.configManager.addBannedWord(word);
+        return this.getBannedWords();
     }
+
     removeBannedWord(word) {
-        const words = this.getBannedWords().filter(w => w !== word);
-        this.store.set('config.bannedWords', words);
-        return words;
+        this.configManager.removeBannedWord(word);
+        return this.getBannedWords();
     }
+
     clearBannedWords() {
-        this.store.set('config.bannedWords', []);
+        this.configManager.clearBannedWords();
     }
 
     startGiveaway() {
-        this.store.set('giveaway', { isActive: true, participants: [] });
+        this.configManager.setGiveawayActive(true);
+        this.configManager.clearGiveawayParticipants();
         const config = this.getConfig();
-        if (config.giveawayStartMessage && this.client && this.isConnected) {
-            this.client.say(config.channel, config.giveawayStartMessage);
+        const startMsg = config.giveawayStartMessage || 'Le giveaway commence ! Tapez !giveaway pour participer.';
+        if (startMsg && this.client && this.isConnected) {
+            this.client.say(config.channel, startMsg);
         }
         if (this.onParticipantsUpdated) this.onParticipantsUpdated();
     }
+
     stopGiveaway() {
-        this.store.set('giveaway.isActive', false);
+        this.configManager.setGiveawayActive(false);
         const config = this.getConfig();
-        if (config.giveawayStopMessage && this.client && this.isConnected) {
-            this.client.say(config.channel, config.giveawayStopMessage);
+        const stopMsg = config.giveawayStopMessage || 'Le giveaway est terminé !';
+        if (stopMsg && this.client && this.isConnected) {
+            this.client.say(config.channel, stopMsg);
         }
     }
+
     drawWinner() {
         const participants = this.getParticipants();
         if (participants.length === 0) return null;
         const winner = participants[Math.floor(Math.random() * participants.length)];
         const config = this.getConfig();
-        if (config.giveawayWinMessage && this.client && this.isConnected) {
-            const winMessage = config.giveawayWinMessage.replace('{winner}', winner);
+        const winMsgTemplate = config.giveawayWinMessage || 'Félicitations {winner} !';
+        if (winMsgTemplate && this.client && this.isConnected) {
+            const winMessage = winMsgTemplate.replace('{winner}', winner);
             setTimeout(() => {
                 this.client.say(config.channel, winMessage);
             }, 3000);
         }
         return winner;
     }
+
     clearParticipants() {
-        this.store.set('giveaway.participants', []);
+        this.configManager.clearGiveawayParticipants();
         if (this.onParticipantsUpdated) this.onParticipantsUpdated();
     }
 }

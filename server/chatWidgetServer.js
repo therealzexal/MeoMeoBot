@@ -20,7 +20,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
 
     const handleRequest = (req, res) => {
         if (req.url === '/widget/chat') {
-            const filePath = path.join(__dirname, '..', 'chat_widget.html');
+            const filePath = path.join(__dirname, '..', 'widgets', 'chat_widget.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
                     res.statusCode = 500;
@@ -49,7 +49,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 res.end(content);
             });
         } else if (req.url === '/widget/emote-wall') {
-            const filePath = path.join(__dirname, '..', 'emote_wall_widget.html');
+            const filePath = path.join(__dirname, '..', 'widgets', 'emote_wall_widget.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
                     res.statusCode = 500;

@@ -1,0 +1,682 @@
+:root {
+    --bg-primary: #0e0e10;
+    --bg-secondary: #18181b;
+    --bg-tertiary: #1f1f23;
+    --accent: #9147ff;
+    --text-primary: #efeff1;
+    --text-secondary: #adadb8;
+    --success: #00b35f;
+    --danger: #e91916;
+    --border: #343437;
+    --update-color-avail: #ffcc00;
+    --update-color-ok: #008744;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    height: 100%;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+    padding: 10px;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    padding: 0 0 0 15px;
+    height: 50px;
+    flex-shrink: 0;
+    -webkit-app-region: drag;
+}
+
+.app-title {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    -webkit-app-region: no-drag;
+    height: 100%;
+}
+
+.app-icon {
+    height: 28px;
+    width: 28px;
+    margin-right: 10px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 100%;
+    -webkit-app-region: no-drag;
+}
+
+.window-controls {
+    display: flex;
+    height: 100%;
+}
+
+.control-btn {
+    width: 40px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+    -webkit-app-region: no-drag;
+    cursor: pointer;
+}
+
+.control-btn svg {
+    fill: var(--text-secondary);
+    stroke: var(--text-secondary);
+    stroke-width: 1.5;
+}
+
+.control-btn:hover {
+    background-color: var(--bg-tertiary);
+}
+
+#close-btn:hover {
+    background-color: #e81123;
+}
+
+#close-btn:hover svg {
+    fill: white;
+    stroke: white;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+#updateStatus,
+#connectionStatus {
+    margin-top: 3px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status.connected {
+    background: rgba(0, 179, 95, 0.1);
+    color: var(--success);
+}
+
+.status.disconnected {
+    background: rgba(233, 25, 22, 0.1);
+    color: var(--danger);
+}
+
+.status.connected .status-dot {
+    background: var(--success);
+    animation: pulse 2s infinite;
+}
+
+.status.disconnected .status-dot {
+    background: var(--danger);
+}
+
+.status.checking {
+    background: rgba(145, 71, 255, 0.1);
+    color: var(--accent);
+}
+
+.status.checking .status-dot {
+    background: var(--accent);
+    animation: pulse 2s infinite;
+}
+
+.status.up-to-date {
+    background: rgba(0, 179, 95, 0.1);
+    color: var(--update-color-ok);
+}
+
+.status.up-to-date .status-dot {
+    background: var(--update-color-ok);
+}
+
+.status.up-to-date[style*="display: none"],
+.status.up-to-date.hidden {
+    display: none;
+}
+
+.status.update-available {
+    cursor: pointer;
+    background: rgba(255, 204, 0, 0.1);
+    color: var(--update-color-avail);
+}
+
+.status.update-available .status-dot {
+    background: var(--update-color-avail);
+}
+
+.status.downloading {
+    background: rgba(145, 71, 255, 0.1);
+    color: var(--accent);
+}
+
+.status.downloading .status-dot {
+    background: var(--accent);
+    animation: pulse 2s infinite;
+}
+
+.status.downloaded {
+    cursor: pointer;
+    background: rgba(0, 179, 95, 0.1);
+    color: var(--success);
+}
+
+.status.downloaded .status-dot {
+    background: var(--success);
+}
+
+.status.error {
+    background: rgba(233, 25, 22, 0.1);
+    color: var(--danger);
+}
+
+.status.error .status-dot {
+    background: var(--danger);
+}
+
+#update-action-container {
+    display: flex;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+.status.up-to-date #update-action-container,
+.status.checking #update-action-container,
+.status.downloading #update-action-container,
+.status.error #update-action-container {
+    display: none;
+}
+
+.status.update-available #update-action-container,
+.status.downloaded #update-action-container {
+    display: flex !important;
+}
+
+.status .update-icon {
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    line-height: 1;
+}
+
+.status .confirm-icon {
+    color: var(--success);
+}
+
+.status .deny-icon {
+    color: var(--danger);
+}
+
+.status .update-icon:hover {
+    transform: scale(1.1);
+}
+
+.tabs-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    margin-bottom: 15px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+}
+
+.main-tabs {
+    display: flex;
+    gap: 5px;
+}
+
+.tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    -webkit-app-region: no-drag;
+}
+
+.tab.active {
+    background: var(--accent);
+    color: white;
+}
+
+.tab.icon-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.tab.icon-tab svg {
+    stroke: var(--text-secondary);
+    transition: stroke 0.2s ease;
+}
+
+.tab.icon-tab:hover svg {
+    stroke: var(--text-primary);
+}
+
+.tab.icon-tab.active svg {
+    stroke: white;
+}
+
+.tab-content {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+    padding: 5px 5px 15px 5px;
+    min-height: 0;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.4s ease;
+}
+
+.card {
+    background: rgba(31, 31, 35, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border-radius: 12px;
+    padding: 0px 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card.full-height-card {
+    height: 100%;
+    min-height: 0;
+    position: relative;
+}
+
+.card-title {
+    color: var(--text-primary);
+    margin: 12px 0px;
+    font-size: 16px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-footer {
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+label {
+    display: flex;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    align-items: center;
+    gap: 4px;
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+    -webkit-app-region: no-drag;
+}
+
+input:focus,
+textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.2);
+    outline: none;
+}
+
+input[readonly] {
+    background-color: #111;
+    color: var(--text-secondary);
+    cursor: default;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease-in-out;
+    -webkit-app-region: no-drag;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn.btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px;
+}
+
+.btn-link:hover {
+    color: var(--accent);
+}
+
+.form-button {
+    margin-top: auto;
+}
+
+.list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    min-height: 0;
+    margin: 0 20px;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    animation: slideUpIn 0.4s ease-out;
+}
+
+.list-item .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.list-item .inline-confirm {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.list-item.is-deleting .controls {
+    display: none;
+}
+
+.list-item.is-deleting .inline-confirm {
+    display: flex;
+}
+
+.list-item .control-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.list-item .control-button:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.list-item .control-button svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-secondary);
+}
+
+.list-item .control-button:hover svg {
+    stroke: var(--text-primary);
+}
+
+.list-item input.inline-input {
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+.confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.confirmation-overlay.active {
+    display: flex;
+}
+
+.confirmation-box {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    max-width: 300px;
+    text-align: center;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+#notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification {
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+}
+
+.notification.success {
+    background-color: var(--success);
+}
+
+.notification.error {
+    background-color: var(--danger);
+}
+
+.notification.info {
+    background-color: var(--accent);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #4f4f52;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slideUpIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hidden {
+    display: none !important;
+}

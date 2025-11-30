@@ -27,11 +27,10 @@
         const CLIENT_ID = '__TWITCH_CLIENT_ID__';
         const APP_TOKEN = '__TWITCH_APP_TOKEN__';
 
-        // Configuration
-        const ANIMATION_DURATION = 5000; // ms
-        const SPAWN_INTERVAL = 100; // ms
-        const MIN_SIZE = 32; // px
-        const MAX_SIZE = 96; // px
+        const ANIMATION_DURATION = 5000;
+        const SPAWN_INTERVAL = 100;
+        const MIN_SIZE = 32;
+        const MAX_SIZE = 96;
 
         let ws;
 
@@ -56,34 +55,27 @@
             img.src = url;
             img.className = 'emote';
 
-            // Randomize start position
             const startY = Math.random() * (window.innerHeight - 50);
             const startX = Math.random() * (window.innerWidth - 50);
 
-            // Randomize size with contrast bias
-            // Squaring the random factor biases towards smaller sizes, making max-size emotes feel more special/varied
             const randomFactor = Math.pow(Math.random(), 2);
             const size = MIN_SIZE + randomFactor * (MAX_SIZE - MIN_SIZE);
             img.style.width = `${size}px`;
             img.style.height = `${size}px`;
 
-            // Set initial position
             img.style.left = `${startX}px`;
             img.style.top = `${startY}px`;
 
-            // Randomize animation
             const angle = Math.random() * 360;
-            const distance = 200 + Math.random() * 300; // Increased distance
-            // Use configured animation duration with some randomness
+            const distance = 200 + Math.random() * 300;
             const duration = ANIMATION_DURATION * (0.8 + Math.random() * 0.4);
 
-            // Simple "pop" animation: scale up then fade out while moving slightly
             document.body.appendChild(img);
 
             const animation = img.animate([
                 { transform: 'scale(0) translate(0, 0)', opacity: 0 },
                 { transform: 'scale(1.2) translate(0, 0)', opacity: 1, offset: 0.1 },
-                { transform: 'scale(1) translate(0, 0)', opacity: 1, offset: 0.8 }, // Stay visible longer
+                { transform: 'scale(1) translate(0, 0)', opacity: 1, offset: 0.8 },
                 { transform: `scale(1) translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`, opacity: 0 }
             ], {
                 duration: duration,
@@ -102,9 +94,7 @@
                 const data = JSON.parse(event.data);
                 if (data.type === 'chat' && data.emotes) {
                     const emoteList = normalizeEmotes(data.emotes);
-                    // For each emote instance in the message
                     emoteList.forEach((emote, index) => {
-                        // Stagger spawns slightly if multiple emotes
                         setTimeout(() => {
                             const url = `https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}/default/dark/3.0`;
                             spawnEmote(url);

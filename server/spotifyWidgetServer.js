@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 const crypto = require('crypto');
-const fetch = require('node-fetch');
 
 function createSpotifyWidgetServer(bot, {
     defaultPort = 8090,
@@ -185,7 +184,7 @@ function createSpotifyWidgetServer(bot, {
 
     const handleRequest = async (req, res, portInitial) => {
         if (req.url === '/widget/spotify') {
-            const filePath = path.join(__dirname, '..', 'spotify_widget.html');
+            const filePath = path.join(__dirname, '..', 'widgets', 'spotify_widget.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
                     res.statusCode = 500;

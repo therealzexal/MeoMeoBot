@@ -1,0 +1,32 @@
+.moderation-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    height: 100%;
+}
+
+.moderation-layout .card {
+    height: 100%;
+}
+
+.moderation-settings-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+
+.moderation-settings-col .card {
+    height: auto;
+    flex-shrink: 0;
+}
+
+#saveAutoMessage,
+#saveClipConfig {
+    margin-bottom: 12px;
+    margin-top: 10px;
+}
+
+.moderation-layout .interactive-header .header-main-controls .form-group:first-child {
+    flex-grow: 1;
+}

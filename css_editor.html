@@ -1,37 +1,54 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <title>Editeur CSS Widget</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/css-editor.css">
 </head>
+
 <body class="css-editor-body">
     <div class="css-editor-shell">
         <div class="css-editor-titlebar">
-            <h2>Apparence du <span id="widgetNameLabel">tchat</span></h2>
+            <h2>Apparence <span id="widgetNameLabel">du tchat</span></h2>
             <button class="css-editor-close" id="close-btn" title="Fermer">✕</button>
         </div>
 
         <div class="css-editor-main">
             <div class="css-editor-left">
-                <div>
-                    <label for="customCss">CSS personnalisé</label>
-                    <textarea id="customCss" class="css-editor-textarea" spellcheck="false"></textarea>
+                <div class="theme-selector-row">
+                    <div class="theme-selector-wrapper">
+                        <label for="themeSelector">Thèmes prédéfinis</label>
+                        <select id="themeSelector" class="theme-selector-input">
+                            <option value="">Défaut</option>
+                        </select>
+                    </div>
+                    <button id="importThemeBtn" class="btn btn-secondary" title="Importer un thème">📂</button>
+                    <button id="saveAsThemeBtn" class="btn btn-secondary"
+                        title="Sauvegarder comme nouveau thème">💾</button>
+                    <button id="editThemeConfigBtn" class="btn btn-secondary" title="Renommer les thèmes">✏️</button>
                 </div>
-                <div id="maxMessagesRow">
-                    <label for="maxMessages">Nombre max de messages (chat)</label>
-                    <input id="maxMessages" type="number" min="1" value="10">
+                <div class="css-editor-textarea-wrapper">
+                    <label for="customCss">CSS Personnalisé</label>
+                    <div class="css-editor-textarea-container">
+                        <textarea id="customCss" class="css-editor-textarea" spellcheck="false"></textarea>
+                    </div>
+                    <div id="maxMessagesRow" class="max-messages-row">
+                        <label for="maxMessages">Nombre max de messages (chat)</label>
+                        <input id="maxMessages" type="number" min="1" value="10" class="max-messages-input">
+                    </div>
+                    <div class="css-editor-actions">
+                        <button class="btn btn-primary" id="save-btn">Appliquer au widget</button>
+                        <button class="btn btn-secondary" id="reset-btn">Remettre par défaut</button>
+                    </div>
+                    <div class="css-editor-status" id="statusBar"></div>
                 </div>
-                <div class="css-editor-actions">
-                    <button class="btn btn-primary" id="save-btn">Sauvegarder</button>
-                    <button class="btn btn-secondary" id="reset-btn">Remettre par défaut</button>
-                </div>
-                <div class="css-editor-status" id="statusBar"></div>
             </div>
 
             <div class="css-preview-block">
                 <div class="css-preview-toolbar">
-                    <span id="previewTitle">Aperçu en direct</span>
+                    <!-- Label removed as requested -->
                 </div>
                 <div id="preview-frame-wrapper">
                     <iframe id="preview-frame" title="widget preview"></iframe>
@@ -40,24 +57,39 @@
         </div>
     </div>
 
+    <div id="themeConfigModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-content-lg">
+            <h3>Gérer les noms des thèmes</h3>
+            <p class="modal-description">
+                Donnez des noms plus explicites à vos fichiers de thèmes.
+            </p>
+            <div id="themeListContainer" class="theme-list-container">
+
+            </div>
+            <div class="modal-actions">
+                <button id="closeThemeConfigBtn" class="btn btn-secondary">Fermer</button>
+                <button id="saveThemeConfigBtn" class="btn btn-primary">Enregistrer les noms</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="newThemeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-content-md">
+            <h3>Nouveau Thème</h3>
+            <p class="modal-description">
+                Entrez le nom de votre nouveau thème.
+            </p>
+            <input type="text" id="newThemeNameInput" placeholder="Nom du thème" class="new-theme-input">
+            <div class="modal-actions">
+                <button id="cancelNewThemeBtn" class="btn btn-secondary">Annuler</button>
+                <button id="confirmNewThemeBtn" class="btn btn-primary">Créer</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const defaultCss = {
-            chat: `/*
-Classes cibles (widget) :
- - body
- - #chat-container
- - .msg-group (wrapper par user) + .user-<username>
- - .msg-header (ligne badges+username)
- - .msg-username
- - .msg-badges
- - .badge-img (img de badge)
- - .msg-messages (pile des messages d'un user)
- - .msg-line (chaque ligne de texte)
-Variables dispo :
- - --user-color : couleur twitch de l'user
- - --user-color-soft : version translucide de la couleur user
-*/
-body { background: transparent; }
+            chat: `body { background: transparent; }
 
 #chat-container {
     display: flex;
@@ -123,18 +155,7 @@ body { background: transparent; }
     to   { opacity: 1; transform: translateY(0); }
 }
 `,
-            spotify: `/* Classes cibles (widget Spotify) :
-- body
-- #spotify-wrapper
-- .spotify-card
-- .spotify-cover
-- .spotify-infos
-- .spotify-title
-- .spotify-artist
-- .spotify-album
-- .pill
-*/
-body {
+            spotify: `body {
     background: transparent;
     margin: 0;
     padding: 0;
@@ -190,7 +211,7 @@ body {
     align-self: flex-start;
     padding: 4px 10px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.1);
     font-size: 12px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -205,25 +226,101 @@ body {
         const maxMessagesRow = document.getElementById('maxMessagesRow');
         const statusBar = document.getElementById('statusBar');
         const nameLabel = document.getElementById('widgetNameLabel');
-        const previewTitle = document.getElementById('previewTitle');
 
         function setStatus(msg, type = '') {
             statusBar.className = `css-editor-status ${type}`;
             statusBar.textContent = msg || '';
         }
 
+        async function loadThemes(widgetType) {
+            const selector = document.getElementById('themeSelector');
+            while (selector.options.length > 1) selector.remove(1);
+
+            try {
+                const themes = await window.api.invoke('get-themes', widgetType);
+                themes.forEach(theme => {
+                    const opt = document.createElement('option');
+                    opt.value = theme.filename;
+                    opt.textContent = theme.name;
+                    selector.appendChild(opt);
+                });
+            } catch (e) { console.error('Error loading themes', e); }
+        }
+
+        async function openConfigEditor() {
+            const modal = document.getElementById('themeConfigModal');
+            const container = document.getElementById('themeListContainer');
+            container.innerHTML = '<div class="modal-loading-message">Chargement...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                const themes = await window.api.invoke('get-themes', currentWidget);
+                const configStr = await window.api.invoke('get-theme-config');
+                const config = JSON.parse(configStr || '{}');
+
+                container.innerHTML = '';
+
+                if (themes.length === 0) {
+                    container.innerHTML = '<div class="modal-empty-message">Aucun thème trouvé pour ce widget.</div>';
+                    return;
+                }
+
+                themes.forEach(theme => {
+                    const row = document.createElement('div');
+                    row.className = 'theme-config-row';
+
+                    const label = document.createElement('div');
+                    label.textContent = theme.filename;
+                    label.className = 'theme-config-filename';
+                    label.title = theme.filename;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = config[theme.filename] || theme.name || theme.filename;
+                    input.placeholder = 'Nom affiché';
+                    input.dataset.filename = theme.filename;
+                    input.className = 'theme-name-input';
+
+                    row.appendChild(label);
+                    row.appendChild(input);
+                    container.appendChild(row);
+                });
+
+            } catch (e) {
+                container.innerHTML = `<div class="modal-error-message">Erreur: ${e}</div>`;
+            }
+        }
+
         async function loadWidgetConfig(widgetName = 'chat') {
             currentWidget = widgetName || 'chat';
-            nameLabel.textContent = currentWidget;
-            previewTitle.textContent = currentWidget === 'chat' ? 'Aperçu chat' : 'Aperçu Spotify';
+
+            const displayNames = {
+                'chat': 'du Tchat',
+                'spotify': 'de Spotify',
+                'emote-wall': "du Mur d'Emotes"
+            };
+            nameLabel.textContent = displayNames[currentWidget] || 'de ' + currentWidget;
+
             maxMessagesRow.style.display = currentWidget === 'chat' ? 'block' : 'none';
             setStatus('Chargement...');
+
+            await loadThemes(currentWidget);
+
             try {
                 const config = await window.api.invoke('get-widget-config', currentWidget);
                 currentWidgetConfig = config || {};
                 const storedCss = config && typeof config.customCSS === 'string' ? config.customCSS.trim() : '';
                 cssInput.value = storedCss || defaultCss[currentWidget] || '';
                 maxMessagesInput.value = (config && config.maxMessages) || 10;
+
+                if (config && config.activeTheme) {
+                    const selector = document.getElementById('themeSelector');
+                    // Verify if the theme still exists in the list
+                    if ([...selector.options].some(opt => opt.value === config.activeTheme)) {
+                        selector.value = config.activeTheme;
+                    }
+                }
+
                 setStatus('Configuration chargée', 'ok');
             } catch (e) {
                 currentWidgetConfig = {};
@@ -237,7 +334,10 @@ body {
             const maxVal = parseInt(maxMessagesInput.value, 10);
             const safeMax = Number.isInteger(maxVal) && maxVal > 0 ? maxVal : 10;
             try {
-                const payload = { customCSS: cssInput.value };
+                const payload = {
+                    customCSS: cssInput.value,
+                    activeTheme: document.getElementById('themeSelector').value
+                };
                 if (currentWidget === 'chat') {
                     payload.maxMessages = safeMax;
                 }
@@ -272,75 +372,69 @@ ${customCss || ''}
 const MAX_MESSAGES = ${maxMessages || 10};
 const container = document.getElementById('chat-container');
 const demo = [
- {u:'Alice',c:'#6dd4ff',b:[{set:'staff',version:'1'}],t:'Hello world!'},
- {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Ceci est un test.'},
- {u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Deuxieme ligne meme user.'},
- {u:'Chloe',c:'#9b59b6',b:[],t:'Nice overlay!'},
- {u:'Eve',c:'#e67e22',b:[],t:'Short msg.'}
+{u:'Alice',c:'#6dd4ff',b:[{set:'staff',version:'1'}],t:'Hello world!'},
+{u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Ceci est un test.'},
+{u:'Bob',c:'#ff8b3d',b:[{set:'moderator',version:'1'}],t:'Deuxieme ligne meme user.'},
+{u:'Chloe',c:'#9b59b6',b:[],t:'Nice overlay!'},
+{u:'Eve',c:'#e67e22',b:[],t:'Short msg.'}
 ];
 let lastUser = null;
 let lastGroup = null;
 function sanitizeClass(str){
-  const clean = String(str || '').toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');
-  return clean || 'user';
+const clean = String(str || '').toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');
+return clean || 'user';
 }
 function computeColors(hexColor){
-  const fallback = '#6dd4ff';
-  let c = (hexColor || '').trim();
-  if(!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) c = fallback;
-  if(c.length === 4) c = '#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3];
-  const r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16);
-  return { solid:c, soft:'rgba('+r+', '+g+', '+b+', 0.15)' };
+const fallback = '#6dd4ff';
+let c = (hexColor || '').trim();
+if(!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) c = fallback;
+if(c.length === 4) c = '#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3];
+const r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16);
+return { solid:c, soft:'rgba('+r+', '+g+', '+b+', 0.15)' };
 }
 function createBadge(entry){
-  if(!entry || !entry.set || !entry.version) return null;
-  const img = document.createElement('img');
-  img.className = 'badge-img';
-  img.src = 'https://static-cdn.jtvnw.net/badges/v1/'+entry.set+'/'+entry.version+'/1';
-  img.alt = entry.set;
-  img.onerror = () => img.remove();
-  return img;
+if(!entry || !entry.set || !entry.version) return null;
+const img = document.createElement('img');
+img.className = 'badge-img';
+img.src = 'https://static-cdn.jtvnw.net/badges/v1/'+entry.set+'/'+entry.version+'/1';
+img.alt = entry.set;
+img.onerror = () => img.remove();
+return img;
 }
 function addMessage(m){
-  const colors = computeColors(m.c);
-  const sameUser = lastUser === m.u && lastGroup;
-  let group = lastGroup;
-  if(!sameUser){
-    group = document.createElement('div');
-    group.className = 'msg-group user-'+sanitizeClass(m.u);
-    group.style.setProperty('--user-color', colors.solid);
-    group.style.setProperty('--user-color-soft', colors.soft);
-    group.isConnected = true;
-
-    const header = document.createElement('div');
-    header.className = 'msg-header';
-    const name = document.createElement('span');
-    name.className = 'msg-username';
-    name.textContent = m.u;
-    name.style.color = colors.solid;
-    header.appendChild(name);
-
-    const badgesWrap = document.createElement('span');
-    badgesWrap.className = 'msg-badges';
-    (m.b || []).forEach(b => { const node = createBadge(b); if(node) badgesWrap.appendChild(node); });
-    if(badgesWrap.children.length) header.appendChild(badgesWrap);
-
-    const messagesDiv = document.createElement('div');
-    messagesDiv.className = 'msg-messages';
-
-    group.appendChild(header);
-    group.appendChild(messagesDiv);
-    container.appendChild(group);
-
-    lastGroup = group;
-    lastUser = m.u;
-  }
-
-  const messagesDiv = group.querySelector('.msg-messages');
-  const line = document.createElement('div');
-  line.className = 'msg-line';
-  line.textContent = m.t;
-  messagesDiv.appendChild(line);
+const colors = computeColors(m.c);
+const sameUser = lastUser === m.u && lastGroup;
+let group = lastGroup;
+if(!sameUser){
+group = document.createElement('div');
+group.className = 'msg-group user-'+sanitizeClass(m.u);
+group.style.setProperty('--user-color', colors.solid);
+group.style.setProperty('--user-color-soft', colors.soft);
+group.isConnected = true;
+const header = document.createElement('div');
+header.className = 'msg-header';
+const name = document.createElement('span');
+name.className = 'msg-username';
+name.textContent = m.u;
+name.style.color = colors.solid;
+header.appendChild(name);
+const badgesWrap = document.createElement('span');
+badgesWrap.className = 'msg-badges';
+(m.b || []).forEach(b => { const node = createBadge(b); if(node) badgesWrap.appendChild(node); });
+if(badgesWrap.children.length) header.appendChild(badgesWrap);
+const messagesDiv = document.createElement('div');
+messagesDiv.className = 'msg-messages';
+group.appendChild(header);
+group.appendChild(messagesDiv);
+container.appendChild(group);
+lastGroup = group;
+lastUser = m.u;
+}
+const messagesDiv = group.querySelector('.msg-messages');
+const line = document.createElement('div');
+line.className = 'msg-line';
+line.textContent = m.t;
+messagesDiv.appendChild(line);
 }
 demo.slice(-MAX_MESSAGES).forEach(addMessage);
 <\/script>
@@ -372,15 +466,15 @@ ${customCss || ''}
 </head>
 <body>
 <div id="spotify-wrapper">
-  <div class="spotify-card">
-    <img class="spotify-cover" src="${cover}" alt="cover">
-    <div class="spotify-infos">
-      <div class="pill">En lecture</div>
-      <div class="spotify-title">${title}</div>
-      <div class="spotify-artist">${artist}</div>
-      <div class="spotify-album">${album}</div>
-    </div>
-  </div>
+<div class="spotify-card">
+<img class="spotify-cover" src="${cover}" alt="cover">
+<div class="spotify-infos">
+  <div class="pill">En lecture</div>
+  <div class="spotify-title">${title}</div>
+  <div class="spotify-artist">${artist}</div>
+  <div class="spotify-album">${album}</div>
+</div>
+</div>
 </div>
 </body>
 </html>`;
@@ -400,16 +494,112 @@ ${customCss || ''}
         document.getElementById('save-btn').addEventListener('click', saveWidgetConfig);
         document.getElementById('reset-btn').addEventListener('click', () => {
             cssInput.value = defaultCss[currentWidget] || '';
-            setStatus('Valeurs par défaut rétablies (pense à sauvegarder)', 'ok');
             renderPreview();
         });
+
         document.getElementById('close-btn').addEventListener('click', () => window.close());
 
         cssInput.addEventListener('input', renderPreview);
         maxMessagesInput.addEventListener('input', renderPreview);
 
+        document.getElementById('themeSelector').addEventListener('change', async (e) => {
+            const filename = e.target.value;
+            if (!filename) {
+                // Default theme selected
+                cssInput.value = defaultCss[currentWidget] || '';
+                renderPreview();
+                return;
+            }
+            try {
+                const content = await window.api.invoke('get-theme-content', filename);
+                cssInput.value = content;
+                renderPreview();
+            } catch (err) { alert('Erreur chargement thème: ' + err); }
+        });
+
+        document.getElementById('editThemeConfigBtn').addEventListener('click', openConfigEditor);
+
+        document.getElementById('importThemeBtn').addEventListener('click', async () => {
+            try {
+                const result = await window.api.invoke('import-theme', currentWidget);
+                if (result.success) {
+                    setStatus(result.message, 'ok');
+                    loadThemes(currentWidget);
+                } else {
+                    setStatus(result.message || 'Import annulé', 'info');
+                }
+            } catch (error) {
+                setStatus(`Erreur lors de l'importation du thème: ${error.message}`, 'err');
+            }
+        });
+
+        // New Theme Modal Logic
+        const newThemeModal = document.getElementById('newThemeModal');
+        const newThemeNameInput = document.getElementById('newThemeNameInput');
+        const confirmNewThemeBtn = document.getElementById('confirmNewThemeBtn');
+        const cancelNewThemeBtn = document.getElementById('cancelNewThemeBtn');
+
+        document.getElementById('saveAsThemeBtn').addEventListener('click', () => {
+            newThemeNameInput.value = '';
+            newThemeModal.style.display = 'flex';
+            newThemeNameInput.focus();
+        });
+
+        cancelNewThemeBtn.addEventListener('click', () => {
+            newThemeModal.style.display = 'none';
+        });
+
+        confirmNewThemeBtn.addEventListener('click', async () => {
+            const name = newThemeNameInput.value.trim();
+            if (!name) return;
+
+            try {
+                const cssContent = cssInput.value;
+                const result = await window.api.invoke('create-theme', currentWidget, name, cssContent);
+                if (result.success) {
+                    setStatus(`Thème "${name}" créé avec succès !`, 'ok');
+                    await loadThemes(currentWidget);
+                    const selector = document.getElementById('themeSelector');
+                    selector.value = result.filename;
+                    newThemeModal.style.display = 'none';
+                }
+            } catch (e) {
+                setStatus('Erreur création thème: ' + e, 'err');
+            }
+        });
+
+        document.getElementById('closeThemeConfigBtn').addEventListener('click', () => {
+            document.getElementById('themeConfigModal').style.display = 'none';
+        });
+
+        document.getElementById('saveThemeConfigBtn').addEventListener('click', async () => {
+            try {
+                const configStr = await window.api.invoke('get-theme-config');
+                const fullConfig = JSON.parse(configStr || '{}');
+
+                const inputs = document.querySelectorAll('.theme-name-input');
+                inputs.forEach(input => {
+                    const filename = input.dataset.filename;
+                    const name = input.value.trim();
+                    if (filename) {
+                        if (name) {
+                            fullConfig[filename] = name;
+                        } else {
+                            delete fullConfig[filename];
+                        }
+                    }
+                });
+
+                await window.api.invoke('save-theme-config', JSON.stringify(fullConfig, null, 2));
+                document.getElementById('themeConfigModal').style.display = 'none';
+                loadThemes(currentWidget);
+                setStatus('Configuration des thèmes sauvegardée', 'ok');
+            } catch (e) { alert('Erreur sauvegarde: ' + e); }
+        });
+
         window.api.on('load-css-editor', ({ widgetName }) => { loadWidgetConfig(widgetName).then(renderPreview); });
         document.addEventListener('DOMContentLoaded', () => { loadWidgetConfig().then(renderPreview); });
     </script>
 </body>
+
 </html>

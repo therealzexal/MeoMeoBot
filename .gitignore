@@ -22,6 +22,10 @@ Thumbs.db
 
 # Cmd
 publish.bat
+publish.ps1
 
 # Json
 package-lock.json
+
+#Md
+release-notes.temp.md

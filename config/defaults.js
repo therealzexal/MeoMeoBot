@@ -22,7 +22,7 @@ module.exports = {
     },
     widgets: {
         chat: {
-            customCSS: "/* Styles par defaut: */\n\n#chat-container {\n    max-height: 500px; \n    font-size: 16px;\n}\n\n.message {\n    padding: 10px;\n    border-radius: 8px;\n}\n\n.username {\n    font-weight: bold;\n    text-shadow: none;\n}",
+            customCSS: "#chat-container {\n    max-height: 500px; \n    font-size: 16px;\n}\n\n.message {\n    padding: 10px;\n    border-radius: 8px;\n}\n\n.username {\n    font-weight: bold;\n    text-shadow: none;\n}",
             maxMessages: 10,
             badgePrefs: {
                 moderator: true,
@@ -35,8 +35,7 @@ module.exports = {
             }
         },
         spotify: {
-            customCSS: `/* Styles par defaut pour Spotify */
-#spotify-wrapper {
+            customCSS: `#spotify-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;

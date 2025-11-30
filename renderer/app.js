@@ -1,613 +1,251 @@
-let activeInlineEdit = null;
-let pendingAction = null;
-let currentVideoToCast = null;
+import { setupTabs } from './tabs.js';
+import { setupWindowControls, setupConfirmationOverlay, showNotification, updateUpdaterStatus } from './ui.js';
+import { loadParticipants, startGiveaway, stopGiveaway, drawWinner, clearParticipants, saveGiveawayConfig } from './giveaway.js';
+import { loadCommands, addCommand } from './commands.js';
+import { loadBannedWords, addBannedWord, clearBannedWords, saveAutoMessage, saveClipConfig } from './moderation.js';
+import { setupCast } from './cast.js';
+
+window.editWidgetCss = (widgetName) => {
+    window.api.invoke('open-css-editor', widgetName);
+};
 
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
     setupTabs();
-    await loadAllData();
-    await loadBadgePrefs();
-    setupEventListeners();
+    setupWindowControls();
     setupConfirmationOverlay();
+    setupCast();
+    setupEventListeners();
+
+    await loadAllData();
     updateUpdaterStatus('checking');
+
     loadWidgetUrls();
     loadEmoteWallConfig();
-}
-
-function setupTabs() {
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            if (tab.classList.contains('active')) return;
-            document.querySelector('.tab.active').classList.remove('active');
-            const activeContent = document.querySelector('.tab-content.active');
-            if (activeContent) activeContent.classList.remove('active');
-
-            tab.classList.add('active');
-            const newContent = document.getElementById(`${tab.dataset.tab}-tab`);
-            if (newContent) newContent.classList.add('active');
-        });
-    });
+    loadBadgePrefs();
 }
 
 async function loadAllData() {
     try {
         const config = await window.api.invoke('get-config');
         updateConfigForm(config);
-        if (config.castFolderPath) {
-            await loadCastVideos(config.castFolderPath);
-        }
+
         await loadCommands();
         await loadBannedWords();
         await loadParticipants();
+
+        const status = await window.api.invoke('get-bot-status');
+        updateBotStatus(status.connected ? 'connected' : 'disconnected');
     } catch (error) {
         showNotification(`Erreur critique au chargement: ${error.message || error}`, "error");
     }
 }
 
 function setupEventListeners() {
-    document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
     document.getElementById('connectBtn').addEventListener('click', connectBot);
     document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
-    document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
-    document.getElementById('saveClipConfig').addEventListener('click', saveClipConfig);
-    document.getElementById('saveBadgePrefs').addEventListener('click', saveBadgePrefs);
-    const saveBadgeBtn = document.getElementById('saveBadgePrefs');
-    if (saveBadgeBtn) saveBadgeBtn.addEventListener('click', saveBadgePrefs);
-    const spotifyAuthBtn = document.getElementById('spotifyAuthBtn');
-    if (spotifyAuthBtn) spotifyAuthBtn.addEventListener('click', startSpotifyAuth);
+    document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
 
-    const saveEmoteWallBtn = document.getElementById('saveEmoteWallConfig');
-    if (saveEmoteWallBtn) saveEmoteWallBtn.addEventListener('click', saveEmoteWallConfig);
-
-    const addCommandBtn = document.getElementById('addCommandBtn');
-    const newCommandInput = document.getElementById('newCommand');
-    const commandResponseInput = document.getElementById('commandResponse');
-    addCommandBtn.addEventListener('click', addCommand);
-    newCommandInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') commandResponseInput.focus(); });
-    commandResponseInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCommand(); } });
+    document.getElementById('addCommandBtn').addEventListener('click', addCommand);
+    document.getElementById('newCommand').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('commandResponse').focus(); });
+    document.getElementById('commandResponse').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCommand(); } });
 
     document.getElementById('saveGiveawayConfig').addEventListener('click', saveGiveawayConfig);
     document.getElementById('startGiveawayBtn').addEventListener('click', startGiveaway);
     document.getElementById('stopGiveawayBtn').addEventListener('click', stopGiveaway);
     document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
-    document.getElementById('clearParticipantsBtn').addEventListener('click', () => showConfirmation('Vider la liste des participants ?', clearParticipants));
+    document.getElementById('clearParticipantsBtn').addEventListener('click', () => window.showConfirmation('Vider la liste des participants ?', clearParticipants));
+
+    document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
+    document.getElementById('saveClipConfig').addEventListener('click', saveClipConfig);
 
     const addBannedWordBtn = document.getElementById('addBannedWordBtn');
     const newBannedWordInput = document.getElementById('newBannedWord');
     addBannedWordBtn.addEventListener('click', addBannedWord);
     newBannedWordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBannedWord(); } });
     document.getElementById('clearBannedWordsBtn').addEventListener('click', () => {
-        showConfirmation('Vider toute la liste des mots bannis ? Cette action est irréversible.', clearBannedWords);
+        window.showConfirmation('Vider toute la liste des mots bannis ? Cette action est irréversible.', clearBannedWords);
     });
 
-    document.getElementById('select-cast-folder-btn').addEventListener('click', selectCastFolder);
-    document.getElementById('close-device-picker').addEventListener('click', hideDevicePicker);
+    const saveBadgeBtn = document.getElementById('saveBadgePrefs');
+    if (saveBadgeBtn) saveBadgeBtn.addEventListener('click', saveBadgePrefs);
 
-    document.getElementById('minimize-btn').addEventListener('click', () => window.api.send('window-control', 'minimize'));
-    document.getElementById('maximize-btn').addEventListener('click', () => window.api.send('window-control', 'maximize'));
-    document.getElementById('close-btn').addEventListener('click', () => window.api.send('window-control', 'close'));
+    const spotifyAuthBtn = document.getElementById('spotifyAuthBtn');
+    if (spotifyAuthBtn) spotifyAuthBtn.addEventListener('click', startSpotifyAuth);
+
+    const saveEmoteWallBtn = document.getElementById('saveEmoteWallConfig');
+    if (saveEmoteWallBtn) saveEmoteWallBtn.addEventListener('click', saveEmoteWallConfig);
 
     const updateStatus = document.getElementById('updateStatus');
-    const updateConfirmIcon = document.getElementById('update-confirm-icon');
-    const updateDenyIcon = document.getElementById('update-deny-icon');
-
     updateStatus.addEventListener('click', (e) => {
         if (!e.target.closest('.update-popover') && (updateStatus.classList.contains('update-available') || updateStatus.classList.contains('downloaded'))) {
             updateStatus.classList.toggle('active');
         }
     });
-
-    document.addEventListener('click', (e) => {
-        if (!updateStatus.contains(e.target)) {
-            updateStatus.classList.remove('active');
-        }
-    });
-
-    updateConfirmIcon.addEventListener('click', (e) => {
+    document.getElementById('update-confirm-icon').addEventListener('click', (e) => {
         e.stopPropagation();
-        if (updateStatus.classList.contains('update-available')) {
-            window.api.send('start-download');
-        } else if (updateStatus.classList.contains('downloaded')) {
-            window.api.send('quit-and-install');
-        }
+        window.api.send('update-action', 'install');
     });
-
-    updateDenyIcon.addEventListener('click', (e) => {
+    document.getElementById('update-deny-icon').addEventListener('click', (e) => {
         e.stopPropagation();
-        updateUpdaterStatus('up-to-date');
-        showNotification('Mise à jour refusée pour le moment.', 'info');
+        updateStatus.classList.remove('active');
     });
 
-    window.editWidgetCss = function (widgetName) {
-        window.api.invoke('open-css-editor', widgetName || 'chat');
-    };
-
+    window.api.on('bot-status', (status) => updateBotStatus(status.connected ? 'connected' : 'disconnected'));
+    window.api.on('update-status', (status) => updateUpdaterStatus(status));
+    window.api.on('notification', (msg, type) => showNotification(msg, type));
+    window.api.on('participants-updated', () => loadParticipants());
 }
 
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('notification-container');
-    const notif = document.createElement('div');
-    notif.className = `notification ${type}`;
-    notif.textContent = message;
-    container.appendChild(notif);
-    setTimeout(() => notif.remove(), 3000);
-}
-function setupConfirmationOverlay() {
-    const overlay = document.getElementById('confirmationOverlay');
-    document.getElementById('confirmYes').addEventListener('click', () => {
-        if (pendingAction) pendingAction();
-        hideConfirmation();
-    });
-    document.getElementById('confirmNo').addEventListener('click', hideConfirmation);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) hideConfirmation(); });
-}
-function showConfirmation(message, action) {
-    document.getElementById('confirmationMessage').textContent = message;
-    pendingAction = action;
-    document.getElementById('confirmationOverlay').classList.add('active');
-}
-function hideConfirmation() {
-    document.getElementById('confirmationOverlay').classList.remove('active');
-    pendingAction = null;
-}
-
-function startCommandEdit(commandName) {
-    if (activeInlineEdit) cancelCommandEdit(activeInlineEdit);
-    const item = document.querySelector(`.list-item[data-command="${commandName}"]`);
-    if (!item) return;
-    activeInlineEdit = commandName;
-    const content = item.querySelector('.content');
-    const controls = item.querySelector('.controls');
-    const commandToEdit = item.dataset.command.substring(1);
-    const response = item.dataset.response;
-    content.innerHTML = `
-                <span style="color: var(--accent); font-weight: bold; font-size: 1.2em;">!</span>
-                <input class="inline-input" id="inline-edit-command" type="text" value="${commandToEdit}" style="width: 150px; flex-shrink: 0;">
-                <input class="inline-input" id="inline-edit-response" type="text" value="${response}" style="flex-grow: 1;">
-            `;
-    controls.innerHTML = `
-                <button class="control-button" onclick="saveCommandEdit('${commandName}')" title="Sauvegarder">✅</button>
-                <button class="control-button" onclick="cancelCommandEdit('${commandName}')" title="Annuler">❌</button>
-            `;
-    item.querySelector('#inline-edit-response').focus();
-}
-async function saveCommandEdit(originalCommandName) {
-    const item = document.querySelector(`.list-item[data-command="${originalCommandName}"]`);
-    let newCommand = item.querySelector('#inline-edit-command').value.trim().replace(/^!+/, '');
-    const newResponse = item.querySelector('#inline-edit-response').value.trim();
-    if (!newCommand || !newResponse) {
-        showNotification('La commande et la réponse ne peuvent pas être vides.', 'error');
-        return;
-    }
-    const finalCommand = '!' + newCommand;
-    if (originalCommandName !== finalCommand) {
-        await window.api.invoke('remove-command', originalCommandName);
-    }
-    await window.api.invoke('add-command', finalCommand, response);
-    activeInlineEdit = null;
-    await loadCommands();
-    showNotification('Commande modifiée !', 'success');
-}
-function cancelCommandEdit(commandName) {
-    activeInlineEdit = null;
-    loadCommands();
-}
-function confirmDelete(element, type, id) {
-    const item = element.closest('.list-item');
-    item.classList.add('is-deleting');
-    const confirmControls = item.querySelector('.inline-confirm');
-    confirmControls.innerHTML = `
-                <span>Supprimer ?</span>
-                <button class="control-button" onclick="${type}Delete('${id.replace(/'/g, `\\'`)}')">✅</button>
-                <button class="control-button" onclick="cancelDelete(this)">❌</button>
-            `;
-}
-function cancelDelete(element) {
-    const item = element.closest('.list-item');
-    item.classList.remove('is-deleting');
-}
-
-async function loadCommands() {
-    const result = await window.api.invoke('get-commands');
-    const list = document.getElementById('commandsList');
-    list.innerHTML = '';
-    for (const [command, response] of Object.entries(result.commands)) {
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        item.dataset.command = command;
-        item.dataset.response = response;
-        item.innerHTML = `
-                    <div class="content">
-                        <strong style="color: var(--accent); width: 150px; flex-shrink: 0; word-break: break-all;">${command}</strong>
-                        <span style="color: var(--text-secondary);">${response}</span>
-                    </div>
-                    <div class="controls">
-                        <button class="control-button" onclick="startCommandEdit('${command.replace(/'/g, `\\'`)}')" title="Éditer">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button class="control-button" onclick="confirmDelete(this, 'command', '${command.replace(/'/g, `\\'`)}')" title="Supprimer">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
-                    <div class="inline-confirm"></div>
-                `;
-        list.appendChild(item);
-    }
-}
-async function loadBadgePrefs() {
-    const cfg = await window.api.invoke('get-widget-config', 'chat');
-    const prefs = (cfg && cfg.badgePrefs) || {};
-    document.querySelectorAll('.list-item[data-widget="chat"] input[data-badge]').forEach(inp => {
-        const key = inp.dataset.badge;
-        inp.checked = prefs[key] !== false;
-    });
-}
-async function saveBadgePrefs() {
-    const prefs = {};
-    document.querySelectorAll('.list-item[data-widget="chat"] input[data-badge]').forEach(inp => {
-        prefs[inp.dataset.badge] = inp.checked;
-    });
-    await window.api.invoke('save-widget-config', 'chat', { badgePrefs: prefs });
-    showNotification('Préférences des badges mises à jour !', 'success');
-}
-
-async function loadWidgetUrls() {
+async function connectBot() {
     try {
-        const chatUrl = await window.api.invoke('get-widget-url', 'chat');
-        const chatDisplay = document.getElementById('widgetUrlDisplay');
-        if (chatDisplay) chatDisplay.textContent = chatUrl;
-
-        const spotifyUrl = await window.api.invoke('get-widget-url', 'spotify');
-        const spotifyDisplay = document.getElementById('spotifyWidgetUrlDisplay');
-        if (spotifyDisplay) spotifyDisplay.textContent = spotifyUrl;
-
-        const emoteWallUrl = await window.api.invoke('get-widget-url', 'emote-wall');
-        const emoteWallDisplay = document.getElementById('emoteWallWidgetUrlDisplay');
-        if (emoteWallDisplay) emoteWallDisplay.textContent = emoteWallUrl;
-
-        const redirect = await window.api.invoke('spotify-redirect-uri');
-        const redirectDisplay = document.getElementById('spotifyRedirectDisplay');
-        if (redirectDisplay) redirectDisplay.textContent = redirect;
-    } catch (error) {
-        console.error('Erreur chargement URLs widgets', error);
-    }
+        const result = await window.api.invoke('connect-bot');
+        if (result.success) showNotification('Bot connecté !', 'success');
+        else showNotification('Erreur connexion: ' + result.error, 'error');
+    } catch (e) { showNotification('Erreur IPC: ' + e, 'error'); }
 }
 
-async function loadEmoteWallConfig() {
-    const config = await window.api.invoke('get-widget-config', 'emote-wall') || {};
-    document.getElementById('emoteWallDuration').value = config.animationDuration || 5000;
-    document.getElementById('emoteWallSpawnInterval').value = config.spawnInterval || 100;
-    document.getElementById('emoteWallMinSize').value = config.minSize || 32;
-    document.getElementById('emoteWallMaxSize').value = config.maxSize || 96;
+async function disconnectBot() {
+    try {
+        await window.api.invoke('disconnect-bot');
+        showNotification('Bot déconnecté.', 'info');
+    } catch (e) { showNotification('Erreur déconnexion: ' + e, 'error'); }
 }
 
-async function saveEmoteWallConfig() {
+async function saveConfig() {
     const config = {
-        animationDuration: parseInt(document.getElementById('emoteWallDuration').value),
-        spawnInterval: parseInt(document.getElementById('emoteWallSpawnInterval').value),
-        minSize: parseInt(document.getElementById('emoteWallMinSize').value),
-        maxSize: parseInt(document.getElementById('emoteWallMaxSize').value)
+        username: document.getElementById('botUsername').value,
+        token: document.getElementById('oauthToken').value,
+        channel: document.getElementById('channelName').value,
+        twitchClientId: document.getElementById('twitchClientId').value,
+        twitchAppToken: document.getElementById('twitchAppToken').value,
+        spotifyClientId: document.getElementById('spotifyClientId').value,
+        spotifyClientSecret: document.getElementById('spotifyClientSecret').value
     };
-    await window.api.invoke('save-widget-config', 'emote-wall', config);
-    showNotification('Configuration du Mur d\'Emotes sauvegardée !', 'success');
-}
-
-async function startSpotifyAuth() {
     try {
-        await window.api.invoke('spotify-start-auth');
-        showNotification('Fenêtre de connexion Spotify ouverte.', 'info');
-    } catch (error) {
-        showNotification('Erreur lors de l\'ouverture Spotify.', 'error');
-    }
-}
-async function commandDelete(command) {
-    await window.api.invoke('remove-command', command);
-    await loadCommands();
-    showNotification(`Commande ${command} supprimée.`, 'info');
-}
-async function loadBannedWords() {
-    const { bannedWords } = await window.api.invoke('get-banned-words');
-    const list = document.getElementById('bannedWordsList');
-    list.innerHTML = '';
-    (bannedWords || []).forEach(word => {
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        item.innerHTML = `
-                    <div class="content"><span>${word}</span></div>
-                    <div class="controls">
-                        <button class="control-button" onclick="confirmDelete(this, 'bannedWord', '${word.replace(/'/g, `\\'`)}')" title="Supprimer">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
-                    <div class="inline-confirm"></div>
-                `;
-        list.appendChild(item);
-    });
-}
-async function bannedWordDelete(word) {
-    await window.api.invoke('remove-banned-word', word);
-    await loadBannedWords();
-    showNotification(`Mot "${word}" supprimé.`, 'info');
-}
-async function clearBannedWords() {
-    await window.api.invoke('clear-banned-words');
-    await loadBannedWords();
-    showNotification('La liste des mots bannis a été vidée.', 'info');
-}
-async function loadParticipants() {
-    const { count, participants } = await window.api.invoke('get-participants-count');
-    document.getElementById('participantsCount').textContent = count;
-    const list = document.getElementById('participantsList');
-    list.innerHTML = '';
-    if (participants && participants.length > 0) {
-        participants.forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'list-item';
-            item.innerHTML = `<div class="content"><span>${p}</span></div>`;
-            list.appendChild(item);
-        });
-    }
-}
-
-function selectCastFolder() {
-    const folderPath = window.api.invoke('select-folder');
-    if (folderPath) {
-        window.api.invoke('update-config', { castFolderPath: folderPath });
-        loadCastVideos(folderPath);
-    }
-}
-async function loadCastVideos(folderPath) {
-    const grid = document.getElementById('video-thumbnail-grid');
-    grid.innerHTML = '<p>Chargement des miniatures, veuillez patienter...</p>';
-    try {
-        const result = await window.api.invoke('get-videos', folderPath);
-        if (result.error) { throw new Error(result.error); }
-        grid.innerHTML = '';
-        if (!result || result.length === 0) {
-            grid.innerHTML = '<p>Aucune vidéo compatible trouvée ou les miniatures n\'ont pas pu être générées.</p>';
-            return;
-        }
-        result.forEach(video => {
-            const thumbElement = document.createElement('div');
-            thumbElement.className = 'video-thumbnail';
-            thumbElement.title = video.fileName;
-            thumbElement.innerHTML = `<img src="${video.thumbnailData}" alt="${video.fileName}">`;
-            thumbElement.addEventListener('click', () => handleThumbnailClick(video.videoPath));
-            grid.appendChild(thumbElement);
-        });
-    } catch (error) {
-        console.error("Erreur dans loadCastVideos (côté rendu):", error);
-        grid.innerHTML = `<p style="color: var(--danger);">Erreur lors de la génération des miniatures. Vérifiez la console du terminal (où vous lancez 'npm start') pour les détails.</p>`;
-        showNotification(`Erreur FFmpeg. Voir la console.`, "error");
-    }
-}
-function handleThumbnailClick(videoPath) {
-    currentVideoToCast = videoPath;
-    showDevicePicker();
-    window.api.invoke('discover-devices');
-}
-function showDevicePicker() {
-    document.getElementById('device-list').innerHTML = '';
-    document.getElementById('device-discovery-status').textContent = 'Recherche en cours...';
-    document.getElementById('device-picker-overlay').classList.add('active');
-}
-function hideDevicePicker() {
-    document.getElementById('device-picker-overlay').classList.remove('active');
-    currentVideoToCast = null;
-}
-async function playOnDevice(deviceHost, devicePort) {
-    if (currentVideoToCast) {
-        showNotification(`Lancement de la vidéo...`);
-        await window.api.invoke('play-on-device', { deviceHost, devicePort, videoPath: currentVideoToCast });
-        hideDevicePicker();
-    }
+        await window.api.invoke('save-config', config);
+        showNotification('Configuration sauvegardée', 'success');
+    } catch (e) { showNotification('Erreur sauvegarde: ' + e, 'error'); }
 }
 
 function updateConfigForm(config) {
-    document.getElementById('channelName').value = config.channel || '';
+    if (!config) return;
     document.getElementById('botUsername').value = config.username || '';
     document.getElementById('oauthToken').value = config.token || '';
+    document.getElementById('channelName').value = config.channel || '';
     document.getElementById('twitchClientId').value = config.twitchClientId || '';
     document.getElementById('twitchAppToken').value = config.twitchAppToken || '';
     document.getElementById('spotifyClientId').value = config.spotifyClientId || '';
     document.getElementById('spotifyClientSecret').value = config.spotifyClientSecret || '';
-    document.getElementById('autoMessage').value = config.autoMessage || '';
-    document.getElementById('autoMessageInterval').value = config.autoMessageInterval || 40;
-    document.getElementById('clipCooldown').value = config.clipCooldown || 60;
+
     document.getElementById('giveawayCommand').value = config.giveawayCommand || '!giveaway';
-    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage || '';
-    document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || '';
-    document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage || '';
+    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage || 'Le giveaway commence ! Tapez !giveaway pour participer.';
+    document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || 'Le giveaway est terminé !';
+    document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage || 'Félicitations {winner} !';
+
+    document.getElementById('autoMessage').value = config.autoMessage || '';
+    document.getElementById('autoMessageInterval').value = config.autoMessageInterval || 10;
+    document.getElementById('clipCooldown').value = config.clipCooldown || 30;
 }
-async function saveConfig() {
-    await window.api.invoke('update-config', {
-        channel: document.getElementById('channelName').value.trim(),
-        username: document.getElementById('botUsername').value.trim(),
-        token: document.getElementById('oauthToken').value.trim(),
-        twitchClientId: document.getElementById('twitchClientId').value.trim(),
-        twitchAppToken: document.getElementById('twitchAppToken').value.trim(),
-        spotifyClientId: document.getElementById('spotifyClientId').value.trim(),
-        spotifyClientSecret: document.getElementById('spotifyClientSecret').value.trim()
-    });
-    showNotification('Configuration de connexion sauvegardée !', 'success');
-}
-async function saveAutoMessage() {
-    await window.api.invoke('update-config', {
-        autoMessage: document.getElementById('autoMessage').value,
-        autoMessageInterval: parseInt(document.getElementById('autoMessageInterval').value)
-    });
-    showNotification('Message automatique sauvegardé !', 'success');
-}
-async function saveClipConfig() {
-    await window.api.invoke('update-config', {
-        clipCooldown: parseInt(document.getElementById('clipCooldown').value)
-    });
-    showNotification('Configuration du clip sauvegardée !', 'success');
-}
-async function saveGiveawayConfig() {
-    await window.api.invoke('update-config', {
-        giveawayCommand: document.getElementById('giveawayCommand').value,
-        giveawayStartMessage: document.getElementById('giveawayStartMessage').value,
-        giveawayStopMessage: document.getElementById('giveawayStopMessage').value,
-        giveawayWinMessage: document.getElementById('giveawayWinMessage').value
-    });
-    showNotification('Configuration giveaway sauvegardée !', 'success');
-}
-async function addCommand() {
-    const commandInput = document.getElementById('newCommand');
-    const responseInput = document.getElementById('commandResponse');
-    let commandName = commandInput.value.trim().replace(/^!+/, '');
-    const response = responseInput.value.trim();
-    if (!commandName || !response) {
-        showNotification('La commande et la réponse ne peuvent être vides.', 'error');
-        return;
-    }
-    const finalCommand = '!' + commandName;
-    await window.api.invoke('add-command', finalCommand, newResponse);
-    commandInput.value = '';
-    responseInput.value = '';
-    await loadCommands();
-    showNotification(`Commande ${finalCommand} ajoutée !`, 'success');
-}
-async function addBannedWord() {
-    const input = document.getElementById('newBannedWord');
-    const word = input.value.trim();
-    if (!word) { showNotification('Veuillez entrer un mot', 'error'); return; }
-    await window.api.invoke('add-banned-word', word);
-    input.value = '';
-    await loadBannedWords();
-    showNotification(`Mot "${word}" ajouté à la liste.`, 'success');
-}
-async function connectBot() {
-    const result = await window.api.invoke('connect-bot');
-    if (!result.success) showNotification('Erreur: ' + result.error, 'error');
-}
-async function disconnectBot() { await window.api.invoke('disconnect-bot'); }
-function updateConnectionStatus(connected, channel = '') {
-    const statusElement = document.getElementById('connectionStatus');
-    document.getElementById('connectBtn').disabled = connected;
-    document.getElementById('disconnectBtn').disabled = !connected;
-    if (connected) {
-        statusElement.className = 'status connected';
-        statusElement.innerHTML = `<span class="status-dot"></span><span>Connecté à ${channel}</span>`;
-        if (document.body.dataset.justLaunched !== "true") showNotification(`Bot connecté à ${channel} !`, 'success');
+
+function updateBotStatus(status) {
+    const el = document.getElementById('connectionStatus');
+    const dot = el.querySelector('.status-dot');
+    const text = el.querySelector('span:not(.status-dot)');
+
+    el.className = 'status';
+    if (status === 'connected') {
+        el.classList.add('connected');
+        text.textContent = 'Connecté';
     } else {
-        statusElement.className = 'status disconnected';
-        statusElement.innerHTML = '<span class="status-dot"></span><span>Déconnecté</span>';
-        if (document.body.dataset.justLaunched !== "true") showNotification('Bot déconnecté !', 'info');
-    }
-}
-document.body.dataset.justLaunched = "true";
-setTimeout(() => document.body.dataset.justLaunched = "false", 2000);
-
-async function startGiveaway() { await window.api.invoke('start-giveaway'); showNotification('Giveaway démarré !', 'success'); }
-async function stopGiveaway() { await window.api.invoke('stop-giveaway'); showNotification('Giveaway arrêté.', 'info'); }
-async function drawWinner() {
-    const winnerDisplay = document.getElementById('winnerDisplay');
-    winnerDisplay.textContent = 'Tirage en cours...';
-    const { success, winner } = await window.api.invoke('draw-winner');
-    if (success && winner) {
-        winnerDisplay.textContent = `🎉 ${winner} 🎉`;
-        showNotification(`${winner} a gagné le tirage !`, 'success');
-    } else {
-        winnerDisplay.textContent = 'Aucun participant';
-        showNotification('Impossible de tirer un gagnant.', 'error');
-    }
-}
-async function clearParticipants() {
-    await window.api.invoke('clear-participants');
-    await loadParticipants();
-    showNotification('Liste des participants vidée.', 'info');
-}
-
-function updateUpdaterStatus(status, message = null) {
-    const updateStatusElement = document.getElementById('updateStatus');
-    const label = updateStatusElement.querySelector('.update-text-label');
-    const actionContainer = document.getElementById('update-action-container');
-
-    updateStatusElement.classList.remove('checking', 'update-available', 'up-to-date', 'downloading', 'downloaded', 'error');
-    actionContainer.classList.add('hidden');
-    updateStatusElement.style.cursor = 'default';
-
-    switch (status) {
-        case 'checking':
-            updateStatusElement.classList.add('checking');
-            label.textContent = 'Vérification...';
-            break;
-        case 'up-to-date':
-            updateStatusElement.classList.add('up-to-date');
-            label.textContent = 'À jour';
-            break;
-        case 'update-available':
-            updateStatusElement.classList.add('update-available');
-            label.textContent = 'MàJ dispo';
-            updateStatusElement.style.cursor = 'pointer';
-            actionContainer.classList.remove('hidden');
-            document.getElementById('update-confirm-icon').textContent = '📥';
-            document.getElementById('update-confirm-icon').title = 'Cliquer pour télécharger';
-            break;
-        case 'downloading':
-            updateStatusElement.classList.add('downloading');
-            label.textContent = 'Téléchargement...';
-            break;
-        case 'downloaded':
-            updateStatusElement.classList.add('downloaded');
-            updateStatusElement.style.cursor = 'pointer';
-            label.textContent = 'Prêt à installer';
-            actionContainer.classList.remove('hidden');
-            document.getElementById('update-confirm-icon').textContent = '✅';
-            document.getElementById('update-confirm-icon').title = 'Cliquer pour redémarrer et installer';
-            break;
-        case 'error':
-            updateStatusElement.classList.add('error');
-            label.textContent = 'Erreur MàJ';
-            break;
+        el.classList.add('disconnected');
+        text.textContent = 'Déconnecté';
     }
 }
 
-window.api.on('bot-status', data => updateConnectionStatus(data.connected, data.channel));
-window.api.on('participants-updated', () => loadParticipants());
-window.api.on('participant-added', () => loadParticipants());
-window.api.on('device-discovery-status', (status) => {
-    document.getElementById('device-discovery-status').textContent = status;
-});
-window.api.on('cast-devices-found', (devices) => {
-    const deviceList = document.getElementById('device-list');
-    deviceList.innerHTML = '';
-    if (!devices || devices.length === 0) {
-        deviceList.innerHTML = '<p>Aucun appareil trouvé.</p>';
-    }
-    devices.forEach(device => {
-        const deviceItem = document.createElement('div');
-        deviceItem.className = 'device-item';
-        deviceItem.textContent = device.name;
-        deviceItem.onclick = () => playOnDevice(device.host, device.port);
-        deviceList.appendChild(deviceItem);
+async function loadWidgetUrls() {
+    try {
+        const urls = await window.api.invoke('get-widget-urls');
+        if (document.getElementById('widgetUrlDisplay')) document.getElementById('widgetUrlDisplay').textContent = urls.chat;
+        if (document.getElementById('spotifyWidgetUrlDisplay')) document.getElementById('spotifyWidgetUrlDisplay').textContent = urls.spotify;
+        if (document.getElementById('emoteWallWidgetUrlDisplay')) document.getElementById('emoteWallWidgetUrlDisplay').textContent = urls.emoteWall;
+    } catch (e) { console.error('Erreur URLs widgets', e); }
+}
+
+async function startSpotifyAuth() {
+    try {
+        await window.api.invoke('start-spotify-auth');
+    } catch (e) { showNotification('Erreur Auth Spotify: ' + e, 'error'); }
+}
+
+async function loadBadgePrefs() {
+    try {
+        const prefs = await window.api.invoke('get-badge-prefs');
+        renderBadgePrefs(prefs);
+    } catch (e) { console.error('Erreur chargement badges', e); }
+}
+
+function renderBadgePrefs(prefs) {
+    const container = document.getElementById('badgePrefs');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const grid = document.createElement('div');
+    grid.className = 'badge-grid';
+
+    const badges = [
+        { id: 'moderator', label: 'Modérateur' },
+        { id: 'vip', label: 'VIP' },
+        { id: 'subscriber', label: 'Abonné' },
+        { id: 'founder', label: 'Fondateur' },
+        { id: 'partner', label: 'Partenaire' },
+        { id: 'premium', label: 'Prime Gaming' }
+    ];
+
+    badges.forEach(badge => {
+        const isChecked = prefs[badge.id] !== false;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" data-badge="${badge.id}" ${isChecked ? 'checked' : ''}> ${badge.label}`;
+        grid.appendChild(label);
     });
-});
-window.api.on('cast-status', ({ success, message }) => {
-    showNotification(message, success ? 'success' : 'error');
-});
 
-window.api.on('update-status-check', ({ status, message }) => {
-    updateUpdaterStatus(status, message);
-});
+    container.appendChild(grid);
+}
 
-window.api.on('update-available', () => {
-    updateUpdaterStatus('update-available');
-});
+async function saveBadgePrefs() {
+    const checkboxes = document.querySelectorAll('#badgePrefs input[type="checkbox"]');
+    const prefs = {};
+    checkboxes.forEach(cb => {
+        prefs[cb.dataset.badge] = cb.checked;
+    });
+    try {
+        await window.api.invoke('save-badge-prefs', prefs);
+        showNotification('Préférences badges sauvegardées', 'success');
+    } catch (e) { showNotification('Erreur sauvegarde badges: ' + e, 'error'); }
+}
 
-window.api.on('update-downloaded', () => {
-    updateUpdaterStatus('downloaded');
-});
+async function loadEmoteWallConfig() {
+    try {
+        const config = await window.api.invoke('get-widget-config', 'emote-wall');
+        if (config) {
+            if (document.getElementById('emoteWallMinSize')) document.getElementById('emoteWallMinSize').value = config.minSize || 24;
+            if (document.getElementById('emoteWallMaxSize')) document.getElementById('emoteWallMaxSize').value = config.maxSize || 64;
+            if (document.getElementById('emoteWallSpawnInterval')) document.getElementById('emoteWallSpawnInterval').value = config.spawnInterval || 100;
+            if (document.getElementById('emoteWallDuration')) document.getElementById('emoteWallDuration').value = config.animationDuration || 5000;
+        }
+    } catch (e) { console.error('Erreur chargement Emote Wall config', e); }
+}
 
-window.startCommandEdit = startCommandEdit;
-window.saveCommandEdit = saveCommandEdit;
-window.cancelCommandEdit = cancelCommandEdit;
-window.commandDelete = commandDelete;
-window.bannedWordDelete = bannedWordDelete;
-window.confirmDelete = confirmDelete;
-window.cancelDelete = cancelDelete;
-window.showConfirmation = showConfirmation;
+async function saveEmoteWallConfig() {
+    const config = {
+        minSize: parseInt(document.getElementById('emoteWallMinSize').value, 10),
+        maxSize: parseInt(document.getElementById('emoteWallMaxSize').value, 10),
+        spawnInterval: parseInt(document.getElementById('emoteWallSpawnInterval').value, 10),
+        animationDuration: parseInt(document.getElementById('emoteWallDuration').value, 10)
+    };
+    try {
+        await window.api.invoke('save-widget-config', 'emote-wall', config);
+        showNotification('Config Mur d\'Emotes sauvegardée', 'success');
+    } catch (e) { showNotification('Erreur sauvegarde Emote Wall: ' + e, 'error'); }
+}
