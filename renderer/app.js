@@ -93,7 +93,9 @@ function setupEventListeners() {
     });
 
     window.api.on('bot-status', (status) => updateBotStatus(status.connected ? 'connected' : 'disconnected'));
-    window.api.on('update-status', (status) => updateUpdaterStatus(status));
+    window.api.on('update-status-check', (data) => updateUpdaterStatus(data.status));
+    window.api.on('update-available', () => updateUpdaterStatus('update-available'));
+    window.api.on('update-downloaded', () => updateUpdaterStatus('downloaded'));
     window.api.on('notification', (msg, type) => showNotification(msg, type));
     window.api.on('participants-updated', () => loadParticipants());
 }
