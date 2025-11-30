@@ -29,7 +29,7 @@
 - **Token OAuth** : Access Token à générer [ici](https://twitchtokengenerator.com/)
 
 Pour les badges de tchat : 
-- **Twitch Client ID** : votre App ID [https://dev.twitch.tv/console/apps]((Website Intégration))
+- **Twitch Client ID** : votre App ID ([https://dev.twitch.tv/console/apps](Website Intégration))
 - **Twitch App Access Token** : à générer via Powershell
 ```
 $cid    = "AppID"
