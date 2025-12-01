@@ -361,7 +361,7 @@ class TwitchBot {
         this.configManager.setGiveawayActive(true);
         this.configManager.clearGiveawayParticipants();
         const config = this.getConfig();
-        const startMsg = config.giveawayStartMessage || 'Le giveaway commence ! Tapez !giveaway pour participer.';
+        const startMsg = config.giveawayStartMessage !== undefined ? config.giveawayStartMessage : 'Le giveaway commence ! Tapez !giveaway pour participer.';
         if (startMsg && this.client && this.isConnected) {
             this.client.say(config.channel, startMsg);
         }
@@ -371,7 +371,7 @@ class TwitchBot {
     stopGiveaway() {
         this.configManager.setGiveawayActive(false);
         const config = this.getConfig();
-        const stopMsg = config.giveawayStopMessage || 'Le giveaway est terminé !';
+        const stopMsg = config.giveawayStopMessage !== undefined ? config.giveawayStopMessage : 'Le giveaway est terminé !';
         if (stopMsg && this.client && this.isConnected) {
             this.client.say(config.channel, stopMsg);
         }
@@ -382,7 +382,7 @@ class TwitchBot {
         if (participants.length === 0) return null;
         const winner = participants[Math.floor(Math.random() * participants.length)];
         const config = this.getConfig();
-        const winMsgTemplate = config.giveawayWinMessage || 'Félicitations {winner} !';
+        const winMsgTemplate = config.giveawayWinMessage !== undefined ? config.giveawayWinMessage : 'Félicitations {winner} !';
         if (winMsgTemplate && this.client && this.isConnected) {
             const winMessage = winMsgTemplate.replace('{winner}', winner);
             setTimeout(() => {

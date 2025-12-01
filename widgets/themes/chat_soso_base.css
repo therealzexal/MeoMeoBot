@@ -1,4 +1,6 @@
-body { background: transparent; }
+body {
+    background: transparent;
+}
 
 #chat-container {
     display: flex;
@@ -6,7 +8,7 @@ body { background: transparent; }
     justify-content: flex-end;
     gap: 12px;
     padding: 10px 10px 24px 10px;
-    max-width: 65%;
+    width: 65%;
 }
 
 .msg-group {
@@ -61,6 +63,13 @@ body { background: transparent; }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

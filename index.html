@@ -15,18 +15,15 @@
             <span>MeoMeoBot</span>
         </h2>
         <div class="header-right">
-
             <div id="updateStatus" class="status checking">
                 <span class="status-dot"></span>
                 <span class="update-text-label">Vérification...</span>
-
                 <div id="update-action-container" class="hidden">
                     <span id="update-confirm-icon" class="update-icon confirm-icon"
                         title="Cliquer pour télécharger/installer">📥</span>
                     <span id="update-deny-icon" class="update-icon deny-icon" title="Refuser/Annuler">❌</span>
                 </div>
             </div>
-
             <div id="connectionStatus" class="status disconnected">
                 <span class="status-dot"></span>
                 <span>Déconnecté</span>
@@ -71,7 +68,7 @@
     <div class="tab-content active" id="commands-tab">
         <div class="card full-height-card">
             <div class="interactive-header">
-                <div class="header-main-controls">
+                <div class="header-main-controls single-line-form">
                     <div class="form-group">
                         <label>Commande</label>
                         <input type="text" id="newCommand" placeholder="discord, twitter...">
@@ -112,13 +109,13 @@
                 </div>
             </div>
             <div class="giveaway-main">
-                <div class="control-bar">
-                    <button class="btn btn-success" id="startGiveawayBtn">Démarrer</button>
-                    <button class="btn btn-danger" id="stopGiveawayBtn">Arrêter</button>
-                    <button class="btn btn-primary" id="drawWinnerBtn">Tirer un Gagnant</button>
-                    <button class="btn btn-secondary" id="clearParticipantsBtn">Vider la Liste</button>
-                </div>
                 <div class="card full-height-card">
+                    <div class="giveaway-controls-wrapper">
+                        <button class="btn btn-success" id="startGiveawayBtn">Démarrer</button>
+                        <button class="btn btn-danger" id="stopGiveawayBtn">Arrêter</button>
+                        <button class="btn btn-primary" id="drawWinnerBtn">Tirer un Gagnant</button>
+                        <button class="btn btn-secondary" id="clearParticipantsBtn">Vider la Liste</button>
+                    </div>
                     <div class="winner-display" id="winnerDisplay">Prêt pour le tirage</div>
                     <div class="card-header">
                         <span class="participant-count" id="participantsCount">0</span>
@@ -133,14 +130,14 @@
         <div class="moderation-layout">
             <div class="card full-height-card">
                 <div class="interactive-header">
-                    <div class="header-main-controls">
+                    <div class="header-main-controls single-line-form">
                         <div class="form-group flex-grow">
                             <label>Mot ou expression à bannir</label>
                             <input type="text" id="newBannedWord" placeholder="Mot à bannir">
                         </div>
                         <button class="btn btn-primary" id="addBannedWordBtn">Ajouter</button>
+                        <button id="clearBannedWordsBtn" class="btn-link">Vider la liste</button>
                     </div>
-                    <button id="clearBannedWordsBtn" class="btn-link">Vider la liste</button>
                 </div>
                 <div class="list-container" id="bannedWordsList"></div>
             </div>
@@ -157,7 +154,6 @@
                     </div>
                     <button class="btn btn-primary form-button" id="saveAutoMessage">Sauvegarder</button>
                 </div>
-
                 <div class="card">
                     <h3 class="card-title">Commande !clip</h3>
                     <div class="form-group">
@@ -170,6 +166,7 @@
         </div>
     </div>
 
+    <!-- Cast Tab -->
     <div class="tab-content" id="cast-tab">
         <div class="card full-height-card">
             <div class="list-container" id="video-thumbnail-grid"></div>
@@ -182,76 +179,70 @@
         </div>
     </div>
 
+    <!-- Widgets Tab -->
     <div class="tab-content" id="widgets-tab">
         <div class="card full-height-card">
-
             <div class="widget-list-container">
-
+                <!-- Chat Widget -->
                 <div class="widget-row" data-widget="chat">
-                    <div class="widget-col-name">
-                        <strong>Tchat</strong>
-                    </div>
+                    <div class="widget-col-name"><strong>Tchat</strong></div>
                     <div class="widget-col-links">
                         <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
                                 id="widgetUrlDisplay">Chargement...</code></p>
                     </div>
-                    <div class="widget-col-config" id="badgePrefs">
-
-                    </div>
+                    <div class="widget-col-config" id="badgePrefs"></div>
                     <div class="widget-col-actions">
                         <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Editer CSS</button>
                         <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
                     </div>
                 </div>
 
+                <!-- Spotify Widget -->
                 <div class="widget-row" data-widget="spotify">
-                    <div class="widget-col-name">
-                        <strong>Spotify</strong>
-                    </div>
+                    <div class="widget-col-name"><strong>Spotify</strong></div>
                     <div class="widget-col-links">
                         <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
                                 id="spotifyWidgetUrlDisplay">Chargement...</code></p>
-                        <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">Dashboard : <code
-                                id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code></p>
+                        <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">
+                            Dashboard : <code
+                                id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code>
+                        </p>
                     </div>
                     <div class="widget-col-config">
-
+                        <div id="spotify-device-picker" class="hidden">
+                            <select id="spotify-devices" class="form-select"></select>
+                            <button class="btn btn-primary btn-sm" id="confirm-device">Valider</button>
+                        </div>
                     </div>
                     <div class="widget-col-actions">
                         <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Editer CSS</button>
-                        <button class="btn btn-primary btn-sm" id="spotifyAuthBtn" title="Connexion">OAuth</button>
                     </div>
                 </div>
 
+                <!-- Emote Wall Widget -->
                 <div class="widget-row" data-widget="emote-wall">
-                    <div class="widget-col-name">
-                        <strong>Mur d'Emotes</strong>
-                    </div>
+                    <div class="widget-col-name"><strong>Mur d'Emotes</strong></div>
                     <div class="widget-col-links">
                         <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
                                 id="emoteWallWidgetUrlDisplay">Chargement...</code></p>
                     </div>
                     <div class="widget-col-config">
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="margin:0; font-size: 0.9em; white-space: nowrap;">Durée:</label>
-                                <input type="number" id="emoteWallDuration" value="5000" min="1000" step="100"
-                                    style="width: 60px; padding: 2px 5px;">
+                        <div class="config-inline-grid">
+                            <div class="form-group">
+                                <label>Taille Min (px)</label>
+                                <input type="number" id="emoteWallMinSize" value="24" class="inline-input">
                             </div>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="margin:0; font-size: 0.9em; white-space: nowrap;">Int.:</label>
-                                <input type="number" id="emoteWallSpawnInterval" value="100" min="10" step="10"
-                                    style="width: 50px; padding: 2px 5px;">
+                            <div class="form-group">
+                                <label>Taille Max (px)</label>
+                                <input type="number" id="emoteWallMaxSize" value="64" class="inline-input">
                             </div>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="margin:0; font-size: 0.9em; white-space: nowrap;">Min:</label>
-                                <input type="number" id="emoteWallMinSize" value="32" min="16" step="4"
-                                    style="width: 45px; padding: 2px 5px;">
+                            <div class="form-group">
+                                <label>Intervalle (ms)</label>
+                                <input type="number" id="emoteWallSpawnInterval" value="100" class="inline-input">
                             </div>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="margin:0; font-size: 0.9em; white-space: nowrap;">Max:</label>
-                                <input type="number" id="emoteWallMaxSize" value="96" min="32" step="4"
-                                    style="width: 45px; padding: 2px 5px;">
+                            <div class="form-group">
+                                <label>Durée (ms)</label>
+                                <input type="number" id="emoteWallDuration" value="5000" class="inline-input">
                             </div>
                         </div>
                     </div>
@@ -262,78 +253,65 @@
             </div>
         </div>
     </div>
+
+    <!-- Config Tab -->
     <div class="tab-content" id="config-tab">
         <div class="config-wrapper">
             <div class="config-columns">
-
                 <div class="config-col">
-                    <h4 style="margin-top:0; margin-bottom:15px; color:var(--accent);">Connexion Twitch</h4>
+                    <h4>Twitch Compte</h4>
                     <div class="form-group">
-                        <label>Canal Twitch (votre chaîne)</label>
-                        <input type="text" id="channelName">
+                        <label>Nom de la chaîne</label>
+                        <input type="text" id="channelName" placeholder="ex: mychannel">
                     </div>
                     <div class="form-group">
-                        <label>Nom du bot</label>
-                        <input type="text" id="botUsername">
+                        <label>Nom du Bot</label>
+                        <input type="text" id="botUsername" placeholder="ex: MyBot">
                     </div>
                     <div class="form-group">
-                        <label>Token OAuth <a href="#"
-                                onclick="window.api.invoke('open-external-url', 'https://twitchtokengenerator.com/')"
-                                class="btn-link"
-                                style="font-size: 10px; margin-left: 5px; text-transform: none;">(Générer un token avec
-                                scopes modérateur)</a></label>
+                        <label>Token OAuth</label>
                         <input type="password" id="oauthToken" placeholder="oauth:...">
                     </div>
                 </div>
-
                 <div class="config-col">
-                    <h4 style="margin-top:0; margin-bottom:15px; color:var(--accent);">Application Twitch</h4>
+                    <h4>Twitch API</h4>
                     <div class="form-group">
-                        <label for="twitchClientId">Twitch Client ID</label>
-                        <input id="twitchClientId" type="text" class="form-control" placeholder="ex: abc123..."
-                            autocomplete="off">
+                        <label>Client ID</label>
+                        <input type="text" id="twitchClientId">
                     </div>
                     <div class="form-group">
-                        <label for="twitchAppToken">Twitch App Access Token</label>
-                        <input id="twitchAppToken" type="password" class="form-control" placeholder="Token app (Helix)"
-                            autocomplete="off">
+                        <label>App Token</label>
+                        <input type="password" id="twitchAppToken">
                     </div>
                 </div>
-
                 <div class="config-col">
-                    <h4 style="margin-top:0; margin-bottom:15px; color:var(--accent);">Spotify</h4>
+                    <h4>Spotify</h4>
                     <div class="form-group">
-                        <label for="spotifyClientId">Spotify Client ID</label>
-                        <input id="spotifyClientId" type="text" class="form-control" placeholder="ex: 123abc..."
-                            autocomplete="off">
+                        <label>Client ID</label>
+                        <input type="text" id="spotifyClientId">
                     </div>
                     <div class="form-group">
-                        <label for="spotifyClientSecret">Spotify Client Secret</label>
-                        <input id="spotifyClientSecret" type="password" class="form-control"
-                            placeholder="Secret Spotify" autocomplete="off">
+                        <label>Client Secret</label>
+                        <input type="password" id="spotifyClientSecret">
                     </div>
+                    <button class="btn btn-secondary" id="spotifyAuthBtn" style="margin-top: 10px; width: 100%;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+                            <path
+                                d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                        </svg>
+                        Connexion Spotify
+                    </button>
                 </div>
             </div>
-
-            <div class="unified-button-row" style="justify-content: center; margin-top: 20px;">
-                <button class="btn btn-primary" id="saveConfigBtn">Sauvegarder</button>
-                <button class="btn btn-success" id="connectBtn">Connecter</button>
-                <button class="btn btn-danger" id="disconnectBtn">Déconnecter</button>
-            </div>
-        </div>
-    </div>
-    </div>
-
-    <div id="device-picker-overlay" class="confirmation-overlay">
-        <div class="device-picker-box">
-            <h4 id="device-discovery-status">Recherche des appareils...</h4>
-            <div id="device-list"></div>
-            <div class="confirmation-buttons">
-                <button class="btn btn-secondary" id="close-device-picker">Annuler</button>
+            <div class="unified-button-row">
+                <button class="btn btn-primary" id="saveConfigBtn">Sauvegarder Tout</button>
+                <button class="btn btn-success" id="connectBtn">Connexion</button>
+                <button class="btn btn-danger" id="disconnectBtn">Déconnexion</button>
             </div>
         </div>
     </div>
 
+    <!-- Overlays -->
     <div id="confirmationOverlay" class="confirmation-overlay">
         <div class="confirmation-box">
             <h4 id="confirmationMessage">Êtes-vous sûr ?</h4>

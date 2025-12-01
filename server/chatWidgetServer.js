@@ -80,7 +80,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
             const assetName = req.url.replace('/widget/assets/', '');
             const assetPath = path.join(__dirname, '..', 'widgets', 'assets', assetName);
 
-            // Prevent directory traversal
+
             if (!assetPath.startsWith(path.join(__dirname, '..', 'widgets', 'assets'))) {
                 res.statusCode = 403;
                 return res.end('Forbidden');

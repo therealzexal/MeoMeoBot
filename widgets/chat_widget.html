@@ -1,96 +1,4 @@
 <!DOCTYPE html>
-<html>
-
-<head>
-    <meta charset="UTF-8">
-    <title>Twitch Chat Overlay</title>
-    <style>
-        body {
-            background: transparent;
-            overflow: hidden;
-            font-family: "Arial", sans-serif;
-            margin: 0;
-            padding: 0;
-            color: white;
-        }
-
-        #chat-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            height: 100vh;
-            width: 500px;
-            padding: 10px 10px 24px 10px;
-            gap: 10px;
-            box-sizing: border-box;
-        }
-
-        .msg-group {
-            padding: 10px 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            animation: fadeIn 0.4s ease-out;
-            word-wrap: break-word;
-        }
-
-        .msg-header {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 6px;
-            flex-wrap: wrap;
-        }
-
-        .msg-username {
-            font-weight: 700;
-        }
-
-        .msg-badges {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .badge-img {
-            width: 18px;
-            height: 18px;
-            object-fit: contain;
-        }
-
-        .msg-messages {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .msg-line {
-            color: #e7eef5;
-            line-height: 1.4;
-        }
-
-        .msg-line img {
-            vertical-align: middle;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-
-    <style id="custom-css">
-        /* CUSTOM_CSS_PLACEHOLDER */
-    </style>
-
-</head>
 
 <body>
     <div id="chat-container"></div>
@@ -100,6 +8,7 @@
         const ALLOWED_BADGES = ['subscriber', 'moderator', 'vip', 'partner', 'staff', 'premium'];
         const CLIENT_ID = '__TWITCH_CLIENT_ID__';
         const APP_TOKEN = '__TWITCH_APP_TOKEN__';
+        const BADGE_PREFS = {};
 
         const globalBadgeMap = {};
         const channelBadgeCache = {};
@@ -107,6 +16,7 @@
         let globalBadgesPending = null;
 
         let ws, lastUser = null, lastGroup = null;
+        let groupCounter = 0;
         const messageQueue = [];
 
         function sanitizeClass(str) {
@@ -230,6 +140,10 @@
         function createBadgeNode(entry, roomId) {
             const set = (entry.set || '').toLowerCase();
             const version = entry.version || '1';
+
+
+            if (BADGE_PREFS && BADGE_PREFS[set] === false) return null;
+
             if (set === 'subscriber') {
                 const map = channelBadgeCache[roomId];
                 const url = map && map[`${set}/${version}`];
@@ -257,47 +171,64 @@
         }
 
         function connectWebSocket() {
-            const host = window.location.hostname;
-            const port = new URL(document.URL).port;
-            const wsUrl = `ws://${host}:${port}`;
-            ws = new WebSocket(wsUrl);
+            ws = new WebSocket('ws://localhost:8087');
+            ws.onopen = () => {
+                console.log('Connected to Chat WebSocket');
+                ws.send(JSON.stringify({ type: 'get-config' }));
+            };
             ws.onmessage = async (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'config-update' && data.widget === 'chat') {
-                    if (data.config.customCSS !== undefined) {
-                        const style = document.getElementById('custom-css');
-                        if (style) style.textContent = data.config.customCSS;
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'config' || data.type === 'config-update') {
+                        const cfg = data.config || data;
+                        if (cfg.customCSS) {
+                            document.getElementById('custom-css').textContent = cfg.customCSS;
+                        }
+                        if (cfg.maxMessages) {
+                            MAX_MESSAGES = parseInt(cfg.maxMessages, 10) || 10;
+                        }
+                    } else if (data.type === 'chat') {
+                        await addMessage(data);
+                    } else if (data.type === 'clear-chat') {
+                        container.innerHTML = '';
+                        lastUser = null;
+                        lastGroup = null;
+                        messageQueue.length = 0;
+                    } else if (data.type === 'delete-message') {
+
                     }
-                    if (data.config.maxMessages !== undefined) {
-                        MAX_MESSAGES = parseInt(data.config.maxMessages, 10) || 10;
-                    }
-                } else if (data.type === 'chat') {
-                    await ensureGlobalBadges();
-                    if (data.roomId) await ensureChannelBadges(data.roomId);
-                    addMessage(
-                        data.username,
-                        data.displayName || data.username,
-                        data.text,
-                        data.color,
-                        data.badgesRaw || data.badges,
-                        data.badgesObj || null,
-                        data.emotes || null,
-                        data.roomId || null
-                    );
+                } catch (e) {
+                    console.error('WS Error:', e);
                 }
             };
-            ws.onclose = () => { setTimeout(connectWebSocket, 5000); };
-            ws.onerror = () => { ws.close(); };
+            ws.onclose = () => setTimeout(connectWebSocket, 3000);
+            ws.onerror = (err) => console.error('WS Error:', err);
         }
 
-        function addMessage(username, displayName, text, color, badgesRaw, badgesObj, emotes, roomId) {
-            const userClass = sanitizeClass(username);
-            const { solid, soft } = computeColors(color);
+        async function addMessage(msg) {
+            const { username, displayName, color, badgesRaw, badges: badgesObj, text, emotes, roomId } = msg;
 
+
+            ensureGlobalBadges();
+            if (roomId) ensureChannelBadges(roomId);
+
+            const colors = computeColors(color);
+            const solid = colors.solid;
+            const soft = colors.soft;
+
+            const sameUser = (lastUser === username) && lastGroup;
             let group = lastGroup;
-            if (lastUser !== username || !group || !group.isConnected) {
+
+            if (!sameUser) {
                 group = document.createElement('div');
-                group.className = `msg-group user-${userClass}`;
+
+
+                const isEven = (groupCounter % 2) === 0;
+                const variant = (groupCounter % 3) + 1;
+                group.className = `msg-group user-${sanitizeClass(username)} group-${isEven ? 'even' : 'odd'} variant-${variant}`;
+                groupCounter++;
+
                 group.style.setProperty('--user-color', solid);
                 group.style.setProperty('--user-color-soft', soft);
 

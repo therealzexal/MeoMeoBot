@@ -142,9 +142,9 @@ function updateConfigForm(config) {
     document.getElementById('spotifyClientSecret').value = config.spotifyClientSecret || '';
 
     document.getElementById('giveawayCommand').value = config.giveawayCommand || '!giveaway';
-    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage || 'Le giveaway commence ! Tapez !giveaway pour participer.';
-    document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage || 'Le giveaway est terminé !';
-    document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage || 'Félicitations {winner} !';
+    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage !== undefined ? config.giveawayStartMessage : 'Le giveaway commence ! Tapez !giveaway pour participer.';
+    document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage !== undefined ? config.giveawayStopMessage : 'Le giveaway est terminé !';
+    document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage !== undefined ? config.giveawayWinMessage : 'Félicitations {winner} !';
 
     document.getElementById('autoMessage').value = config.autoMessage || '';
     document.getElementById('autoMessageInterval').value = config.autoMessageInterval || 10;

@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "main": "main.js",
   "repository": "github:Zexaaaal/MeoMeoBot",
   "scripts": {
@@ -33,7 +33,7 @@
     "productName": "MeoMeoBot",
     "publish": {
       "provider": "github",
-      "owner": "therealzexal",
+      "owner": "Zexaaaal",
       "repo": "MeoMeoBot",
       "releaseType": "release",
       "vPrefixedTagName": false

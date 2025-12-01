@@ -5,12 +5,23 @@
     <meta charset="UTF-8">
     <title>Spotify Now Playing</title>
     <style>
+        :root {
+            --spotify-bg: rgba(0, 0, 0, 0.35);
+            --spotify-border: rgba(255, 255, 255, 0.08);
+            --spotify-shadow: rgba(0, 0, 0, 0.45);
+            --text-primary: #f5f7fb;
+            --text-secondary: #cdd7e5;
+            --text-tertiary: #9fb4d1;
+            --pill-bg: rgba(255, 255, 255, 0.08);
+            --pill-text: #d3deef;
+        }
+
         body {
             background: transparent;
             margin: 0;
             padding: 0;
             font-family: "Inter", "Segoe UI", sans-serif;
-            color: #f5f7fb;
+            color: var(--text-primary);
             overflow: hidden;
         }
 
@@ -34,11 +45,11 @@
             gap: 12px;
             padding: 14px;
             border-radius: 16px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+            background: var(--spotify-bg);
+            border: 1px solid var(--spotify-border);
+            box-shadow: 0 15px 40px var(--spotify-shadow);
             backdrop-filter: blur(8px);
-            color: #f5f7fb;
+            color: var(--text-primary);
             max-width: 520px;
             box-sizing: border-box;
         }
@@ -66,23 +77,23 @@
 
         .spotify-artist {
             font-size: 16px;
-            color: #cdd7e5;
+            color: var(--text-secondary);
         }
 
         .spotify-album {
             font-size: 14px;
-            color: #9fb4d1;
+            color: var(--text-tertiary);
         }
 
         .pill {
             align-self: flex-start;
             padding: 4px 10px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--pill-bg);
             font-size: 12px;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            color: #d3deef;
+            color: var(--pill-text);
         }
     </style>
     <style>

@@ -12,22 +12,34 @@
     height: 100%;
 }
 
-.control-bar {
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
+.giveaway-main .winner-display {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
     flex-shrink: 0;
-    flex-direction: row;
-    background: rgba(31, 31, 35, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    text-align: center;
+    padding: 20px 0;
 }
 
-.control-bar .btn {
-    width: 100%;
+.giveaway-main .card.full-height-card {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.giveaway-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    height: 100%;
+}
+
+.giveaway-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
 }
 
 .giveaway-main .winner-display {
@@ -35,7 +47,7 @@
     margin-bottom: 15px;
     flex-shrink: 0;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
     color: var(--accent);
     text-align: center;
     padding: 20px 0;
@@ -58,4 +70,19 @@
     position: absolute;
     right: 10px;
     top: 5px;
+}
+
+.giveaway-controls-wrapper {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.giveaway-main .list-item {
+    background: none;
+    border: none;
+    padding: 2px 0;
+    margin-bottom: 0;
+    color: var(--text-primary);
+    justify-content: flex-start;
 }

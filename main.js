@@ -425,7 +425,8 @@ ipcMain.handle('get-theme-config', async () => {
         'chat_bubble_pop.css': 'Messages',
         'chat_minimalist.css': 'Minimaliste',
         'chat_neon_cyberpunk.css': 'Pseudo Cyberpunk',
-        'chat_soso_base.css': 'Soso Défaut'
+        'chat_soso_base.css': 'Soso Défaut',
+        'spotify_soso_base.css': 'Soso Défaut'
     };
 
     let userConfig = {};

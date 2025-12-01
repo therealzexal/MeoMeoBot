@@ -10,6 +10,12 @@
     --border: #343437;
     --update-color-avail: #ffcc00;
     --update-color-ok: #008744;
+
+    /* Glassmorphism Variables */
+    --glass-bg: rgba(24, 24, 27, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glass-blur: blur(12px);
 }
 
 * {
@@ -40,8 +46,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 10px;
-    padding: 0 0 0 15px;
+    padding: 0 0 10px 10px;
     height: 50px;
     flex-shrink: 0;
     -webkit-app-region: drag;
@@ -58,15 +63,15 @@ body {
 }
 
 .app-icon {
-    height: 28px;
-    width: 28px;
+    height: 24px;
+    width: 24px;
     margin-right: 10px;
 }
 
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
     height: 100%;
     -webkit-app-region: no-drag;
 }
@@ -74,14 +79,16 @@ body {
 .window-controls {
     display: flex;
     height: 100%;
+    gap: 5px;
 }
 
 .control-btn {
-    width: 40px;
-    height: 100%;
+    width: 30px;
+    height: 30px;
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 4px;
     transition: background-color 0.2s ease;
     -webkit-app-region: no-drag;
     cursor: pointer;
@@ -98,7 +105,7 @@ body {
 }
 
 #close-btn:hover {
-    background-color: #e81123;
+    background-color: var(--danger);
 }
 
 #close-btn:hover svg {
@@ -110,47 +117,28 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 3px 12px;
-    border-radius: 20px;
+    padding: 4px 10px;
+    border-radius: 4px;
     font-size: 12px;
     font-weight: 500;
-    margin-bottom: 8px;
-    position: relative;
-}
-
-#updateStatus,
-#connectionStatus {
-    margin-top: 3px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
 }
 
 .status-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-}
-
-.status.connected {
-    background: rgba(0, 179, 95, 0.1);
-    color: var(--success);
-}
-
-.status.disconnected {
-    background: rgba(233, 25, 22, 0.1);
-    color: var(--danger);
 }
 
 .status.connected .status-dot {
     background: var(--success);
-    animation: pulse 2s infinite;
+    box-shadow: 0 0 5px var(--success);
 }
 
 .status.disconnected .status-dot {
     background: var(--danger);
-}
-
-.status.checking {
-    background: rgba(145, 71, 255, 0.1);
-    color: var(--accent);
 }
 
 .status.checking .status-dot {
@@ -158,33 +146,17 @@ body {
     animation: pulse 2s infinite;
 }
 
-.status.up-to-date {
-    background: rgba(0, 179, 95, 0.1);
-    color: var(--update-color-ok);
-}
-
 .status.up-to-date .status-dot {
     background: var(--update-color-ok);
 }
 
-.status.up-to-date[style*="display: none"],
-.status.up-to-date.hidden {
-    display: none;
-}
-
 .status.update-available {
     cursor: pointer;
-    background: rgba(255, 204, 0, 0.1);
-    color: var(--update-color-avail);
+    border-color: var(--update-color-avail);
 }
 
 .status.update-available .status-dot {
     background: var(--update-color-avail);
-}
-
-.status.downloading {
-    background: rgba(145, 71, 255, 0.1);
-    color: var(--accent);
 }
 
 .status.downloading .status-dot {
@@ -194,17 +166,11 @@ body {
 
 .status.downloaded {
     cursor: pointer;
-    background: rgba(0, 179, 95, 0.1);
-    color: var(--success);
+    border-color: var(--success);
 }
 
 .status.downloaded .status-dot {
     background: var(--success);
-}
-
-.status.error {
-    background: rgba(233, 25, 22, 0.1);
-    color: var(--danger);
 }
 
 .status.error .status-dot {
@@ -214,7 +180,7 @@ body {
 #update-action-container {
     display: flex;
     gap: 8px;
-    margin-left: 10px;
+    margin-left: 5px;
 }
 
 .status.up-to-date #update-action-container,
@@ -230,10 +196,9 @@ body {
 }
 
 .status .update-icon {
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: transform 0.1s ease;
-    line-height: 1;
 }
 
 .status .confirm-icon {
@@ -252,48 +217,60 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px;
+    padding: 10px;
     margin-bottom: 15px;
     background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    -webkit-app-region: no-drag;
     flex-shrink: 0;
 }
 
 .main-tabs {
     display: flex;
-    gap: 5px;
+    gap: 8px;
+    background: var(--glass-bg);
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
 }
 
 .tab {
-    padding: 10px 20px;
+    padding: 8px 16px;
     background: transparent;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease;
     -webkit-app-region: no-drag;
 }
 
+.tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
 .tab.active {
-    background: var(--accent);
-    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .tab.icon-tab {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
+    padding: 8px;
 }
 
 .tab.icon-tab svg {
     stroke: var(--text-secondary);
     transition: stroke 0.2s ease;
+    width: 18px;
+    height: 18px;
 }
 
 .tab.icon-tab:hover svg {
@@ -301,43 +278,57 @@ body {
 }
 
 .tab.icon-tab.active svg {
-    stroke: white;
+    stroke: var(--accent);
+}
+
+.settings-tab .tab {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+    border-radius: 10px;
+    height: 100%;
+}
+
+.settings-tab .tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
 }
 
 .tab-content {
     display: none;
     flex: 1;
     overflow: hidden;
-    padding: 5px 5px 15px 5px;
+    padding: 0 5px 10px 5px;
     min-height: 0;
 }
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.4s ease;
+    animation: fadeIn 0.3s ease;
 }
 
 .card {
-    background: rgba(31, 31, 35, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
     border-radius: 12px;
-    padding: 0px 12px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
+    gap: 15px;
 }
 
 .card.full-height-card {
     height: 100%;
     min-height: 0;
-    position: relative;
 }
 
 .card-title {
     color: var(--text-primary);
-    margin: 12px 0px;
-    font-size: 16px;
+    margin: 0;
+    font-size: 15px;
     font-weight: 600;
     flex-shrink: 0;
 }
@@ -354,42 +345,59 @@ body {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: flex-end;
-    flex-shrink: 0;
+    outline: none;
 }
 
 label {
     display: flex;
     color: var(--text-secondary);
     font-weight: 500;
-    text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 0.5px;
+    font-size: 12px;
+    margin-bottom: 5px;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+}
+
+.header-main-controls,
+.single-line-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+    width: 100%;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group.flex-grow {
+    flex-grow: 1;
 }
 
 input,
 textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 8px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     color: var(--text-primary);
-    font-size: 14px;
-    transition: all 0.2s ease-in-out;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
     -webkit-app-region: no-drag;
 }
 
 input:focus,
 textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.2);
     outline: none;
 }
 
 input[readonly] {
-    background-color: #111;
+    background-color: var(--bg-primary);
     color: var(--text-secondary);
     cursor: default;
 }
@@ -399,17 +407,17 @@ textarea {
 }
 
 .btn {
-    padding: 10px 16px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 6px;
-    font-weight: 600;
+    border-radius: 4px;
+    font-weight: 500;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease-in-out;
+    transition: background-color 0.2s ease;
     -webkit-app-region: no-drag;
 }
 
@@ -418,14 +426,26 @@ textarea {
     color: white;
 }
 
+.btn-primary:hover {
+    background: #772ce8;
+}
+
 .btn-success {
     background: var(--success);
     color: white;
 }
 
+.btn-success:hover {
+    background: #009951;
+}
+
 .btn-danger {
     background: var(--danger);
     color: white;
+}
+
+.btn-danger:hover {
+    background: #c91613;
 }
 
 .btn-secondary {
@@ -434,8 +454,12 @@ textarea {
     border: 1px solid var(--border);
 }
 
+.btn-secondary:hover {
+    background: #2a2a30;
+}
+
 .btn.btn-sm {
-    padding: 5px 10px;
+    padding: 4px 10px;
     font-size: 12px;
 }
 
@@ -444,7 +468,7 @@ textarea {
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    text-decoration: underline;
+    text-decoration: none;
     font-size: 12px;
     font-weight: 500;
     padding: 5px;
@@ -452,6 +476,7 @@ textarea {
 
 .btn-link:hover {
     color: var(--accent);
+    text-decoration: underline;
 }
 
 .form-button {
@@ -461,27 +486,26 @@ textarea {
 .list-container {
     flex-grow: 1;
     overflow-y: auto;
-    padding-right: 10px;
+    padding-right: 5px;
     min-height: 0;
-    margin: 0 20px;
 }
 
 .list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    animation: slideUpIn 0.4s ease-out;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 13px;
+    animation: slideUpIn 0.2s ease-out;
 }
 
 .list-item .controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
     flex-shrink: 0;
 }
 
@@ -504,7 +528,7 @@ textarea {
 .list-item .control-button {
     background: none;
     border: none;
-    padding: 5px;
+    padding: 4px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -514,12 +538,12 @@ textarea {
 }
 
 .list-item .control-button:hover {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-secondary);
 }
 
 .list-item .control-button svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     stroke: var(--text-secondary);
 }
 
@@ -529,7 +553,7 @@ textarea {
 
 .list-item input.inline-input {
     padding: 4px 8px;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .confirmation-overlay {
@@ -538,13 +562,13 @@ textarea {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.2s ease;
 }
 
 .confirmation-overlay.active {
@@ -558,14 +582,14 @@ textarea {
     border: 1px solid var(--border);
     max-width: 300px;
     text-align: center;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .confirmation-buttons {
     display: flex;
     gap: 10px;
     justify-content: center;
-    margin-top: 15px;
+    margin-top: 20px;
 }
 
 #notification-container {
@@ -579,12 +603,12 @@ textarea {
 }
 
 .notification {
-    padding: 12px 20px;
-    border-radius: 6px;
+    padding: 10px 15px;
+    border-radius: 4px;
     color: white;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
 }
 
@@ -601,7 +625,7 @@ textarea {
 }
 
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -609,12 +633,204 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #4f4f52;
-    border-radius: 4px;
+    background-color: var(--border);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-secondary);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slideUpIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.list-item .inline-confirm {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.list-item.is-deleting .controls {
+    display: none;
+}
+
+.list-item.is-deleting .inline-confirm {
+    display: flex;
+}
+
+.list-item .control-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.list-item .control-button:hover {
+    background-color: var(--bg-secondary);
+}
+
+.list-item .control-button svg {
+    width: 14px;
+    height: 14px;
+    stroke: var(--text-secondary);
+}
+
+.list-item .control-button:hover svg {
+    stroke: var(--text-primary);
+}
+
+.list-item input.inline-input {
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.confirmation-overlay.active {
+    display: flex;
+}
+
+.confirmation-box {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    max-width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+#notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification {
+    padding: 10px 15px;
+    border-radius: 4px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+}
+
+.notification.success {
+    background-color: var(--success);
+}
+
+.notification.error {
+    background-color: var(--danger);
+}
+
+.notification.info {
     background-color: var(--accent);
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-secondary);
 }
 
 @keyframes fadeIn {
@@ -684,4 +900,23 @@ textarea {
 #config-tab {
     justify-content: center;
     align-items: center;
+}
+
+/* Utility for single line forms */
+.single-line-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+    width: 100%;
+}
+
+.single-line-form .form-group {
+    margin-bottom: 0;
+}
+
+.single-line-form .btn {
+    height: 36px;
+    /* Match input height */
+    margin-bottom: 1px;
+    /* Slight adjustment for alignment */
 }
