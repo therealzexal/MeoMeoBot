@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.msg-group {
+    background: rgba(10, 10, 20, 0.85);
+    border: 2px solid #0ff;
+    border-radius: 4px;
+    box-shadow: 0 0 10px #0ff, inset 0 0 20px rgba(0, 255, 255, 0.2);
+    margin-bottom: 12px;
+    position: relative;
+    overflow: visible;
+}
+
+.msg-group::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ff00de, #0ff, #ff00de);
+    z-index: -1;
+    filter: blur(10px);
+    opacity: 0.5;
+}
+
+.msg-username {
+    color: #ff00de !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px #ff00de;
+}
+
+.msg-line {
+    color: #e0faff;
+    font-size: 1.1em;
+}
+
+.badge-img {
+    filter: drop-shadow(0 0 2px #fff);
+}

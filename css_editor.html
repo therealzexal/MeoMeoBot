@@ -19,7 +19,7 @@
             <div class="css-editor-left">
                 <div class="theme-selector-row">
                     <div class="theme-selector-wrapper">
-                        <label for="themeSelector">Thèmes prédéfinis</label>
+
                         <select id="themeSelector" class="theme-selector-input">
                             <option value="">Défaut</option>
                         </select>
@@ -58,9 +58,6 @@
                     <h3>Guide CSS : <span id="cssGuideWidgetName">Chat</span></h3>
                     <button id="closeCssGuideBtn" class="css-editor-close" title="Fermer le guide">✕</button>
                 </div>
-                <p class="modal-description">
-                    Classes disponibles pour ce widget.
-                </p>
                 <div class="theme-list-container">
                     <table class="css-guide-table">
                         <thead>
@@ -69,9 +66,7 @@
                                 <th>Description</th>
                             </tr>
                         </thead>
-                        <tbody id="cssGuideBody">
-                            <!-- Populated by JS -->
-                        </tbody>
+                        <tbody id="cssGuideBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -84,9 +79,7 @@
             <p class="modal-description">
                 Donnez des noms plus explicites à vos fichiers de thèmes.
             </p>
-            <div id="themeListContainer" class="theme-list-container">
-
-            </div>
+            <div id="themeListContainer" class="theme-list-container"></div>
             <div class="modal-actions">
                 <button id="closeThemeConfigBtn" class="btn btn-secondary">Fermer</button>
                 <button id="saveThemeConfigBtn" class="btn btn-primary">Enregistrer les noms</button>
@@ -113,7 +106,7 @@
             chat: `body {
     background: transparent;
     overflow: hidden;
-    font-family: "Inter", "Segoe UI", sans-serif;
+    font-family: "Arial", sans-serif;
     margin: 0;
     padding: 0;
     color: white;
@@ -124,6 +117,7 @@
     flex-direction: column;
     justify-content: flex-end;
     height: 100vh;
+    width: 500px;
     padding: 10px 10px 24px 10px;
     gap: 10px;
     box-sizing: border-box;
@@ -292,17 +286,23 @@
                 { class: '.badge-img', desc: 'Image d\'un badge' },
                 { class: '.msg-messages', desc: 'Conteneur des lignes de message' },
                 { class: '.msg-line', desc: 'Une ligne de message individuelle' },
-                { class: '.user-<username>', desc: 'Classe dynamique pour cibler un utilisateur spécifique (ex: .user-alice)' }
+                { class: '.user-<username>', desc: 'Classe dynamique pour cibler un utilisateur spécifique (ex: .user-alice)' },
+                { class: 'var(--user-color)', desc: 'Couleur du pseudo de l\'utilisateur' },
+                { class: 'var(--user-color-soft)', desc: 'Couleur du pseudo avec transparence (0.15)' }
             ],
             spotify: [
                 { class: '#spotify-wrapper', desc: 'Conteneur principal centré' },
                 { class: '.spotify-card', desc: 'Carte contenant la pochette et les infos' },
                 { class: '.spotify-cover', desc: 'Image de la pochette d\'album' },
                 { class: '.spotify-infos', desc: 'Conteneur des informations textuelles' },
-                { class: '.spotify-title', desc: 'Titre du morceau' },
+                { class: '.spotify-title', desc: 'Titre' },
                 { class: '.spotify-artist', desc: 'Nom de l\'artiste' },
                 { class: '.spotify-album', desc: 'Nom de l\'album' },
-                { class: '.pill', desc: 'Badge "En lecture"' }
+                { class: '.pill', desc: 'Badge "En lecture"' },
+                { class: 'var(--spotify-bg)', desc: 'Couleur de fond de la carte' },
+                { class: 'var(--spotify-title)', desc: 'Couleur du titre' },
+                { class: 'var(--spotify-artist)', desc: 'Couleur de l\'artiste' },
+                { class: 'var(--spotify-album)', desc: 'Couleur de l\'album' }
             ],
             'emote-wall': [
                 { class: '.emote', desc: 'Image d\'une emote flottante' }
@@ -313,6 +313,7 @@
         const maxMessagesInput = document.getElementById('maxMessages');
         const statusBar = document.getElementById('statusBar');
         const nameLabel = document.getElementById('widgetNameLabel');
+
         let currentWidget = 'chat';
         let currentWidgetConfig = {};
 
@@ -367,8 +368,62 @@
                 input.value = opt.text === opt.value.replace('.css', '') ? '' : opt.text;
                 input.dataset.filename = opt.value;
 
+                const controls = document.createElement('div');
+                controls.style.display = 'flex';
+                controls.style.gap = '5px';
+                controls.style.marginLeft = '10px';
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'control-button';
+                delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+                delBtn.title = 'Supprimer ce thème';
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'control-button';
+                confirmBtn.style.display = 'none';
+                confirmBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#00b35f" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                confirmBtn.title = 'Confirmer';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'control-button';
+                cancelBtn.style.display = 'none';
+                cancelBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e91916" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                cancelBtn.title = 'Annuler';
+
+                delBtn.onclick = () => {
+                    delBtn.style.display = 'none';
+                    confirmBtn.style.display = 'flex';
+                    cancelBtn.style.display = 'flex';
+                };
+
+                cancelBtn.onclick = () => {
+                    confirmBtn.style.display = 'none';
+                    cancelBtn.style.display = 'none';
+                    delBtn.style.display = 'flex';
+                };
+
+                confirmBtn.onclick = async () => {
+                    try {
+                        const res = await window.api.invoke('delete-theme', currentWidget, opt.value);
+                        if (res.success) {
+                            row.remove();
+                            await loadThemes(currentWidget);
+                            setStatus('Thème supprimé', 'ok');
+                        } else {
+                            alert('Erreur suppression: ' + res.message);
+                        }
+                    } catch (e) {
+                        alert('Erreur: ' + e);
+                    }
+                };
+
+                controls.appendChild(delBtn);
+                controls.appendChild(confirmBtn);
+                controls.appendChild(cancelBtn);
+
                 row.appendChild(label);
                 row.appendChild(input);
+                row.appendChild(controls);
                 container.appendChild(row);
             });
 
@@ -389,19 +444,29 @@
             }
 
             try {
-                const config = await window.api.invoke('get-config');
-                currentWidgetConfig = config[currentWidget] || {};
+                // Use get-widget-config to get the specific config for the current widget
+                const config = await window.api.invoke('get-widget-config', currentWidget);
+                currentWidgetConfig = config || {};
 
-                // Load saved CSS
-                const savedCss = currentWidgetConfig.customCss || '';
+                const savedCss = currentWidgetConfig.customCSS || '';
                 cssInput.value = savedCss;
 
-                // Load max messages for chat
                 if (currentWidget === 'chat') {
                     maxMessagesInput.value = currentWidgetConfig.maxMessages || 10;
                 }
 
                 await loadThemes(currentWidget);
+
+                // Restore selected theme if available
+                if (currentWidgetConfig.currentTheme) {
+                    const selector = document.getElementById('themeSelector');
+                    const options = Array.from(selector.options).map(o => o.value);
+
+                    if (options.includes(currentWidgetConfig.currentTheme)) {
+                        selector.value = currentWidgetConfig.currentTheme;
+                    }
+                }
+
                 renderPreview();
                 updateCssGuide();
             } catch (e) {
@@ -412,7 +477,11 @@
         async function saveWidgetConfig() {
             try {
                 const css = cssInput.value;
-                const update = { customCss: css };
+                const themeSelector = document.getElementById('themeSelector');
+                const update = {
+                    customCSS: css,
+                    currentTheme: themeSelector.value
+                };
 
                 if (currentWidget === 'chat') {
                     update.maxMessages = parseInt(maxMessagesInput.value, 10) || 10;
@@ -421,9 +490,10 @@
                 const result = await window.api.invoke('save-widget-config', currentWidget, update);
                 if (result.success) {
                     setStatus('Sauvegardé avec succès !', 'ok');
-                    // Reload config to ensure sync
-                    const config = await window.api.invoke('get-config');
-                    currentWidgetConfig = config[currentWidget] || {};
+
+                    // Refresh config after save
+                    const config = await window.api.invoke('get-widget-config', currentWidget);
+                    currentWidgetConfig = config || {};
                 } else {
                     setStatus('Erreur sauvegarde', 'err');
                 }
@@ -446,7 +516,7 @@
     <script>
         const container = document.getElementById('chat-container');
         const MAX_MESSAGES = ${max};
-        
+
         const demo = [
             { u: 'Alice', c: '#6dd4ff', b: [{ set: 'staff', version: '1' }], t: 'Hello world!' },
             { u: 'Bob', c: '#ff8b3d', b: [{ set: 'moderator', version: '1' }], t: 'Ceci est un test.' },
@@ -492,33 +562,33 @@
                 group.className = 'msg-group user-' + sanitizeClass(m.u);
                 group.style.setProperty('--user-color', colors.solid);
                 group.style.setProperty('--user-color-soft', colors.soft);
-                
+
                 const header = document.createElement('div');
                 header.className = 'msg-header';
-                
+
                 const name = document.createElement('span');
                 name.className = 'msg-username';
                 name.textContent = m.u;
                 name.style.color = colors.solid;
-                
+
                 header.appendChild(name);
-                
+
                 const badgesWrap = document.createElement('span');
                 badgesWrap.className = 'msg-badges';
                 (m.b || []).forEach(b => {
                     const node = createBadge(b);
                     if (node) badgesWrap.appendChild(node);
                 });
-                
+
                 if (badgesWrap.children.length) header.appendChild(badgesWrap);
-                
+
                 const messagesDiv = document.createElement('div');
                 messagesDiv.className = 'msg-messages';
-                
+
                 group.appendChild(header);
                 group.appendChild(messagesDiv);
                 container.appendChild(group);
-                
+
                 lastGroup = group;
                 lastUser = m.u;
             }
@@ -541,7 +611,7 @@
             const title = safeCfg.trackTitle || 'Mon titre';
             const artist = safeCfg.trackArtist || 'Artiste';
             const album = safeCfg.trackAlbum || 'Album';
-            const cover = safeCfg.coverUrl || 'https://i.scdn.co/image/ab67616d0000b2738c0e06848d16c69ea4cbe5b7';
+            const cover = safeCfg.coverUrl || 'https://image-cdn-ak.spotifycdn.com/image/ab67616d0000b27308da36b621d12bb2087cf56c';
 
             return `<!DOCTYPE html>
 <html>
@@ -586,11 +656,10 @@
             frame.srcdoc = html;
         }
 
-        // Event Listeners
         document.getElementById('save-btn').addEventListener('click', saveWidgetConfig);
 
         document.getElementById('reset-btn').addEventListener('click', () => {
-            cssInput.value = ''; // Reset custom CSS
+            cssInput.value = '';
             renderPreview();
         });
 
@@ -602,7 +671,7 @@
         document.getElementById('themeSelector').addEventListener('change', async (e) => {
             const filename = e.target.value;
             if (!filename) {
-                // Default theme selected
+                // Défaut
                 cssInput.value = '';
                 renderPreview();
                 return;
@@ -632,7 +701,6 @@
             }
         });
 
-        // New Theme Modal Logic
         const newThemeModal = document.getElementById('newThemeModal');
         const newThemeNameInput = document.getElementById('newThemeNameInput');
         const confirmNewThemeBtn = document.getElementById('confirmNewThemeBtn');
@@ -667,7 +735,6 @@
             }
         });
 
-        // Theme Config Modal Logic
         document.getElementById('closeThemeConfigBtn').addEventListener('click', () => {
             document.getElementById('themeConfigModal').style.display = 'none';
         });
@@ -697,7 +764,6 @@
             } catch (e) { alert('Erreur sauvegarde: ' + e); }
         });
 
-        // CSS Guide Logic
         const cssGuidePanel = document.getElementById('cssGuidePanel');
         const cssGuideBody = document.getElementById('cssGuideBody');
         const cssGuideWidgetName = document.getElementById('cssGuideWidgetName');
@@ -714,17 +780,22 @@
             `).join('');
         }
 
-        function toggleCssGuide(show) {
+        function toggleCssGuide(show, shouldResize = false) {
             const isVisible = show !== undefined ? show : cssGuidePanel.style.display === 'none';
+
+            if (shouldResize && isVisible !== (cssGuidePanel.style.display !== 'none')) {
+                const delta = isVisible ? 350 : -350;
+                window.api.invoke('resize-css-editor', delta);
+            }
+
             cssGuidePanel.style.display = isVisible ? 'flex' : 'none';
             localStorage.setItem('cssGuideVisible', isVisible);
         }
 
-        cssGuideBtn.addEventListener('click', () => toggleCssGuide());
+        cssGuideBtn.addEventListener('click', () => toggleCssGuide(undefined, true));
 
-        document.getElementById('closeCssGuideBtn').addEventListener('click', () => toggleCssGuide(false));
+        document.getElementById('closeCssGuideBtn').addEventListener('click', () => toggleCssGuide(false, true));
 
-        // Initialization
         window.api.on('load-css-editor', ({ widgetName }) => {
             loadWidgetConfig(widgetName).then(() => {
                 renderPreview();
@@ -737,10 +808,11 @@
                 renderPreview();
                 updateCssGuide();
 
-                // Restore guide state
                 const savedState = localStorage.getItem('cssGuideVisible');
                 if (savedState === 'true') {
-                    toggleCssGuide(true);
+                    // Si on était ouvert, on le reste, mais on check si on a besoin d'agrandir la fenêtre
+                    const needsResize = window.outerWidth < 1100;
+                    toggleCssGuide(true, needsResize);
                 }
             });
         });

@@ -42,7 +42,6 @@ class TwitchBot {
 
     async validateToken(token) {
         try {
-            // Remove oauth: prefix if present for the API call header
             const cleanToken = token.replace('oauth:', '');
             const response = await fetch('https://id.twitch.tv/oauth2/validate', {
                 headers: {
@@ -57,7 +56,6 @@ class TwitchBot {
             const data = await response.json();
             this.clientId = data.client_id;
             this.userId = data.user_id;
-            console.log(`[AUTH] Token validé. ClientID: ${this.clientId}, UserID: ${this.userId}`);
             return true;
         } catch (error) {
             console.error('[AUTH] Erreur validation token:', error);
@@ -116,7 +114,6 @@ class TwitchBot {
 
         const token = config.token.startsWith('oauth:') ? config.token : `oauth:${config.token}`;
 
-        // Validate token first to get IDs
         await this.validateToken(token);
 
         this.client = new tmi.Client({
@@ -162,7 +159,7 @@ class TwitchBot {
             });
 
             if (!response.ok) {
-                const errorData = await response.json(); // Body might be empty for 204
+                const errorData = await response.json();
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
 
@@ -170,7 +167,7 @@ class TwitchBot {
             return true;
         } catch (error) {
             console.error('[MOD] Helix Delete error:', error);
-            // Don't throw, just log
+
         }
     }
 
@@ -248,15 +245,12 @@ class TwitchBot {
 
             if (command === '!clip') {
                 if (this.isConnected && !this.onCooldown) {
-                    // Utilisation de l'API Helix pour créer le clip
+
                     if (tags['room-id']) {
                         this.createClip(tags['room-id'])
                             .then((clipData) => {
                                 if (clipData) {
-                                    // Le clip est créé, on envoie le lien d'édition ou l'ID
-                                    // L'URL publique est généralement https://clips.twitch.tv/[id]
-                                    // Mais elle peut mettre quelques secondes à être active.
-                                    // On envoie l'URL directe.
+
                                     const clipUrl = `https://clips.twitch.tv/${clipData.id}`;
                                     this.client.say(channel, `🎬 Clip créé ! ${clipUrl}`);
                                 } else {

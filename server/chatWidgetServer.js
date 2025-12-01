@@ -76,6 +76,34 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
             });
+        } else if (req.url.startsWith('/widget/assets/')) {
+            const assetName = req.url.replace('/widget/assets/', '');
+            const assetPath = path.join(__dirname, '..', 'widgets', 'assets', assetName);
+
+            // Prevent directory traversal
+            if (!assetPath.startsWith(path.join(__dirname, '..', 'widgets', 'assets'))) {
+                res.statusCode = 403;
+                return res.end('Forbidden');
+            }
+
+            fs.readFile(assetPath, (err, data) => {
+                if (err) {
+                    res.statusCode = 404;
+                    return res.end('Asset Not Found');
+                }
+
+                const ext = path.extname(assetPath).toLowerCase();
+                const mimeTypes = {
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif',
+                    '.svg': 'image/svg+xml'
+                };
+
+                res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+                res.end(data);
+            });
         } else {
             res.statusCode = 404;
             res.end('Widget Not Found');

@@ -680,3 +680,8 @@ textarea {
 .hidden {
     display: none !important;
 }
+
+#config-tab {
+    justify-content: center;
+    align-items: center;
+}
