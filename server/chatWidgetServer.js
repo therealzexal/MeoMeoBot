@@ -65,6 +65,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 const spawnInterval = emoteWallConfig.spawnInterval || 100;
                 const minSize = emoteWallConfig.minSize || 32;
                 const maxSize = emoteWallConfig.maxSize || 96;
+                const customCSS = emoteWallConfig.customCSS || '';
 
                 let content = data.replace('__TWITCH_CLIENT_ID__', clientId);
                 content = content.replace('__TWITCH_APP_TOKEN__', appToken);
@@ -72,6 +73,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 content = content.replace('const SPAWN_INTERVAL = 100;', `const SPAWN_INTERVAL = ${spawnInterval};`);
                 content = content.replace('const MIN_SIZE = 32;', `const MIN_SIZE = ${minSize};`);
                 content = content.replace('const MAX_SIZE = 96;', `const MAX_SIZE = ${maxSize};`);
+                content = content.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
