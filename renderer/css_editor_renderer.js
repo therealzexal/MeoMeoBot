@@ -8,6 +8,17 @@ const defaultCss = {
     color: white;
 }
 
+#bg-video {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+}
+
 #chat-container {
     display: flex;
     flex-direction: column;
@@ -418,6 +429,9 @@ function getChatPreviewHtml(customCss, max) {
             </style>
         </head>
         <body>
+            <video id="bg-video" loop autoplay muted playsinline>
+                <source src="http://127.0.0.1:8087/widget/assets/pranax.webm" type="video/webm">
+            </video>
             <div id="chat-container"></div>
             <script>
                 const container = document.getElementById('chat-container');

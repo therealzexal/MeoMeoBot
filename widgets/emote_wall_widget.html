@@ -19,7 +19,8 @@
             will-change: transform, opacity;
             pointer-events: none;
         }
-
+    </style>
+    <style id="custom-css">
         /* CUSTOM_CSS_PLACEHOLDER */
     </style>
 </head>
@@ -94,7 +95,13 @@
             ws = new WebSocket(wsUrl);
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                if (data.type === 'chat' && data.emotes) {
+                if ((data.type === 'config' || data.type === 'config-update') && data.widget === 'emote-wall') {
+                    const cfg = data.config || data;
+                    if (cfg.customCSS) {
+                        const style = document.getElementById('custom-css');
+                        if (style) style.textContent = cfg.customCSS;
+                    }
+                } else if (data.type === 'chat' && data.emotes) {
                     const emoteList = normalizeEmotes(data.emotes);
                     emoteList.forEach((emote, index) => {
                         setTimeout(() => {

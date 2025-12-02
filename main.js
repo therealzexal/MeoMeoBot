@@ -346,7 +346,7 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     if (widgetName === 'spotify' && spotifyServer) {
         spotifyServer.broadcastConfig(config);
     } else if (chatServer) {
-        chatServer.broadcastConfig(config);
+        chatServer.broadcastConfig(config, widgetName);
     }
     return { success: true };
 });

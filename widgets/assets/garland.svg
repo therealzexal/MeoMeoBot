@@ -1,86 +1,101 @@
-<svg width="300" height="24" viewBox="0 0 300 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .lamp { fill: #999; }
-    .shadow { fill: currentColor; opacity: 0.8; }
-    .wire { stroke: #555; stroke-width: 1; }
-    
-    .item {
-      animation-duration: 12s;
-      animation-iteration-count: infinite;
-      animation-timing-function: steps(24, end);
-    }
-    
-    .item1 { animation-name: anim1; }
-    .item2 { animation-name: anim2; }
-    .item3 { animation-name: anim3; }
-    .item4 { animation-name: anim4; }
-    .item5 { animation-name: anim5; }
-
-    @keyframes anim1 {
-      0% { color: #07f; } 20% { color: #17d685; } 40% { color: #ffd91d; } 60% { color: #f679ff; } 80% { color: #ab47e9; } to { color: #07f; }
-    }
-    @keyframes anim2 {
-      0% { color: #f679ff; } 20% { color: #ffd91d; } 40% { color: #ab47e9; } 60% { color: #07f; } 80% { color: #17d685; } to { color: #f679ff; }
-    }
-    @keyframes anim3 {
-      0% { color: #17d685; } 20% { color: #07f; } 40% { color: #ab47e9; } 60% { color: #f679ff; } 80% { color: #ffd91d; } to { color: #17d685; }
-    }
-    @keyframes anim4 {
-      0% { color: #ffd91d; } 20% { color: #f679ff; } 40% { color: #17d685; } 60% { color: #07f; } 80% { color: #ab47e9; } to { color: #ffd91d; }
-    }
-    @keyframes anim5 {
-      0% { color: #ab47e9; } 20% { color: #07f; } 40% { color: #17d685; } 60% { color: #ffd91d; } 80% { color: #f679ff; } to { color: #ab47e9; }
-    }
-  </style>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 300 24">
+  <!-- Generator: Adobe Illustrator 29.8.3, SVG Export Plug-In . SVG Version: 2.1.1 Build 3)  -->
   <defs>
+    <style>
+      .st0 {
+        isolation: isolate;
+        opacity: .8;
+      }
+
+      .st1 {
+        filter: url(#glow1);
+      }
+
+      .st2, .st3 {
+        fill: none;
+        stroke: #555;
+      }
+
+      .st4 {
+        filter: url(#glow2);
+      }
+
+      .st3 {
+        stroke-width: 1px;
+      }
+
+      .st5 {
+        filter: url(#glow);
+      }
+
+      .st6 {
+        filter: url(#glow3);
+      }
+
+      .st7 {
+        fill: #999;
+      }
+
+      .st8 {
+        filter: url(#glow4);
+      }
+    </style>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      <feGaussianBlur result="blur" stdDeviation="3"/>
+      <feComposite in="SourceGraphic" in2="blur"/>
+    </filter>
+    <filter id="glow1" data-name="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur result="blur" stdDeviation="3"/>
+      <feComposite in="SourceGraphic" in2="blur"/>
+    </filter>
+    <filter id="glow2" data-name="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur result="blur" stdDeviation="3"/>
+      <feComposite in="SourceGraphic" in2="blur"/>
+    </filter>
+    <filter id="glow3" data-name="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur result="blur" stdDeviation="3"/>
+      <feComposite in="SourceGraphic" in2="blur"/>
+    </filter>
+    <filter id="glow4" data-name="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur result="blur" stdDeviation="3"/>
+      <feComposite in="SourceGraphic" in2="blur"/>
     </filter>
   </defs>
-
-  <!-- Item 1 -->
-  <g transform="translate(0, 0)" class="item item1">
-    <path d="M8 5c21.703 3.116 34.075 4 56 4" class="wire"/>
-    <g filter="url(#glow)">
-      <path d="M9.5 14c-1.313 0-2.102-1-2.89-2.75-.745-1.655-1.056-3.784.54-4.75.713-.432 1.044-.5 2.35-.5s1.637.068 2.35.5c1.596.966 1.285 3.095.54 4.75C11.602 13 10.813 14 9.5 14z" class="shadow"/>
+  <path class="st3" d="M6,3C3.9,3.2,1.9,3.4,0,3.6"/>
+  <g>
+    <path class="st2" d="M8,5c21.7,3.1,34.1,4,56,4"/>
+    <g class="st5">
+      <path class="st0" d="M8.9,11c-1.3,0-2.1-1-2.9-2.8-.7-1.7-1.1-3.8.5-4.8.7-.4,1-.5,2.4-.5s1.6,0,2.4.5c1.6,1,1.3,3.1.5,4.8-.8,1.8-1.6,2.8-2.9,2.8Z"/>
     </g>
-    <path d="M9.5 13c-1.313 0-2.102-1-2.89-2.75-.745-1.655-1.056-3.784.54-4.75.713-.432 1.044-.5 2.35-.5s1.637.068 2.35.5c1.596.966 1.285 3.095.54 4.75C11.602 12 10.813 13 9.5 13z" class="lamp"/>
+    <path class="st7" d="M8.4,10c-1.3,0-2.1-1-2.9-2.8-.7-1.7-1.1-3.8.5-4.8.7-.4,1-.5,2.4-.5s1.6,0,2.4.5c1.6,1,1.3,3.1.5,4.8-.8,1.8-1.6,2.8-2.9,2.8Z"/>
   </g>
-
-  <!-- Item 2 (offset 55) -->
-  <g transform="translate(55, 0)" class="item item2">
-    <path d="M66 3S31.925 7 10 7" class="wire"/>
-    <g filter="url(#glow)">
-      <path d="M7.373 13.688c-1.114-.696-1.252-1.961-.993-3.863.245-1.798 1.109-3.768 2.974-3.742.835.011 1.151.13 2.258.821 1.108.692 1.352.925 1.729 1.67.841 1.665-.551 3.305-2.06 4.314-1.596 1.066-2.794 1.497-3.908.8z" class="shadow"/>
+  <g>
+    <path class="st2" d="M121,3s-34.1,4-56,4"/>
+    <g class="st1">
+      <path class="st0" d="M62.4,13.7c-1.1-.7-1.3-2-1-3.9.2-1.8,1.1-3.8,3-3.7.8,0,1.2.1,2.3.8,1.1.7,1.4.9,1.7,1.7.8,1.7-.6,3.3-2.1,4.3-1.6,1.1-2.8,1.5-3.9.8Z"/>
     </g>
-    <path d="M7.903 12.84c-1.114-.695-1.252-1.961-.993-3.863.245-1.798 1.109-3.768 2.974-3.742.835.011 1.151.13 2.258.821 1.108.692 1.352.925 1.729 1.67.84 1.665-.551 3.305-2.06 4.314-1.596 1.066-2.794 1.497-3.908.8z" class="lamp"/>
+    <path class="st7" d="M62.9,12.8c-1.1-.7-1.3-2-1-3.9.2-1.8,1.1-3.8,3-3.7.8,0,1.2.1,2.3.8,1.1.7,1.4.9,1.7,1.7.8,1.7-.6,3.3-2.1,4.3-1.6,1.1-2.8,1.5-3.9.8Z"/>
   </g>
-
-  <!-- Item 3 (offset 114) -->
-  <g transform="translate(114, 0)" class="item item3">
-    <path d="M10 8s28.088 2.196 56 3.334" class="wire"/>
-    <g filter="url(#glow)">
-      <path d="M13.466 14.144c-1.006.845-2.252.585-3.981-.249-1.634-.789-3.241-2.22-2.64-3.985.269-.79.479-1.055 1.479-1.894 1-.84 1.297-1 2.122-1.128 1.844-.285 2.973 1.546 3.466 3.292.521 1.847.56 3.12-.446 3.964z" class="shadow"/>
+  <g>
+    <path class="st2" d="M124,4s28.1,2.2,56,3.3"/>
+    <g class="st4">
+      <path class="st0" d="M127.5,10.2c-1,.8-2.3.6-4-.2-1.6-.8-3.2-2.2-2.6-4,.3-.8.5-1.1,1.5-1.9,1-.8,1.3-1,2.1-1.1,1.8-.3,3,1.5,3.5,3.3.5,1.8.6,3.1-.4,4Z"/>
     </g>
-    <path d="M12.823 13.378c-1.006.844-2.252.585-3.98-.25C7.207 12.34 5.6 10.91 6.201 9.145c.269-.79.479-1.055 1.48-1.894 1-.84 1.296-1 2.121-1.128 1.844-.285 2.974 1.546 3.466 3.292.522 1.847.56 3.12-.446 3.964z" class="lamp"/>
+    <path class="st7" d="M126.8,9.4c-1,.8-2.3.6-4-.2-1.6-.8-3.2-2.2-2.6-4,.3-.8.5-1.1,1.5-1.9,1-.8,1.3-1,2.1-1.1,1.8-.3,3,1.5,3.5,3.3.5,1.8.6,3.1-.4,4h0Z"/>
   </g>
-
-  <!-- Item 4 (offset 173) -->
-  <g transform="translate(173, 0)" class="item item4">
-    <path d="M9 9.334c9.757.398 19.493.666 28 .666 10.49 0 19.512-.09 28-.313" class="wire"/>
-    <g filter="url(#glow)">
-      <path d="M14.517 7.485c.677 1.126.225 2.316-.869 3.893-1.034 1.491-2.699 2.855-4.35 1.985-.737-.39-.966-.638-1.638-1.758-.673-1.119-.785-1.437-.782-2.272.006-1.866 1.992-2.695 3.794-2.908 1.906-.226 3.169-.066 3.845 1.06z" class="shadow"/>
+  <g>
+    <path class="st2" d="M182,5.4c9.8.4,19.5.7,28,.7s19.5,0,28-.3"/>
+    <g class="st6">
+      <path class="st0" d="M187.5,3.5c.7,1.1.2,2.3-.9,3.9-1,1.5-2.7,2.9-4.3,2-.7-.4-1-.6-1.6-1.8-.7-1.1-.8-1.4-.8-2.3,0-1.9,2-2.7,3.8-2.9,1.9-.2,3.2,0,3.8,1.1Z"/>
     </g>
-    <path d="M13.66 8c.676 1.126.225 2.316-.869 3.893-1.034 1.491-2.699 2.855-4.35 1.985-.737-.39-.966-.638-1.638-1.758-.673-1.119-.785-1.437-.782-2.272.006-1.866 1.991-2.695 3.793-2.908 1.906-.226 3.17-.066 3.846 1.06z" class="lamp"/>
+    <path class="st7" d="M186.7,4c.7,1.1.2,2.3-.9,3.9-1,1.5-2.7,2.9-4.3,2-.7-.4-1-.6-1.6-1.8-.7-1.1-.8-1.4-.8-2.3,0-1.9,2-2.7,3.8-2.9,1.9-.2,3.2,0,3.8,1.1Z"/>
   </g>
-
-  <!-- Item 5 (offset 231) -->
-  <g transform="translate(231, 0)" class="item item5">
-    <path d="M67.5 7c-22.251 2.124-37.912 3.21-56 3.687" class="wire"/>
-    <g filter="url(#glow)">
-      <path d="M7.538 7.484c1.007-.845 2.253-.585 3.982.249 1.634.788 3.241 2.219 2.64 3.985-.27.79-.48 1.055-1.48 1.894-1 .84-1.297 1-2.121 1.128-1.844.285-2.974-1.546-3.467-3.292-.52-1.848-.56-3.12.446-3.964z" class="shadow"/>
+  <g>
+    <path class="st3" d="M300,3c-22.8,2.1-38.8,3.2-57.4,3.7"/>
+    <g class="st8">
+      <path class="st0" d="M238.6,3.5c1-.8,2.3-.6,4.1.2,1.7.8,3.3,2.2,2.7,4-.3.8-.5,1.1-1.5,1.9-1,.8-1.3,1-2.2,1.1-1.9.3-3-1.5-3.6-3.3-.5-1.8-.6-3.1.5-4Z"/>
     </g>
-    <path d="M8.181 8.25c1.006-.845 2.253-.585 3.981.249 1.635.788 3.242 2.219 2.64 3.985-.268.79-.478 1.055-1.479 1.894-1 .84-1.297 1-2.122 1.128-1.843.285-2.973-1.546-3.466-3.292-.52-1.847-.56-3.12.446-3.964z" class="lamp"/>
+    <path class="st7" d="M239.2,4.3c1-.8,2.3-.6,4.1.2,1.7.8,3.3,2.2,2.7,4-.3.8-.5,1.1-1.5,1.9-1,.8-1.3,1-2.2,1.1-1.9.3-3-1.5-3.6-3.3-.5-1.8-.6-3.1.5-4Z"/>
   </g>
 </svg>

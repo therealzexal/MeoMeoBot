@@ -100,7 +100,8 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                     '.jpg': 'image/jpeg',
                     '.jpeg': 'image/jpeg',
                     '.gif': 'image/gif',
-                    '.svg': 'image/svg+xml'
+                    '.svg': 'image/svg+xml',
+                    '.webm': 'video/webm'
                 };
 
                 res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
@@ -151,9 +152,9 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
         }
     };
 
-    const broadcastConfig = (config) => {
+    const broadcastConfig = (config, widgetType = 'chat') => {
         if (wss && wss.clients) {
-            const payload = JSON.stringify({ type: 'config-update', widget: 'chat', config });
+            const payload = JSON.stringify({ type: 'config-update', widget: widgetType, config });
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) client.send(payload);
             });
