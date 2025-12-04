@@ -179,12 +179,27 @@
         </div>
     </div>
 
-
     <div class="tab-content" id="widgets-tab">
         <div class="card full-height-card">
             <div class="widget-list-container">
 
                 <div class="widget-row" data-widget="chat">
+                    <div class="widget-col-name"><strong>Tchat</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="widgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config" id="badgePrefs"></div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Thèmes</button>
+                        <button class="btn btn-danger btn-sm" id="resetChatConfigBtn"
+                            title="Réinitialiser la config">Reset Config</button>
+                        <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="spotify">
+                    <div class="widget-col-name"><strong>Spotify</strong></div>
                     <div class="widget-col-links">
                         <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
                                 id="spotifyWidgetUrlDisplay">Chargement...</code></p>
@@ -200,10 +215,9 @@
                         </div>
                     </div>
                     <div class="widget-col-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Editer CSS</button>
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Thèmes</button>
                     </div>
                 </div>
-
 
                 <div class="widget-row" data-widget="emote-wall">
                     <div class="widget-col-name"><strong>Mur d'Emotes</strong></div>
@@ -236,8 +250,6 @@
                     </div>
                 </div>
 
-
-                <!-- Subgoals Widget -->
                 <div class="widget-row" data-widget="subgoals">
                     <div class="widget-col-name"><strong>Subgoals</strong></div>
                     <div class="widget-col-links">
@@ -248,11 +260,10 @@
                         <button class="btn btn-primary btn-sm" id="configureSubgoalsBtn">Configurer</button>
                     </div>
                     <div class="widget-col-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('subgoals')">Editer CSS</button>
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('subgoals')">Thèmes</button>
                     </div>
                 </div>
 
-                <!-- Subgoals List Widget -->
                 <div class="widget-row" data-widget="subgoals-list">
                     <div class="widget-col-name"><strong>Subgoals List</strong></div>
                     <div class="widget-col-links">
@@ -264,13 +275,11 @@
                         </p>
                     </div>
                     <div class="widget-col-actions">
-                        <!-- No specific actions needed as it shares config -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
 
     <div class="tab-content" id="config-tab">
         <div class="config-wrapper">
