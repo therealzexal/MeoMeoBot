@@ -72,6 +72,36 @@ function setupEventListeners() {
     const saveBadgeBtn = document.getElementById('saveBadgePrefs');
     if (saveBadgeBtn) saveBadgeBtn.addEventListener('click', saveBadgePrefs);
 
+    const resetChatConfigBtn = document.getElementById('resetChatConfigBtn');
+    if (resetChatConfigBtn) {
+        let resetTimeout;
+        resetChatConfigBtn.addEventListener('click', async () => {
+            if (!resetChatConfigBtn.classList.contains('confirming')) {
+                resetChatConfigBtn.classList.add('confirming');
+                const originalText = resetChatConfigBtn.textContent;
+                resetChatConfigBtn.dataset.originalText = originalText;
+                resetChatConfigBtn.textContent = 'Sûr ?';
+
+                resetTimeout = setTimeout(() => {
+                    resetChatConfigBtn.classList.remove('confirming');
+                    resetChatConfigBtn.textContent = originalText;
+                }, 3000);
+                return;
+            }
+
+            clearTimeout(resetTimeout);
+            resetChatConfigBtn.classList.remove('confirming');
+            resetChatConfigBtn.textContent = resetChatConfigBtn.dataset.originalText || 'Reset Config';
+
+            try {
+                await window.api.invoke('reset-widget-config', 'chat');
+                showNotification('Configuration du Tchat réinitialisée !', 'success');
+            } catch (e) {
+                showNotification('Erreur lors de la réinitialisation : ' + e, 'error');
+            }
+        });
+    }
+
     const spotifyAuthBtn = document.getElementById('spotifyAuthBtn');
     if (spotifyAuthBtn) spotifyAuthBtn.addEventListener('click', startSpotifyAuth);
 

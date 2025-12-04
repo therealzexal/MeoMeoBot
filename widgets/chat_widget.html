@@ -254,6 +254,7 @@
                         if (bgVideo) bgVideo.style.display = '';
                         document.getElementById('custom-css').textContent = cfg.customCSS || '';
                         requestAnimationFrame(() => updateSnow());
+
                         if (cfg.maxMessages) {
                             MAX_MESSAGES = parseInt(cfg.maxMessages, 10) || 10;
                         }
@@ -293,6 +294,7 @@
             const sameUser = (lastUser === username) && lastGroup;
             let group = lastGroup;
             const container = document.getElementById('chat-container');
+
             if (!sameUser) {
                 group = document.createElement('div');
                 const isEven = (groupCounter % 2) === 0;
@@ -328,12 +330,14 @@
                 lastGroup = group;
                 lastUser = username;
             }
+
             const messagesDiv = group.querySelector('.msg-messages');
             const line = document.createElement('div');
             line.className = 'msg-line';
             line.appendChild(renderTextWithEmotes(text, emotes));
             messagesDiv.appendChild(line);
             messageQueue.push(line);
+
             while (messageQueue.length > MAX_MESSAGES) {
                 const old = messageQueue.shift();
                 const parent = old.parentElement;
@@ -355,6 +359,7 @@
             const enable = getComputedStyle(document.body).getPropertyValue('--enable-snow').trim();
             let containerBg = document.getElementById('snow-container-bg');
             let containerFg = document.getElementById('snow-container-fg');
+
             if (enable === '1') {
                 if (!containerBg) {
                     containerBg = document.createElement('div');
@@ -366,11 +371,13 @@
                     containerBg.style.height = '100%';
                     containerBg.style.pointerEvents = 'none';
                     containerBg.style.zIndex = '0';
+
                     for (let i = 0; i < 35; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow';
                         containerBg.appendChild(d);
                     }
+
                     document.body.prepend(containerBg);
                     containerFg = document.createElement('div');
                     containerFg.id = 'snow-container-fg';
@@ -381,11 +388,13 @@
                     containerFg.style.height = '100%';
                     containerFg.style.pointerEvents = 'none';
                     containerFg.style.zIndex = '9999';
+
                     for (let i = 0; i < 15; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow-fg';
                         containerFg.appendChild(d);
                     }
+
                     document.body.appendChild(containerFg);
                 }
             } else {
@@ -393,6 +402,7 @@
                 if (containerFg) containerFg.remove();
             }
         }
+
         connectWebSocket();
     </script>
 </body>

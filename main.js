@@ -451,6 +451,24 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     return { success: true };
 });
 
+ipcMain.handle('reset-widget-config', (event, widgetName) => {
+    const config = bot.getWidgetConfig(widgetName) || {};
+
+    delete config.customCSS;
+    delete config.currentTheme;
+
+    bot.saveWidgetConfig(widgetName, config);
+    if (widgetName === 'chat' && chatServer) {
+        chatServer.broadcastConfig(config);
+    } else if (widgetName === 'spotify' && spotifyServer) {
+        spotifyServer.broadcastConfig(config);
+    } else if (widgetName === 'subgoals' && subgoalsServer) {
+        subgoalsServer.broadcastConfig(config);
+    }
+
+    return { success: true };
+});
+
 ipcMain.handle('get-themes', async (event, widgetType) => {
     const userThemesDir = path.join(app.getPath('userData'), 'themes');
     const builtInThemesDir = path.join(__dirname, 'widgets/themes');
