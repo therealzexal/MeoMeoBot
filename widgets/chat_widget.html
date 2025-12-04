@@ -318,7 +318,7 @@
                 nameSpan.style.color = solid;
 
                 const badgesWrap = document.createElement('span');
-                badgesWrap.className = 'msg-badges';
+                nameSpan.className = 'msg-badges';
                 const seen = new Set();
 
                 const badges = parseBadgesRaw(badgesRaw).concat(parseBadgesObj(badgesObj || {}));
@@ -372,37 +372,48 @@
 
         function updateSnow() {
             const enable = getComputedStyle(document.body).getPropertyValue('--enable-snow').trim();
-            let container = document.getElementById('snow-container');
+            let containerBg = document.getElementById('snow-container-bg');
+            let containerFg = document.getElementById('snow-container-fg');
 
             if (enable === '1') {
-                if (!container) {
-                    container = document.createElement('div');
-                    container.id = 'snow-container';
-
-                    container.style.position = 'absolute';
-                    container.style.top = '0';
-                    container.style.left = '0';
-                    container.style.width = '100%';
-                    container.style.height = '100%';
-                    container.style.pointerEvents = 'none';
-                    container.style.zIndex = '0';
-
+                if (!containerBg) {
+                    containerBg = document.createElement('div');
+                    containerBg.id = 'snow-container-bg';
+                    containerBg.style.position = 'absolute';
+                    containerBg.style.top = '0';
+                    containerBg.style.left = '0';
+                    containerBg.style.width = '100%';
+                    containerBg.style.height = '100%';
+                    containerBg.style.pointerEvents = 'none';
+                    containerBg.style.zIndex = '0';
 
                     for (let i = 0; i < 35; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow';
-                        container.appendChild(d);
+                        containerBg.appendChild(d);
                     }
+                    document.body.prepend(containerBg);
+
+                    containerFg = document.createElement('div');
+                    containerFg.id = 'snow-container-fg';
+                    containerFg.style.position = 'absolute';
+                    containerFg.style.top = '0';
+                    containerFg.style.left = '0';
+                    containerFg.style.width = '100%';
+                    containerFg.style.height = '100%';
+                    containerFg.style.pointerEvents = 'none';
+                    containerFg.style.zIndex = '9999';
 
                     for (let i = 0; i < 15; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow-fg';
-                        container.appendChild(d);
+                        containerFg.appendChild(d);
                     }
-                    document.body.prepend(container);
+                    document.body.appendChild(containerFg);
                 }
             } else {
-                if (container) container.remove();
+                if (containerBg) containerBg.remove();
+                if (containerFg) containerFg.remove();
             }
         }
 
