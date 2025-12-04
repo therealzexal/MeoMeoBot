@@ -109,6 +109,8 @@
                             spawnEmote(url);
                         }, index * SPAWN_INTERVAL);
                     });
+                } else if (data.type === 'reload') {
+                    window.location.reload();
                 }
             };
             ws.onclose = () => { setTimeout(connectWebSocket, 5000); };

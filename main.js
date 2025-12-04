@@ -41,6 +41,38 @@ let currentlyPlayingPath = null;
 let updateCheckTimer = null;
 let bonjourInstance = null;
 
+async function reloadThemeContent() {
+    const widgets = ['chat', 'spotify', 'subgoals', 'emote-wall'];
+    const userThemesDir = path.join(app.getPath('userData'), 'themes');
+    const builtInThemesDir = path.join(__dirname, 'widgets/themes');
+
+    for (const widget of widgets) {
+        const config = bot.getWidgetConfig(widget);
+        if (config && config.currentTheme) {
+            const filename = config.currentTheme;
+            let themeContent = '';
+
+            // Try user theme first
+            const userThemePath = path.join(userThemesDir, filename);
+            if (fs.existsSync(userThemePath)) {
+                themeContent = await fs.promises.readFile(userThemePath, 'utf8');
+            } else {
+                // Try built-in theme
+                const builtInThemePath = path.join(builtInThemesDir, filename);
+                if (fs.existsSync(builtInThemePath)) {
+                    themeContent = await fs.promises.readFile(builtInThemePath, 'utf8');
+                }
+            }
+
+            if (themeContent) {
+                config.customCSS = themeContent;
+                bot.saveWidgetConfig(widget, config);
+                console.log(`[THEME] Reloaded content for ${widget} from ${filename}`);
+            }
+        }
+    }
+}
+
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
@@ -73,7 +105,7 @@ function createWindow() {
     if (process.argv.includes('--dev')) {
         mainWindow.webContents.openDevTools();
     }
-    bot = new TwitchBot();
+    // bot initialized in app.whenReady
     setupBotEvents();
     autoConnectBot();
 }
@@ -183,7 +215,9 @@ ipcMain.handle('resize-css-editor', (event, widthDelta) => {
     }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    bot = new TwitchBot();
+    await reloadThemeContent();
     createWindow();
     startMediaServer();
 
@@ -196,6 +230,14 @@ app.whenReady().then(() => {
     chatServer.start();
     spotifyServer.start();
     subgoalsServer.start();
+
+    setTimeout(() => {
+        const reloadMsg = { type: 'reload' };
+        if (chatServer) chatServer.broadcastChat(reloadMsg);
+        if (spotifyServer) spotifyServer.broadcast(reloadMsg);
+        if (subgoalsServer) subgoalsServer.broadcast(reloadMsg);
+        console.log('[APP] Sent reload signal to all widgets');
+    }, 10000);
 
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
@@ -622,7 +664,8 @@ ipcMain.handle('get-widget-urls', async () => {
         chat: chatServer ? chatServer.getUrl(localIp, 'chat') : '',
         spotify: spotifyServer ? spotifyServer.getUrl(localIp) : '',
         emoteWall: chatServer ? chatServer.getUrl(localIp, 'emote-wall') : '',
-        subgoals: subgoalsServer ? subgoalsServer.getUrl(localIp) : ''
+        subgoals: subgoalsServer ? subgoalsServer.getUrl(localIp) : '',
+        subgoalsList: subgoalsServer ? subgoalsServer.getUrl(localIp) + '-list' : ''
     };
 });
 

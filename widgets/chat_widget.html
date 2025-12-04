@@ -318,7 +318,7 @@
                 nameSpan.style.color = solid;
 
                 const badgesWrap = document.createElement('span');
-                nameSpan.className = 'msg-badges';
+                badgesWrap.className = 'msg-badges';
                 const seen = new Set();
 
                 const badges = parseBadgesRaw(badgesRaw).concat(parseBadgesObj(badgesObj || {}));

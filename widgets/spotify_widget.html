@@ -156,6 +156,8 @@
                     if (data.type === 'config-update' && data.widget === 'spotify') {
                         currentConfig = data.config || currentConfig;
                         applyConfig(currentConfig);
+                    } else if (data.type === 'reload') {
+                        window.location.reload();
                     }
                 } catch (err) {
                     console.warn('Spotify widget message parse error', err);

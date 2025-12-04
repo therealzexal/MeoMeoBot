@@ -176,6 +176,7 @@ async function loadWidgetUrls() {
         if (document.getElementById('spotifyWidgetUrlDisplay')) document.getElementById('spotifyWidgetUrlDisplay').textContent = urls.spotify;
         if (document.getElementById('emoteWallWidgetUrlDisplay')) document.getElementById('emoteWallWidgetUrlDisplay').textContent = urls.emoteWall;
         if (document.getElementById('subgoalsWidgetUrlDisplay')) document.getElementById('subgoalsWidgetUrlDisplay').textContent = urls.subgoals;
+        if (document.getElementById('subgoalsListWidgetUrlDisplay')) document.getElementById('subgoalsListWidgetUrlDisplay').textContent = urls.subgoalsList;
     } catch (e) { console.error('Erreur URLs widgets', e); }
 }
 

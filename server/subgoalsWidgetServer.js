@@ -35,6 +35,22 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);
             });
+        } else if (req.url === '/widget/subgoals-list') {
+            const filePath = path.join(__dirname, '..', 'widgets', 'subgoals_list_widget.html');
+            fs.readFile(filePath, 'utf8', (err, data) => {
+                if (err) {
+                    res.statusCode = 500;
+                    return res.end('Error loading widget file');
+                }
+
+                const config = bot.getWidgetConfig('subgoals') || {};
+                const customCSS = config.customCSS || '';
+
+                let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(content);
+            });
         } else {
             res.statusCode = 404;
             res.end('Widget Not Found');
@@ -87,6 +103,15 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
         }
     };
 
+    const broadcast = (data) => {
+        if (wss && wss.clients) {
+            const payload = JSON.stringify(data);
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) client.send(payload);
+            });
+        }
+    };
+
     const stop = () => {
         if (server) server.close();
         if (wss) wss.close();
@@ -94,7 +119,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
 
     const getUrl = (localIp) => `http://${localIp}:${port}/widget/subgoals`;
 
-    return { start, stop, getPort: () => port, broadcastSubUpdate, broadcastConfig, getUrl };
+    return { start, stop, getPort: () => port, broadcastSubUpdate, broadcastConfig, broadcast, getUrl };
 }
 
 module.exports = { createSubgoalsWidgetServer };

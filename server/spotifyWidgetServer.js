@@ -153,6 +153,15 @@ function createSpotifyWidgetServer(bot, {
         }
     };
 
+    const broadcast = (data) => {
+        if (wss && wss.clients) {
+            const payload = JSON.stringify(data);
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) client.send(payload);
+            });
+        }
+    };
+
     const updateTrackConfig = (trackData) => {
         if (!trackData) return;
         const current = bot.getWidgetConfig('spotify') || {};
@@ -320,6 +329,7 @@ function createSpotifyWidgetServer(bot, {
         start,
         stop,
         broadcastConfig: broadcastCustomConfig,
+        broadcast,
         getPort: () => port,
         getRedirectUri: () => getRedirectUri(),
         getLoginUrl,

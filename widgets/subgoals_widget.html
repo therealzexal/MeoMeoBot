@@ -184,6 +184,8 @@
                         }
                     } else if (data.type === 'sub-update') {
                         updateProgress(data.count);
+                    } else if (data.type === 'reload') {
+                        window.location.reload();
                     }
                 } catch (e) {
                     console.error('Error parsing WS message', e);
