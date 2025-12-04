@@ -1,6 +1,6 @@
 {
   "name": "meomeobot",
-  "version": "3.5.6",
+  "version": "3.5.7",
   "main": "main.js",
   "repository": "github:Zexaaaal/MeoMeoBot",
   "scripts": {
@@ -54,6 +54,7 @@
       "index.html",
       "style.css",
       "css_editor.html",
+      "subgoals_config.html",
       "package.json",
       "assets/**/*",
       "config/**/*",
