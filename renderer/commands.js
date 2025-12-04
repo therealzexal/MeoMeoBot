@@ -12,7 +12,7 @@ export async function loadCommands() {
 
             const viewContainer = document.createElement('div');
             viewContainer.className = 'command-view-container';
-            // Inline styles removed, handled in CSS
+
 
             const name = document.createElement('span');
             name.className = 'command-name';
@@ -65,7 +65,7 @@ export async function loadCommands() {
 
             editBtn.onclick = () => {
                 viewContainer.style.display = 'none';
-                editContainer.style.display = 'contents'; // Changed to contents to maintain grid layout
+                editContainer.style.display = 'contents';
                 editBtn.style.display = 'none';
                 delBtn.style.display = 'none';
                 saveBtn.style.display = 'flex';
@@ -73,7 +73,7 @@ export async function loadCommands() {
             };
 
             cancelBtn.onclick = () => {
-                viewContainer.style.display = 'contents'; // Changed to contents
+                viewContainer.style.display = 'contents';
                 editContainer.style.display = 'none';
                 editBtn.style.display = 'flex';
                 delBtn.style.display = 'flex';

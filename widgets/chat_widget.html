@@ -37,10 +37,10 @@
             object-fit: cover;
             z-index: -1;
         }
-
-        /* CUSTOM_CSS_PLACEHOLDER */
     </style>
-    <style id="custom-css"></style>
+    <style id="custom-css">
+        /* __CUSTOM_CSS__ */
+    </style>
 </head>
 
 <body>
@@ -256,9 +256,13 @@
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
                         const cfg = data.config || data;
-                        if (cfg.customCSS) {
-                            document.getElementById('custom-css').textContent = cfg.customCSS;
-                        }
+
+                        const bgVideo = document.getElementById('bg-video');
+                        if (bgVideo) bgVideo.style.display = '';
+
+                        document.getElementById('custom-css').textContent = cfg.customCSS || '';
+                        requestAnimationFrame(() => updateSnow());
+
                         if (cfg.maxMessages) {
                             MAX_MESSAGES = parseInt(cfg.maxMessages, 10) || 10;
                         }
@@ -363,6 +367,42 @@
                         }
                     }
                 }
+            }
+        }
+
+        function updateSnow() {
+            const enable = getComputedStyle(document.body).getPropertyValue('--enable-snow').trim();
+            let container = document.getElementById('snow-container');
+
+            if (enable === '1') {
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'snow-container';
+
+                    container.style.position = 'absolute';
+                    container.style.top = '0';
+                    container.style.left = '0';
+                    container.style.width = '100%';
+                    container.style.height = '100%';
+                    container.style.pointerEvents = 'none';
+                    container.style.zIndex = '0';
+
+
+                    for (let i = 0; i < 35; i++) {
+                        const d = document.createElement('div');
+                        d.className = 'snow';
+                        container.appendChild(d);
+                    }
+
+                    for (let i = 0; i < 15; i++) {
+                        const d = document.createElement('div');
+                        d.className = 'snow-fg';
+                        container.appendChild(d);
+                    }
+                    document.body.prepend(container);
+                }
+            } else {
+                if (container) container.remove();
             }
         }
 

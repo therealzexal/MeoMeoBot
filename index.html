@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <!-- Cast Tab -->
+
     <div class="tab-content" id="cast-tab">
         <div class="card full-height-card">
             <div class="list-container" id="video-thumbnail-grid"></div>
@@ -179,11 +179,11 @@
         </div>
     </div>
 
-    <!-- Widgets Tab -->
+
     <div class="tab-content" id="widgets-tab">
         <div class="card full-height-card">
             <div class="widget-list-container">
-                <!-- Chat Widget -->
+
                 <div class="widget-row" data-widget="chat">
                     <div class="widget-col-name"><strong>Tchat</strong></div>
                     <div class="widget-col-links">
@@ -197,7 +197,7 @@
                     </div>
                 </div>
 
-                <!-- Spotify Widget -->
+
                 <div class="widget-row" data-widget="spotify">
                     <div class="widget-col-name"><strong>Spotify</strong></div>
                     <div class="widget-col-links">
@@ -219,7 +219,7 @@
                     </div>
                 </div>
 
-                <!-- Emote Wall Widget -->
+
                 <div class="widget-row" data-widget="emote-wall">
                     <div class="widget-col-name"><strong>Mur d'Emotes</strong></div>
                     <div class="widget-col-links">
@@ -250,11 +250,27 @@
                         <button class="btn btn-primary btn-sm" id="saveEmoteWallConfig" title="Sauvegarder">💾</button>
                     </div>
                 </div>
+
+
+                <!-- Subgoals Widget -->
+                <div class="widget-row" data-widget="subgoals">
+                    <div class="widget-col-name"><strong>Subgoals</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="subgoalsWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config">
+                        <button class="btn btn-primary btn-sm" id="configureSubgoalsBtn">Configurer</button>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('subgoals')">Editer CSS</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Config Tab -->
+
     <div class="tab-content" id="config-tab">
         <div class="config-wrapper">
             <div class="config-columns">
@@ -311,7 +327,7 @@
         </div>
     </div>
 
-    <!-- Overlays -->
+
     <div id="confirmationOverlay" class="confirmation-overlay">
         <div class="confirmation-box">
             <h4 id="confirmationMessage">Êtes-vous sûr ?</h4>
@@ -321,6 +337,10 @@
             </div>
         </div>
     </div>
+    </div>
+
+
+
     <div id="notification-container"></div>
 
     <script type="module" src="renderer/app.js"></script>

@@ -9,7 +9,6 @@
 .command-view-container,
 .inline-edit-container {
     display: contents;
-    /* Allows children to participate in the parent grid */
 }
 
 .command-name {

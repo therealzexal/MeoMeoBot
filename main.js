@@ -11,7 +11,9 @@ const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
 const WebSocket = require('ws');
 const { createChatWidgetServer } = require('./server/chatWidgetServer');
+
 const { createSpotifyWidgetServer } = require('./server/spotifyWidgetServer');
+const { createSubgoalsWidgetServer } = require('./server/subgoalsWidgetServer');
 
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
@@ -26,6 +28,7 @@ if (app.isPackaged) {
 const UPDATE_CHECK_INTERVAL = 800000;
 const DEFAULT_WIDGET_PORT = 8087;
 const DEFAULT_SPOTIFY_WIDGET_PORT = 8090;
+const DEFAULT_SUBGOALS_WIDGET_PORT = 8091;
 
 let mainWindow;
 let cssEditorWindow = null;
@@ -33,6 +36,7 @@ let bot;
 let mediaServer;
 let chatServer;
 let spotifyServer;
+let subgoalsServer;
 let currentlyPlayingPath = null;
 let updateCheckTimer = null;
 let bonjourInstance = null;
@@ -126,6 +130,45 @@ function openCssEditorWindow(widgetName = 'chat') {
 }
 ipcMain.handle('open-css-editor', (event, widgetName) => openCssEditorWindow(widgetName));
 
+let subgoalsConfigWindow = null;
+function openSubgoalsConfigWindow() {
+    if (subgoalsConfigWindow) {
+        subgoalsConfigWindow.focus();
+        return;
+    }
+
+    subgoalsConfigWindow = new BrowserWindow({
+        width: 900,
+        height: 600,
+        title: 'Configuration Subgoals',
+        parent: mainWindow,
+        modal: false,
+        show: false,
+        frame: false,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    subgoalsConfigWindow.loadFile('subgoals_config.html');
+    subgoalsConfigWindow.setMenu(null);
+
+    subgoalsConfigWindow.on('ready-to-show', () => {
+        subgoalsConfigWindow.show();
+    });
+
+    subgoalsConfigWindow.on('closed', () => {
+        subgoalsConfigWindow = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+}
+
+ipcMain.handle('open-subgoals-config', () => openSubgoalsConfigWindow());
+
 ipcMain.handle('resize-css-editor', (event, widthDelta) => {
     if (cssEditorWindow) {
         const bounds = cssEditorWindow.getBounds();
@@ -148,8 +191,11 @@ app.whenReady().then(() => {
     spotifyServer = createSpotifyWidgetServer(bot, {
         defaultPort: DEFAULT_SPOTIFY_WIDGET_PORT
     });
+    subgoalsServer = createSubgoalsWidgetServer(bot, DEFAULT_SUBGOALS_WIDGET_PORT);
+
     chatServer.start();
     spotifyServer.start();
+    subgoalsServer.start();
 
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
@@ -168,6 +214,7 @@ app.on('before-quit', () => {
     if (mediaServer) mediaServer.close();
     if (chatServer) chatServer.stop();
     if (spotifyServer) spotifyServer.stop();
+    if (subgoalsServer) subgoalsServer.stop();
     if (bonjourInstance) {
         try { bonjourInstance.destroy(); } catch (e) { }
     }
@@ -248,6 +295,10 @@ function setupBotEvents() {
 
     bot.onChatMessage = (messageData) => {
         sendChatToWidgets(messageData);
+    };
+
+    bot.onSubCountUpdate = (count) => {
+        if (subgoalsServer) subgoalsServer.broadcastSubUpdate(count);
     };
 }
 
@@ -343,10 +394,17 @@ ipcMain.handle('get-widget-config', (event, widgetName) => {
 });
 ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     bot.saveWidgetConfig(widgetName, config);
+
     if (widgetName === 'spotify' && spotifyServer) {
         spotifyServer.broadcastConfig(config);
+    } else if (widgetName === 'subgoals' && subgoalsServer) {
+        subgoalsServer.broadcastConfig(config);
+    } else if (widgetName === 'chat' && chatServer) {
+        chatServer.broadcastConfig(config);
     } else if (chatServer) {
-        chatServer.broadcastConfig(config, widgetName);
+        if (widgetName === 'emote-wall') {
+            chatServer.broadcastConfig(config, widgetName);
+        }
     }
     return { success: true };
 });
@@ -355,6 +413,8 @@ ipcMain.handle('get-themes', async (event, widgetType) => {
     const userThemesDir = path.join(app.getPath('userData'), 'themes');
     const builtInThemesDir = path.join(__dirname, 'widgets/themes');
     const configPath = path.join(userThemesDir, 'themes.json');
+
+    const prefix = widgetType === 'subgoals' ? 'sub_' : widgetType + '_';
 
     if (!fs.existsSync(userThemesDir)) {
         fs.mkdirSync(userThemesDir, { recursive: true });
@@ -373,7 +433,7 @@ ipcMain.handle('get-themes', async (event, widgetType) => {
     try {
         if (fs.existsSync(userThemesDir)) {
             const userFiles = await fs.promises.readdir(userThemesDir);
-            userFiles.filter(f => f.endsWith('.css') && f.startsWith(widgetType + '_'))
+            userFiles.filter(f => f.endsWith('.css') && f.startsWith(prefix))
                 .forEach(f => allThemes.add(f));
         }
     } catch (e) { console.error('Error reading user themes:', e); }
@@ -381,7 +441,7 @@ ipcMain.handle('get-themes', async (event, widgetType) => {
     try {
         if (fs.existsSync(builtInThemesDir)) {
             const builtInFiles = await fs.promises.readdir(builtInThemesDir);
-            builtInFiles.filter(f => f.endsWith('.css') && f.startsWith(widgetType + '_'))
+            builtInFiles.filter(f => f.endsWith('.css') && f.startsWith(prefix))
                 .forEach(f => allThemes.add(f));
         }
     } catch (e) { console.error('Error reading built-in themes:', e); }
@@ -396,7 +456,6 @@ ipcMain.handle('get-theme-content', async (event, filename) => {
     const userThemePath = path.join(userThemesDir, filename);
     const builtInThemePath = path.join(builtInThemesDir, filename);
 
-    // Check user themes first
     if (fs.existsSync(userThemePath)) {
         if (!path.resolve(userThemePath).startsWith(path.resolve(userThemesDir))) {
             throw new Error('Invalid theme path');
@@ -404,7 +463,6 @@ ipcMain.handle('get-theme-content', async (event, filename) => {
         return await fs.promises.readFile(userThemePath, 'utf8');
     }
 
-    // Check built-in themes
     if (fs.existsSync(builtInThemePath)) {
         if (!path.resolve(builtInThemePath).startsWith(path.resolve(builtInThemesDir))) {
             throw new Error('Invalid theme path');
@@ -421,12 +479,12 @@ ipcMain.handle('get-theme-config', async () => {
 
     const defaultThemeNames = {
         'chat_christmas.css': 'Noël',
-        'chat_retro_terminal.css': 'Terminal Retro',
-        'chat_bubble_pop.css': 'Messages',
-        'chat_minimalist.css': 'Minimaliste',
-        'chat_neon_cyberpunk.css': 'Pseudo Cyberpunk',
+        'chat_retro_terminal.css': 'Matrix',
+        'chat_bubble_pop.css': 'meoMessage',
+        'chat_neon_cyberpunk.css': 'Cyberpunk',
         'chat_soso_base.css': 'Soso Défaut',
-        'spotify_soso_base.css': 'Soso Défaut'
+        'spotify_soso_base.css': 'Défaut',
+        'sub_candycane.css': 'Candy Cane'
     };
 
     let userConfig = {};
@@ -437,7 +495,6 @@ ipcMain.handle('get-theme-config', async () => {
         }
     } catch (e) { }
 
-    // Merge defaults with user config (user config takes precedence if they renamed a default theme)
     const finalConfig = { ...defaultThemeNames, ...userConfig };
     return JSON.stringify(finalConfig);
 });
@@ -493,7 +550,6 @@ ipcMain.handle('delete-theme', async (event, widgetType, filename) => {
         if (fs.existsSync(userThemePath)) {
             await fs.promises.unlink(userThemePath);
 
-            // Also remove from config if present
             let config = {};
             try {
                 if (fs.existsSync(configPath)) {
@@ -554,6 +610,9 @@ ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
     if (widgetName === 'spotify' && spotifyServer) {
         return spotifyServer.getUrl(localIp);
     }
+    if (widgetName === 'subgoals' && subgoalsServer) {
+        return subgoalsServer.getUrl(localIp);
+    }
     return chatServer ? chatServer.getUrl(localIp, widgetName) : '';
 });
 
@@ -562,7 +621,8 @@ ipcMain.handle('get-widget-urls', async () => {
     return {
         chat: chatServer ? chatServer.getUrl(localIp, 'chat') : '',
         spotify: spotifyServer ? spotifyServer.getUrl(localIp) : '',
-        emoteWall: chatServer ? chatServer.getUrl(localIp, 'emote-wall') : ''
+        emoteWall: chatServer ? chatServer.getUrl(localIp, 'emote-wall') : '',
+        subgoals: subgoalsServer ? subgoalsServer.getUrl(localIp) : ''
     };
 });
 
@@ -769,4 +829,20 @@ ipcMain.handle('get-bot-status', () => ({ connected: bot.isConnected, channel: b
 ipcMain.handle('open-external-url', async (event, url) => {
     await shell.openExternal(url);
     return { success: true };
+});
+
+ipcMain.handle('get-sub-count', async () => {
+    if (bot && bot.fetchSubCount) {
+        const count = await bot.fetchSubCount();
+        return { count };
+    }
+    return { count: 0 };
+});
+
+ipcMain.handle('simulate-sub', () => {
+    if (bot && bot.simulateSub) {
+        bot.simulateSub();
+        return { success: true };
+    }
+    return { success: false };
 });

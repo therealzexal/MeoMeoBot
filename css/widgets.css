@@ -92,6 +92,7 @@
     word-break: break-all;
     user-select: text;
     display: inline-block;
+    width: fit-content;
 }
 
 .config-inline-grid {

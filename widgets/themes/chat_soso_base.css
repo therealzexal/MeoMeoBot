@@ -18,6 +18,7 @@ body {
     border-radius: 14px;
     animation: fadeIn 0.4s ease-out;
     margin-bottom: 13px;
+    padding: 10px;
 }
 
 .msg-header {

@@ -35,7 +35,8 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                     founder: true, partner: true, staff: true, premium: true
                 };
 
-                let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
+
+                let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
                 content = content.replace('const MAX_MESSAGES = 10;', `const MAX_MESSAGES = ${maxMessages};`);
                 content = content.replace('const BADGE_PREFS = {};', `const BADGE_PREFS = ${JSON.stringify(badgePrefs)};`);
 
@@ -73,7 +74,7 @@ function createChatWidgetServer(bot, defaultPort = 8087) {
                 content = content.replace('const SPAWN_INTERVAL = 100;', `const SPAWN_INTERVAL = ${spawnInterval};`);
                 content = content.replace('const MIN_SIZE = 32;', `const MIN_SIZE = ${minSize};`);
                 content = content.replace('const MAX_SIZE = 96;', `const MAX_SIZE = ${maxSize};`);
-                content = content.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
+                content = content.replace('/* __CUSTOM_CSS__ */', customCSS);
 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(content);

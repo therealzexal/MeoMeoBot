@@ -11,7 +11,6 @@
     --update-color-avail: #ffcc00;
     --update-color-ok: #008744;
 
-    /* Glassmorphism Variables */
     --glass-bg: rgba(24, 24, 27, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
@@ -902,7 +901,6 @@ textarea {
     align-items: center;
 }
 
-/* Utility for single line forms */
 .single-line-form {
     display: flex;
     align-items: flex-end;
@@ -916,7 +914,5 @@ textarea {
 
 .single-line-form .btn {
     height: 36px;
-    /* Match input height */
     margin-bottom: 1px;
-    /* Slight adjustment for alignment */
 }

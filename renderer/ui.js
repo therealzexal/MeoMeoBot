@@ -47,9 +47,9 @@ export function updateUpdaterStatus(status) {
     statusEl.classList.add(status);
 
     const textEl = statusEl.querySelector('.update-text-label');
-    if (status === 'checking') textEl.textContent = 'Recherche de mises à jour...';
+    if (status === 'checking') textEl.textContent = 'Recherche...';
     if (status === 'up-to-date') textEl.textContent = 'À jour';
-    if (status === 'update-available') textEl.textContent = 'Mise à jour disponible';
+    if (status === 'update-available') textEl.textContent = 'MàJ dispo';
     if (status === 'downloading') textEl.textContent = 'Téléchargement...';
     if (status === 'downloaded') textEl.textContent = 'Prêt à installer';
     if (status === 'error') textEl.textContent = 'Erreur maj';

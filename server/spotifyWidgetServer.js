@@ -201,7 +201,7 @@ function createSpotifyWidgetServer(bot, {
                     isPlaying: spotifyConfig.isPlaying === undefined ? false : !!spotifyConfig.isPlaying
                 };
 
-                let content = data.replace('/* CUSTOM_CSS_PLACEHOLDER */', customCSS);
+                let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
                 content = content.replace('const INITIAL_CONFIG = {};', `const INITIAL_CONFIG = ${JSON.stringify(initialConfig)};`);
 
                 res.writeHead(200, { 'Content-Type': 'text/html' });

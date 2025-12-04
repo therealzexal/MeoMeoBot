@@ -24,6 +24,7 @@ async function initializeApp() {
     loadWidgetUrls();
     loadEmoteWallConfig();
     loadBadgePrefs();
+    setupSubgoalsConfig();
 }
 
 async function loadAllData() {
@@ -131,6 +132,8 @@ async function saveConfig() {
     } catch (e) { showNotification('Erreur sauvegarde: ' + e, 'error'); }
 }
 
+
+
 function updateConfigForm(config) {
     if (!config) return;
     document.getElementById('botUsername').value = config.username || '';
@@ -172,6 +175,7 @@ async function loadWidgetUrls() {
         if (document.getElementById('widgetUrlDisplay')) document.getElementById('widgetUrlDisplay').textContent = urls.chat;
         if (document.getElementById('spotifyWidgetUrlDisplay')) document.getElementById('spotifyWidgetUrlDisplay').textContent = urls.spotify;
         if (document.getElementById('emoteWallWidgetUrlDisplay')) document.getElementById('emoteWallWidgetUrlDisplay').textContent = urls.emoteWall;
+        if (document.getElementById('subgoalsWidgetUrlDisplay')) document.getElementById('subgoalsWidgetUrlDisplay').textContent = urls.subgoals;
     } catch (e) { console.error('Erreur URLs widgets', e); }
 }
 
@@ -250,4 +254,68 @@ async function saveEmoteWallConfig() {
         await window.api.invoke('save-widget-config', 'emote-wall', config);
         showNotification('Config Mur d\'Emotes sauvegardée', 'success');
     } catch (e) { showNotification('Erreur sauvegarde Emote Wall: ' + e, 'error'); }
+}
+
+
+let subgoalsSteps = [];
+
+function setupSubgoalsConfig() {
+    const configureBtn = document.getElementById('configureSubgoalsBtn');
+
+    if (configureBtn) {
+        configureBtn.addEventListener('click', async () => {
+            await window.api.invoke('open-subgoals-config');
+        });
+    }
+}
+
+async function loadSubgoalsConfig() {
+    try {
+        const config = await window.api.invoke('get-widget-config', 'subgoals');
+        if (config) {
+            document.getElementById('subgoalsStartCount').value = config.startCount || 0;
+            document.getElementById('subgoalsGoalCount').value = config.goalCount || 100;
+            subgoalsSteps = config.steps || [];
+            renderSubgoalsSteps();
+        }
+    } catch (e) { console.error('Erreur chargement Subgoals config', e); }
+}
+
+function renderSubgoalsSteps() {
+    const container = document.getElementById('subgoalsStepsList');
+    container.innerHTML = '';
+
+    subgoalsSteps.forEach((step, index) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <span><strong>${step.count}</strong> : ${step.label}</span>
+            <button class="btn-link delete-btn" data-index="${index}" title="Supprimer">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events: none;">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.dataset.index, 10);
+            subgoalsSteps.splice(idx, 1);
+            renderSubgoalsSteps();
+        });
+    });
+}
+
+async function saveSubgoalsConfig() {
+    const config = {
+        startCount: parseInt(document.getElementById('subgoalsStartCount').value, 10),
+        goalCount: parseInt(document.getElementById('subgoalsGoalCount').value, 10),
+        steps: subgoalsSteps
+    };
+    try {
+        await window.api.invoke('save-widget-config', 'subgoals', config);
+        showNotification('Config Subgoals sauvegardée', 'success');
+    } catch (e) { showNotification('Erreur sauvegarde Subgoals: ' + e, 'error'); }
 }

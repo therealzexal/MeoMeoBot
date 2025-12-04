@@ -214,30 +214,16 @@ const cssClasses = {
         { class: 'var(--text-primary)', desc: 'Couleur du titre' },
         { class: 'var(--text-secondary)', desc: 'Couleur de l\'artiste' },
         { class: 'var(--text-tertiary)', desc: 'Couleur de l\'album' },
-        { class: 'var(--pill-bg)', desc: 'Fond du badge "En lecture"' },
-        { class: 'var(--pill-text)', desc: 'Texte du badge "En lecture"' }
+        { class: 'var(--pill-bg)', desc: 'Fond du badge "En lecture"' }
     ],
-    'emote-wall': [
-        { class: '.emote', desc: 'Image d\'une emote flottante' }
+    subgoals: [
+        { class: '.progress-container', desc: 'Conteneur principal de la barre' },
+        { class: '.progress-bar', desc: 'La barre de progression elle-même' },
+        { class: '.progress-text', desc: 'Texte indiquant le nombre de subs (ex: 50 / 100 Subs)' },
+        { class: '.step-marker', desc: 'Ligne verticale marquant une étape' },
+        { class: '.step-label', desc: 'Étiquette textuelle d\'une étape' }
     ]
 };
-
-
-let cssInput, maxMessagesInput, statusBar, nameLabel;
-let currentWidget = 'chat';
-let currentWidgetConfig = {};
-
-function setStatus(msg, type) {
-    if (!statusBar) return;
-    statusBar.textContent = msg;
-    statusBar.className = `css-editor-status ${type}`;
-    setTimeout(() => {
-        if (statusBar) {
-            statusBar.textContent = '';
-            statusBar.className = 'css-editor-status';
-        }
-    }, 3000);
-}
 
 async function loadThemes(widget) {
     try {
@@ -350,7 +336,8 @@ async function loadWidgetConfig(widgetName) {
     if (nameLabel) {
         nameLabel.textContent = currentWidget === 'chat' ? 'du tchat' :
             currentWidget === 'spotify' ? 'de Spotify' :
-                'du mur d\'emotes';
+                currentWidget === 'subgoals' ? 'du Subgoals' :
+                    'du mur d\'emotes';
     }
 
     const maxRow = document.getElementById('maxMessagesRow');
@@ -583,11 +570,44 @@ function renderPreview() {
         html = getSpotifyPreviewHtml(css, currentWidgetConfig);
     } else if (currentWidget === 'chat') {
         html = getChatPreviewHtml(css, max);
+    } else if (currentWidget === 'subgoals') {
+        html = getSubgoalsPreviewHtml(css);
     } else {
         html = `<!DOCTYPE html><html><head><style>${defaultCss[currentWidget] || ''} ${css}</style></head><body><div style="color:white;padding:20px;">Aperçu non disponible pour ce widget</div></body></html>`;
     }
 
     frame.srcdoc = html;
+}
+
+function getSubgoalsPreviewHtml(customCss) {
+    return `<!DOCTYPE html>
+    <html>
+        <head>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+                body { margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: transparent; }
+                #widget-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+                .progress-container { position: relative; width: 100%; max-width: 800px; height: 40px; background: rgba(0, 0, 0, 0.5); border-radius: 20px; overflow: visible; border: 2px solid rgba(255, 255, 255, 0.2); }
+                .progress-bar { height: 100%; background: linear-gradient(90deg, #ff00cc, #333399); width: 50%; border-radius: 18px; position: relative; box-shadow: 0 0 10px rgba(255, 0, 204, 0.5); }
+                .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 800; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); z-index: 10; white-space: nowrap; }
+                .step-marker { position: absolute; top: -10px; bottom: -10px; width: 2px; background: rgba(255, 255, 255, 0.8); z-index: 5; display: flex; flex-direction: column; align-items: center; }
+                .step-label { position: absolute; top: -35px; background: rgba(0, 0, 0, 0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transform: translateX(-50%); border: 1px solid rgba(255, 255, 255, 0.3); }
+                .step-label::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); border-width: 5px 5px 0; border-style: solid; border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent; }
+                ${customCss}
+            </style>
+        </head>
+        <body>
+            <div id="widget-container">
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                    <div class="progress-text">50 / 100 Subs</div>
+                    <div class="step-marker" style="left: 75%;">
+                        <div class="step-label">Step 1 (75)</div>
+                    </div>
+                </div>
+            </div>
+        </body>
+    </html>`;
 }
 
 function updateCssGuide() {
@@ -777,25 +797,25 @@ function init() {
             } catch (e) { alert('Erreur sauvegarde: ' + e); }
         });
     }
-
-    const cssGuideBtn = document.getElementById('cssGuideBtn');
-    if (cssGuideBtn) cssGuideBtn.addEventListener('click', () => toggleCssGuide(undefined, true));
-
-    const closeCssGuideBtn = document.getElementById('closeCssGuideBtn');
-    if (closeCssGuideBtn) closeCssGuideBtn.addEventListener('click', () => toggleCssGuide(false, true));
-
-    // Initial load
-    loadWidgetConfig().then(() => {
-        renderPreview();
-        updateCssGuide();
-
-        const savedState = localStorage.getItem('cssGuideVisible');
-        if (savedState === 'true') {
-            const needsResize = window.outerWidth < 1100;
-            toggleCssGuide(true, needsResize);
-        }
-    });
 }
+
+const cssGuideBtn = document.getElementById('cssGuideBtn');
+if (cssGuideBtn) cssGuideBtn.addEventListener('click', () => toggleCssGuide(undefined, true));
+
+const closeCssGuideBtn = document.getElementById('closeCssGuideBtn');
+if (closeCssGuideBtn) closeCssGuideBtn.addEventListener('click', () => toggleCssGuide(false, true));
+
+
+loadWidgetConfig().then(() => {
+    renderPreview();
+    updateCssGuide();
+
+    const savedState = localStorage.getItem('cssGuideVisible');
+    if (savedState === 'true') {
+        const needsResize = window.outerWidth < 1100;
+        toggleCssGuide(true, needsResize);
+    }
+});
 
 window.api.on('load-css-editor', ({ widgetName }) => {
     if (cssInput) {

@@ -15,6 +15,12 @@ class TwitchBot {
         this.clientId = null;
         this.clipCooldown = (this.getConfig().clipCooldown || 30) * 1000;
         this.onCooldown = false;
+        this.clientId = null;
+        this.clipCooldown = (this.getConfig().clipCooldown || 30) * 1000;
+        this.onCooldown = false;
+
+        this.currentSubCount = 0;
+        this.subPollInterval = null;
     }
 
     setClipCooldown(seconds) {
@@ -133,10 +139,72 @@ class TwitchBot {
         });
         this.client.on('disconnected', () => {
             this.isConnected = false;
+            if (this.subPollInterval) clearInterval(this.subPollInterval);
             if (this.onDisconnected) this.onDisconnected();
         });
 
-        this.client.connect().catch(console.error);
+        this.client.on('subscription', () => this.incrementSubCount());
+        this.client.on('resub', () => this.incrementSubCount());
+        this.client.on('subgift', () => this.incrementSubCount());
+        this.client.on('anonsubgift', () => this.incrementSubCount());
+        this.client.on('submysterygift', (channel, username, numbOfSubs) => this.incrementSubCount(numbOfSubs));
+
+        this.client.connect().then(() => {
+            this.startSubPolling();
+        }).catch(console.error);
+    }
+
+    incrementSubCount(amount = 1) {
+        this.currentSubCount += amount;
+        if (this.onSubCountUpdate) this.onSubCountUpdate(this.currentSubCount);
+    }
+
+    startSubPolling() {
+        this.fetchSubCount();
+        if (this.subPollInterval) clearInterval(this.subPollInterval);
+        this.subPollInterval = setInterval(() => this.fetchSubCount(), 60000);
+    }
+
+    async fetchSubCount() {
+        if (!this.userId || !this.clientId) return 0;
+
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${this.userId}&first=1`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (response.status === 401) {
+                console.warn('[SUBGOALS] Token unauthorized for subs. Check scopes.');
+                return this.currentSubCount;
+            }
+
+            if (!response.ok) {
+                return this.currentSubCount;
+            }
+
+            const data = await response.json();
+            if (data.total !== undefined) {
+                this.currentSubCount = data.total;
+                if (this.onSubCountUpdate) this.onSubCountUpdate(this.currentSubCount);
+                return this.currentSubCount;
+            }
+        } catch (error) {
+            console.error('[SUBGOALS] Error fetching sub count:', error);
+        }
+    }
+
+    simulateSub() {
+        this.incrementSubCount();
+    }
+
+    getSubCount() {
+        return this.currentSubCount;
     }
 
     disconnect() {
