@@ -688,10 +688,13 @@ function init() {
                     const content = await window.api.invoke('get-theme-content', filename);
                     if (cssInput) cssInput.value = content;
 
+                    // Auto-save to apply changes immediately
+                    await saveWidgetConfig();
+
                     if (result.success) {
-                        setStatus('Thème réinitialisé (défaut restauré)', 'ok');
+                        setStatus('Thème réinitialisé et appliqué !', 'ok');
                     } else {
-                        setStatus('Thème rechargé', 'ok');
+                        setStatus('Thème rechargé et appliqué !', 'ok');
                     }
                 } catch (err) {
                     setStatus('Erreur réinitialisation: ' + err, 'err');

@@ -28,29 +28,26 @@
         }
 
         #bg-video {
-            display: none;
+            display: block !important;
             position: absolute;
             top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             z-index: -1;
         }
     </style>
-    <style id="custom-css">
-        /* __CUSTOM_CSS__ */
-    </style>
 </head>
 
 <body>
     <video id="bg-video" loop autoplay muted playsinline>
-        <source src="http://127.0.0.1:8087/widget/assets/pranax.webm" type="video/webm">
+        <source src="assets/pranax.webm" type="video/webm">
     </video>
     <div id="chat-container"></div>
+    <div id="custom-css" style="display: none;"></div>
     <script>
-        const CLIENT_ID = '__TWITCH_CLIENT_ID__';
-        const APP_TOKEN = '__TWITCH_APP_TOKEN__';
+        const CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
+        const APP_TOKEN = '7543p26s2j544337w8j6918557908y';
 
         const BADGE_PREFS = {};
         const globalBadgeMap = {};
@@ -58,8 +55,7 @@
         let globalBadgesLoaded = false;
         let globalBadgesPending = null;
 
-        let ws,
-            lastUser = null,
+        let ws, lastUser = null,
             lastGroup = null;
         let groupCounter = 0;
         const messageQueue = [];
@@ -88,17 +84,20 @@
         function normalizeEmotes(emotes) {
             if (!emotes || typeof emotes !== 'object') return [];
             const parts = [];
-
             Object.keys(emotes).forEach(id => {
                 emotes[id].forEach(r => {
                     if (typeof r === 'string') {
                         const [s, e] = r.split('-').map(n => parseInt(n, 10));
                         if (!Number.isNaN(s) && !Number.isNaN(e)) parts.push({
-                            id, start: s, end: e
+                            id,
+                            start: s,
+                            end: e
                         });
                     } else if (r && typeof r === 'object' && Number.isInteger(r.start) && Number.isInteger(r.end)) {
                         parts.push({
-                            id, start: r.start, end: r.end
+                            id,
+                            start: r.start,
+                            end: r.end
                         });
                     }
                 });
@@ -110,14 +109,11 @@
         function renderTextWithEmotes(text, emotesMap) {
             const frag = document.createDocumentFragment();
             const parts = normalizeEmotes(emotesMap);
-
             if (!parts.length) {
                 frag.appendChild(document.createTextNode(text));
                 return frag;
             }
-
             let cursor = 0;
-
             for (const part of parts) {
                 if (cursor < part.start) frag.appendChild(document.createTextNode(text.slice(cursor, part.start)));
                 const emoteImg = document.createElement('img');
@@ -127,21 +123,18 @@
                 frag.appendChild(emoteImg);
                 cursor = part.end + 1;
             }
-
             if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
             return frag;
         }
 
         async function fetchHelixBadges(url) {
-            if (!CLIENT_ID || !APP_TOKEN) throw new Error('Client ID ou App Access Token manquant pour l’appel API.');
-
+            if (!CLIENT_ID || !APP_TOKEN) throw new Error('Client ID ou App Access Token manquant');
             const resp = await fetch(url, {
                 headers: {
                     'Client-ID': CLIENT_ID,
                     'Authorization': `Bearer ${APP_TOKEN}`
                 }
             });
-
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             return resp.json();
         }
@@ -152,7 +145,6 @@
                 await globalBadgesPending;
                 return;
             }
-
             globalBadgesPending = fetchHelixBadges('https://api.twitch.tv/helix/chat/badges/global').then(data => {
                 const sets = (data && data.data) || [];
                 sets.forEach(set => {
@@ -174,7 +166,6 @@
         async function ensureChannelBadges(roomId) {
             if (!roomId) return;
             if (channelBadgeCache[roomId]) return;
-
             if (!channelBadgePromises[roomId]) {
                 channelBadgePromises[roomId] = fetchHelixBadges(`https://api.twitch.tv/helix/chat/badges?broadcaster_id=${roomId}`)
                     .then(data => {
@@ -199,23 +190,25 @@
             if (!badgesRaw) return [];
             return badgesRaw.split(',').map(entry => entry.trim()).filter(Boolean).map(entry => {
                 const [set, version] = entry.split('/');
-                return set && version ? { set, version } : null;
+                return set && version ? {
+                    set,
+                    version
+                } : null;
             }).filter(Boolean).filter(b => ALLOWED_BADGES.includes((b.set || '').toLowerCase()));
         }
 
         function parseBadgesObj(badgesObj) {
             if (!badgesObj || typeof badgesObj !== 'object') return [];
             return Object.entries(badgesObj).map(([set, version]) => ({
-                set, version
+                set,
+                version
             })).filter(b => ALLOWED_BADGES.includes((b.set || '').toLowerCase()));
         }
 
         function createBadgeNode(entry, roomId) {
             const set = (entry.set || '').toLowerCase();
             const version = entry.version || '1';
-
             if (BADGE_PREFS && BADGE_PREFS[set] === false) return null;
-
             if (set === 'subscriber') {
                 const map = channelBadgeCache[roomId];
                 const url = map && map[`${set}/${version}`];
@@ -229,7 +222,6 @@
                 }
                 return null;
             }
-
             const versions = globalBadgeMap[set];
             const url = versions && versions[version];
             if (url) {
@@ -245,24 +237,21 @@
 
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8087');
-
             ws.onopen = () => {
                 console.log('Connected to Chat WebSocket');
-                ws.send(JSON.stringify({ type: 'get-config' }));
+                ws.send(JSON.stringify({
+                    type: 'get-config'
+                }));
             };
-
             ws.onmessage = async (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
                         const cfg = data.config || data;
-
                         const bgVideo = document.getElementById('bg-video');
                         if (bgVideo) bgVideo.style.display = '';
-
                         document.getElementById('custom-css').textContent = cfg.customCSS || '';
                         requestAnimationFrame(() => updateSnow());
-
                         if (cfg.maxMessages) {
                             MAX_MESSAGES = parseInt(cfg.maxMessages, 10) || 10;
                         }
@@ -279,50 +268,47 @@
                     console.error('WS Error:', e);
                 }
             };
-
             ws.onclose = () => setTimeout(connectWebSocket, 3000);
             ws.onerror = (err) => console.error('WS Error:', err);
         }
 
         async function addMessage(msg) {
-            const { username, displayName, color, badgesRaw, badges: badgesObj, text, emotes, roomId } = msg;
-
+            const {
+                username,
+                displayName,
+                color,
+                badgesRaw,
+                badges: badgesObj,
+                text,
+                emotes,
+                roomId
+            } = msg;
             ensureGlobalBadges();
             if (roomId) ensureChannelBadges(roomId);
-
             const colors = computeColors(color);
             const solid = colors.solid;
             const soft = colors.soft;
-
             const sameUser = (lastUser === username) && lastGroup;
             let group = lastGroup;
             const container = document.getElementById('chat-container');
-
             if (!sameUser) {
                 group = document.createElement('div');
                 const isEven = (groupCounter % 2) === 0;
                 const variant = (groupCounter % 3) + 1;
-
                 group.className = `msg-group user-${sanitizeClass(username)} group-${isEven ? 'even' : 'odd'} variant-${variant}`;
                 groupCounter++;
-
                 group.style.setProperty('--user-color', solid);
                 group.style.setProperty('--user-color-soft', soft);
-
                 const header = document.createElement('div');
                 header.className = 'msg-header';
-
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'msg-username';
                 nameSpan.textContent = displayName || username;
                 nameSpan.style.color = solid;
-
                 const badgesWrap = document.createElement('span');
                 badgesWrap.className = 'msg-badges';
                 const seen = new Set();
-
                 const badges = parseBadgesRaw(badgesRaw).concat(parseBadgesObj(badgesObj || {}));
-
                 badges.forEach(entry => {
                     const key = `${entry.set}/${entry.version}`;
                     if (seen.has(key)) return;
@@ -330,29 +316,22 @@
                     if (node) badgesWrap.appendChild(node);
                     seen.add(key);
                 });
-
                 header.appendChild(nameSpan);
                 if (badgesWrap.children.length > 0) header.appendChild(badgesWrap);
-
                 const messagesDiv = document.createElement('div');
                 messagesDiv.className = 'msg-messages';
-
                 group.appendChild(header);
                 group.appendChild(messagesDiv);
                 container.appendChild(group);
-
                 lastGroup = group;
                 lastUser = username;
             }
-
             const messagesDiv = group.querySelector('.msg-messages');
             const line = document.createElement('div');
             line.className = 'msg-line';
             line.appendChild(renderTextWithEmotes(text, emotes));
             messagesDiv.appendChild(line);
-
             messageQueue.push(line);
-
             while (messageQueue.length > MAX_MESSAGES) {
                 const old = messageQueue.shift();
                 const parent = old.parentElement;
@@ -374,7 +353,6 @@
             const enable = getComputedStyle(document.body).getPropertyValue('--enable-snow').trim();
             let containerBg = document.getElementById('snow-container-bg');
             let containerFg = document.getElementById('snow-container-fg');
-
             if (enable === '1') {
                 if (!containerBg) {
                     containerBg = document.createElement('div');
@@ -386,14 +364,12 @@
                     containerBg.style.height = '100%';
                     containerBg.style.pointerEvents = 'none';
                     containerBg.style.zIndex = '0';
-
                     for (let i = 0; i < 35; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow';
                         containerBg.appendChild(d);
                     }
                     document.body.prepend(containerBg);
-
                     containerFg = document.createElement('div');
                     containerFg.id = 'snow-container-fg';
                     containerFg.style.position = 'absolute';
@@ -403,7 +379,6 @@
                     containerFg.style.height = '100%';
                     containerFg.style.pointerEvents = 'none';
                     containerFg.style.zIndex = '9999';
-
                     for (let i = 0; i < 15; i++) {
                         const d = document.createElement('div');
                         d.className = 'snow-fg';
@@ -416,7 +391,6 @@
                 if (containerFg) containerFg.remove();
             }
         }
-
         connectWebSocket();
     </script>
 </body>
