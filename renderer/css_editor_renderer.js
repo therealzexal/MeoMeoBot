@@ -652,17 +652,49 @@ function init() {
 
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) {
+        let resetTimeout;
+
         resetBtn.addEventListener('click', async () => {
+            if (!resetBtn.classList.contains('confirming')) {
+                // First click: Request confirmation
+                resetBtn.classList.add('confirming');
+                resetBtn.textContent = 'Sûr ?';
+                resetBtn.classList.add('btn-danger'); // Optional: make it red
+
+                // Reset to normal after 3 seconds if not clicked
+                resetTimeout = setTimeout(() => {
+                    resetBtn.classList.remove('confirming');
+                    resetBtn.textContent = 'Remettre par défaut';
+                    resetBtn.classList.remove('btn-danger');
+                }, 3000);
+                return;
+            }
+
+            // Second click: Execute
+            clearTimeout(resetTimeout);
+            resetBtn.classList.remove('confirming');
+            resetBtn.textContent = 'Remettre par défaut';
+            resetBtn.classList.remove('btn-danger');
+
             const themeSelector = document.getElementById('themeSelector');
             const filename = themeSelector ? themeSelector.value : '';
 
             if (filename) {
                 try {
+                    // Attempt to delete local override
+                    const result = await window.api.invoke('delete-theme', currentWidget, filename);
+
+                    // Reload content
                     const content = await window.api.invoke('get-theme-content', filename);
                     if (cssInput) cssInput.value = content;
-                    setStatus('Thème rechargé', 'ok');
+
+                    if (result.success) {
+                        setStatus('Thème réinitialisé (défaut restauré)', 'ok');
+                    } else {
+                        setStatus('Thème rechargé', 'ok');
+                    }
                 } catch (err) {
-                    setStatus('Erreur rechargement: ' + err, 'err');
+                    setStatus('Erreur réinitialisation: ' + err, 'err');
                 }
             } else {
                 if (cssInput) cssInput.value = '';
