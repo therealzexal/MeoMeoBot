@@ -178,6 +178,7 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
+                        if (data.widget && data.widget !== 'subgoals') return;
                         if (data.config) {
                             currentConfig = { ...currentConfig, ...data.config };
                             render();
@@ -264,7 +265,7 @@
                     if (!isNaN(stepRelative)) {
                         let stepPercentage = 0;
                         if (totalRange > 0) {
-                            stepPercentage = (stepRelative / totalRange) * 100;
+                            stepPercentage = ((stepRelative - startCount) / totalRange) * 100;
                         }
 
 
@@ -281,7 +282,7 @@
 
 
                         let isNextGoal = false;
-                        if (!nextGoalFound && stepRelative > progress) {
+                        if (!nextGoalFound && stepRelative > currentCount) {
                             isNextGoal = true;
                             nextGoalFound = true;
                         }

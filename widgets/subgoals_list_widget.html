@@ -86,8 +86,19 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
+                        if (data.widget && data.widget !== 'subgoals-list') return;
+
                         if (data.config) {
                             currentConfig = { ...currentConfig, ...data.config };
+                            if (data.config.customCSS) {
+                                let styleInfo = document.getElementById('custom-css');
+                                if (!styleInfo) {
+                                    styleInfo = document.createElement('style');
+                                    styleInfo.id = 'custom-css';
+                                    document.head.appendChild(styleInfo);
+                                }
+                                styleInfo.textContent = data.config.customCSS;
+                            }
                             render();
                         }
                     } else if (data.type === 'reload') {

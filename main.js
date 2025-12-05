@@ -243,7 +243,7 @@ app.whenReady().then(async () => {
         if (spotifyServer) spotifyServer.broadcast(reloadMsg);
         if (subgoalsServer) subgoalsServer.broadcast(reloadMsg);
         console.log('[APP] Sent reload signal to all widgets');
-    }, 3000);
+    }, 5000);
 
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
@@ -446,7 +446,9 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     if (widgetName === 'spotify' && spotifyServer) {
         spotifyServer.broadcastConfig(config);
     } else if (widgetName === 'subgoals' && subgoalsServer) {
-        subgoalsServer.broadcastConfig(config);
+        subgoalsServer.broadcastConfig(config, 'subgoals');
+    } else if (widgetName === 'subgoals-list' && subgoalsServer) {
+        subgoalsServer.broadcastConfig(config, 'subgoals-list');
     } else if (widgetName === 'chat' && chatServer) {
         chatServer.broadcastConfig(config);
     } else if (chatServer) {

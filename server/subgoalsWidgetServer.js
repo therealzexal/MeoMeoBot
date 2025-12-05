@@ -43,7 +43,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
                     return res.end('Error loading widget file');
                 }
 
-                const config = bot.getWidgetConfig('subgoals') || {};
+                const config = bot.getWidgetConfig('subgoals-list') || {};
                 const customCSS = config.customCSS || '';
 
                 let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
@@ -70,15 +70,22 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
             wss = new WebSocket.Server({ server });
 
             wss.on('connection', (ws) => {
-                const config = bot.getWidgetConfig('subgoals');
-                if (config) {
+                const subgoalsConfig = bot.getWidgetConfig('subgoals');
+                if (subgoalsConfig) {
                     ws.send(JSON.stringify({
-                        type: 'config',
-                        config: config
+                        type: 'config-update',
+                        widget: 'subgoals',
+                        config: subgoalsConfig
                     }));
                 }
-
-
+                const subgoalsListConfig = bot.getWidgetConfig('subgoals-list');
+                if (subgoalsListConfig) {
+                    ws.send(JSON.stringify({
+                        type: 'config-update',
+                        widget: 'subgoals-list',
+                        config: subgoalsListConfig
+                    }));
+                }
             });
         }).on('error', (err) => {
             console.error(`[SUBGOALS SERVER ERROR] ${err.message}`);
@@ -94,9 +101,9 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
         }
     };
 
-    const broadcastConfig = (config) => {
+    const broadcastConfig = (config, widgetType = 'subgoals') => {
         if (wss && wss.clients) {
-            const payload = JSON.stringify({ type: 'config-update', config });
+            const payload = JSON.stringify({ type: 'config-update', widget: widgetType, config });
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) client.send(payload);
             });
