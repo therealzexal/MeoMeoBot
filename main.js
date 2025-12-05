@@ -44,7 +44,9 @@ let bonjourInstance = null;
 async function reloadThemeContent() {
     const widgets = ['chat', 'spotify', 'subgoals', 'emote-wall'];
     const userThemesDir = path.join(app.getPath('userData'), 'themes');
-    const builtInThemesDir = path.join(__dirname, 'widgets/themes');
+    const builtInThemesDir = app.isPackaged
+        ? path.join(app.getAppPath(), 'widgets/themes')
+        : path.join(__dirname, 'widgets/themes');
 
     for (const widget of widgets) {
         const config = bot.getWidgetConfig(widget);
