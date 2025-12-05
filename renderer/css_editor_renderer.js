@@ -181,6 +181,52 @@ const defaultCss = {
     position: absolute;
     will-change: transform, opacity;
     pointer-events: none;
+}`,
+    'subgoals-list': `body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: transparent;
+    color: white;
+}
+
+#widget-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.subgoals-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.subgoal-item {
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.subgoal-count {
+    font-weight: 800;
+    color: #ff00cc;
+}
+
+.subgoal-label {
+    color: white;
 }`
 };
 
@@ -222,6 +268,12 @@ const cssClasses = {
         { class: '.progress-text', desc: 'Texte indiquant le nombre de subs (ex: 50 / 100 Subs)' },
         { class: '.step-marker', desc: 'Ligne verticale marquant une étape' },
         { class: '.step-label', desc: 'Étiquette textuelle d\'une étape' }
+    ],
+    'subgoals-list': [
+        { class: '.subgoals-list', desc: 'Liste des objectifs (<ul>)' },
+        { class: '.subgoal-item', desc: 'Élément de la liste (<li>)' },
+        { class: '.subgoal-count', desc: 'Le nombre de subs requis (ex: +10)' },
+        { class: '.subgoal-label', desc: 'Le titre de l\'objectif' }
     ]
 };
 
@@ -337,7 +389,8 @@ async function loadWidgetConfig(widgetName) {
         nameLabel.textContent = currentWidget === 'chat' ? 'du tchat' :
             currentWidget === 'spotify' ? 'de Spotify' :
                 currentWidget === 'subgoals' ? 'du Subgoals' :
-                    'du mur d\'emotes';
+                    currentWidget === 'subgoals-list' ? 'de la Liste Subgoals' :
+                        'du mur d\'emotes';
     }
 
     const maxRow = document.getElementById('maxMessagesRow');
@@ -572,11 +625,44 @@ function renderPreview() {
         html = getChatPreviewHtml(css, max);
     } else if (currentWidget === 'subgoals') {
         html = getSubgoalsPreviewHtml(css);
+    } else if (currentWidget === 'subgoals-list') {
+        html = getSubgoalsListPreviewHtml(css);
     } else {
         html = `<!DOCTYPE html><html><head><style>${defaultCss[currentWidget] || ''} ${css}</style></head><body><div style="color:white;padding:20px;">Aperçu non disponible pour ce widget</div></body></html>`;
     }
 
     frame.srcdoc = html;
+}
+
+function getSubgoalsListPreviewHtml(customCss) {
+    return `<!DOCTYPE html>
+    <html>
+        <head>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+                ${defaultCss['subgoals-list']}
+                ${customCss}
+            </style>
+        </head>
+        <body>
+            <div id="widget-container">
+                <ul class="subgoals-list">
+                    <li class="subgoal-item">
+                        <span class="subgoal-count">+10</span>
+                        <span class="subgoal-label"> : Karaoké</span>
+                    </li>
+                    <li class="subgoal-item">
+                        <span class="subgoal-count">+25</span>
+                        <span class="subgoal-label"> : Cosplay</span>
+                    </li>
+                    <li class="subgoal-item">
+                        <span class="subgoal-count">+50</span>
+                        <span class="subgoal-label"> : Horror Game</span>
+                    </li>
+                </ul>
+            </div>
+        </body>
+    </html>`;
 }
 
 function getSubgoalsPreviewHtml(customCss) {
