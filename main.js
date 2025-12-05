@@ -451,8 +451,21 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
     return { success: true };
 });
 
-ipcMain.handle('reset-widget-config', (event, widgetName) => {
+ipcMain.handle('reset-widget-config', async (event, widgetName) => {
     const config = bot.getWidgetConfig(widgetName) || {};
+    const userThemesDir = path.join(app.getPath('userData'), 'themes');
+
+    if (config.currentTheme) {
+        const themePath = path.join(userThemesDir, config.currentTheme);
+        try {
+            if (fs.existsSync(themePath)) {
+                await fs.promises.unlink(themePath);
+                console.log(`[RESET] Deleted stale theme file: ${themePath}`);
+            }
+        } catch (e) {
+            console.error(`[RESET] Error deleting theme file: ${e.message}`);
+        }
+    }
 
     delete config.customCSS;
     delete config.currentTheme;
