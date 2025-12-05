@@ -743,10 +743,14 @@ ipcMain.handle('discover-devices', async () => {
     const browser = bonjourInstance.find({ type: 'googlecast' });
 
     browser.on('up', (service) => {
-        if (service.name && !devices.some(d => d.host === service.referer.address)) {
+        console.log('[CAST] Service found:', JSON.stringify(service));
+        const host = service.referer?.address || (service.addresses && service.addresses[0]) || service.host;
+
+        if (service.name && host && !devices.some(d => d.host === host)) {
+            console.log('[CAST] Adding device:', service.name, host);
             devices.push({
                 name: service.name,
-                host: service.referer.address,
+                host: host,
                 port: service.port
             });
             mainWindow.webContents.send('cast-devices-found', devices);
