@@ -28,7 +28,7 @@
         }
 
         #bg-video {
-            display: block !important;
+            display: none;
             position: absolute;
             top: 0;
             width: 100%;
@@ -260,6 +260,8 @@
                         }
                     } else if (data.type === 'chat') {
                         await addMessage(data);
+                    } else if (data.type === 'reload') {
+                        window.location.reload();
                     } else if (data.type === 'clear-chat') {
                         const container = document.getElementById('chat-container');
                         if (container) container.innerHTML = '';

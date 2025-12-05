@@ -219,7 +219,11 @@ ipcMain.handle('resize-css-editor', (event, widthDelta) => {
 
 app.whenReady().then(async () => {
     bot = new TwitchBot();
-    await reloadThemeContent();
+    try {
+        await reloadThemeContent();
+    } catch (e) {
+        console.error('Failed to reload theme content:', e);
+    }
     createWindow();
     startMediaServer();
 
@@ -239,7 +243,7 @@ app.whenReady().then(async () => {
         if (spotifyServer) spotifyServer.broadcast(reloadMsg);
         if (subgoalsServer) subgoalsServer.broadcast(reloadMsg);
         console.log('[APP] Sent reload signal to all widgets');
-    }, 10000);
+    }, 3000);
 
     mainWindow.webContents.on('did-finish-load', () => {
         if (app.isPackaged) {
