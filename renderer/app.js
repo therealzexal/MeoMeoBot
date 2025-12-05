@@ -116,7 +116,12 @@ function setupEventListeners() {
     });
     document.getElementById('update-confirm-icon').addEventListener('click', (e) => {
         e.stopPropagation();
-        window.api.send('update-action', 'install');
+        const updateStatus = document.getElementById('updateStatus');
+        if (updateStatus.classList.contains('update-available')) {
+            window.api.send('start-download');
+        } else if (updateStatus.classList.contains('downloaded')) {
+            window.api.send('quit-and-install');
+        }
     });
     document.getElementById('update-deny-icon').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -175,7 +180,7 @@ function updateConfigForm(config) {
     document.getElementById('spotifyClientSecret').value = config.spotifyClientSecret || '';
 
     document.getElementById('giveawayCommand').value = config.giveawayCommand || '!giveaway';
-    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage !== undefined ? config.giveawayStartMessage : 'Le giveaway commence ! Tapez !giveaway pour participer.';
+    document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage !== undefined ? config.giveawayStartMessage : 'Le giveaway commence ! Tape !giveaway pour participer.';
     document.getElementById('giveawayStopMessage').value = config.giveawayStopMessage !== undefined ? config.giveawayStopMessage : 'Le giveaway est terminé !';
     document.getElementById('giveawayWinMessage').value = config.giveawayWinMessage !== undefined ? config.giveawayWinMessage : 'Félicitations {winner} !';
 
@@ -220,7 +225,7 @@ async function loadBadgePrefs() {
     try {
         const prefs = await window.api.invoke('get-badge-prefs');
         renderBadgePrefs(prefs);
-    } catch (e) { console.error('Erreur chargement badges', e); }
+    } catch (e) { console.error('Erreur de chargement badges', e); }
 }
 
 function renderBadgePrefs(prefs) {
@@ -271,7 +276,7 @@ async function loadEmoteWallConfig() {
             if (document.getElementById('emoteWallSpawnInterval')) document.getElementById('emoteWallSpawnInterval').value = config.spawnInterval || 100;
             if (document.getElementById('emoteWallDuration')) document.getElementById('emoteWallDuration').value = config.animationDuration || 5000;
         }
-    } catch (e) { console.error('Erreur chargement Emote Wall config', e); }
+    } catch (e) { console.error('Erreur chargement de la config Emote Wall', e); }
 }
 
 async function saveEmoteWallConfig() {
@@ -284,7 +289,7 @@ async function saveEmoteWallConfig() {
     try {
         await window.api.invoke('save-widget-config', 'emote-wall', config);
         showNotification('Config Mur d\'Emotes sauvegardée', 'success');
-    } catch (e) { showNotification('Erreur sauvegarde Emote Wall: ' + e, 'error'); }
+    } catch (e) { showNotification('Erreur de la sauvegarde Emote Wall: ' + e, 'error'); }
 }
 
 
@@ -309,7 +314,7 @@ async function loadSubgoalsConfig() {
             subgoalsSteps = config.steps || [];
             renderSubgoalsSteps();
         }
-    } catch (e) { console.error('Erreur chargement Subgoals config', e); }
+    } catch (e) { console.error('Erreur du chargement de la config Subgoals', e); }
 }
 
 function renderSubgoalsSteps() {

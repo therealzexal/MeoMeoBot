@@ -186,27 +186,27 @@ const defaultCss = {
 
 const cssClasses = {
     chat: [
-        { class: '.msg-group', desc: 'Conteneur principal d\'un groupe de messages d\'un utilisateur' },
+        { class: '.msg-group', desc: 'Conteneur principal d\'un groupe de messages' },
         { class: '.msg-header', desc: 'En-tête contenant le nom et les badges' },
-        { class: '.msg-username', desc: 'Nom de l\'utilisateur' },
+        { class: '.msg-username', desc: 'Pseudo' },
         { class: '.msg-badges', desc: 'Conteneur des badges' },
-        { class: '.badge-img', desc: 'Image d\'un badge' },
+        { class: '.badge-img', desc: 'Badge' },
         { class: '.msg-messages', desc: 'Conteneur des lignes de message' },
-        { class: '.msg-line', desc: 'Une ligne de message individuelle' },
+        { class: '.msg-line', desc: 'Ligne de message' },
         { class: '.user-<username>', desc: 'Classe dynamique pour cibler un utilisateur spécifique (ex: .user-alice)' },
-        { class: 'var(--user-color)', desc: 'Couleur du pseudo de l\'utilisateur' },
+        { class: 'var(--user-color)', desc: 'Couleur du pseudo' },
         { class: 'var(--user-color-soft)', desc: 'Couleur du pseudo avec transparence (0.15)' },
-        { class: 'var(--text-primary)', desc: 'Couleur du texte des messages' },
+        { class: 'var(--text-primary)', desc: 'Couleur du texte' },
         { class: 'var(--text-shadow)', desc: 'Ombre portée du texte' }
     ],
     spotify: [
         { class: '#spotify-wrapper', desc: 'Conteneur principal centré' },
         { class: '.spotify-card', desc: 'Carte contenant la pochette et les infos' },
-        { class: '.spotify-cover', desc: 'Image de la pochette d\'album' },
+        { class: '.spotify-cover', desc: 'Pochette' },
         { class: '.spotify-infos', desc: 'Conteneur des informations textuelles' },
         { class: '.spotify-title', desc: 'Titre' },
-        { class: '.spotify-artist', desc: 'Nom de l\'artiste' },
-        { class: '.spotify-album', desc: 'Nom de l\'album' },
+        { class: '.spotify-artist', desc: 'Artiste' },
+        { class: '.spotify-album', desc: 'Album' },
         { class: '.pill', desc: 'Badge "En lecture"' },
         { class: 'var(--spotify-bg)', desc: 'Couleur de fond de la carte' },
         { class: 'var(--spotify-border)', desc: 'Bordure de la carte' },
@@ -656,12 +656,9 @@ function init() {
 
         resetBtn.addEventListener('click', async () => {
             if (!resetBtn.classList.contains('confirming')) {
-                // First click: Request confirmation
                 resetBtn.classList.add('confirming');
                 resetBtn.textContent = 'Sûr ?';
-                resetBtn.classList.add('btn-danger'); // Optional: make it red
-
-                // Reset to normal after 3 seconds if not clicked
+                resetBtn.classList.add('btn-danger');
                 resetTimeout = setTimeout(() => {
                     resetBtn.classList.remove('confirming');
                     resetBtn.textContent = 'Remettre par défaut';
@@ -670,7 +667,6 @@ function init() {
                 return;
             }
 
-            // Second click: Execute
             clearTimeout(resetTimeout);
             resetBtn.classList.remove('confirming');
             resetBtn.textContent = 'Remettre par défaut';
@@ -681,14 +677,11 @@ function init() {
 
             if (filename) {
                 try {
-                    // Attempt to delete local override
                     const result = await window.api.invoke('delete-theme', currentWidget, filename);
 
-                    // Reload content
                     const content = await window.api.invoke('get-theme-content', filename);
                     if (cssInput) cssInput.value = content;
 
-                    // Auto-save to apply changes immediately
                     await saveWidgetConfig();
 
                     if (result.success) {
