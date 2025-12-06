@@ -55,8 +55,6 @@
         .subgoal-label {
             color: white;
         }
-
-        /* __CUSTOM_CSS__ */
     </style>
 </head>
 
@@ -79,7 +77,7 @@
             const ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.log('Connected to Subgoals Widget Server');
+                console.log('Connected to Subgoals List Widget Server');
             };
 
             ws.onmessage = (event) => {
@@ -92,52 +90,68 @@
                                 currentConfig.steps = data.config.steps;
                                 render();
                             }
-                        } catch (e) {
-                            console.error('Error parsing WS message', e);
+                        } else if (data.widget === 'subgoals-list') {
+                            if (data.config) {
+                                if (data.config.customCSS) {
+                                    let styleInfo = document.getElementById('custom-css');
+                                    if (!styleInfo) {
+                                        styleInfo = document.createElement('style');
+                                        styleInfo.id = 'custom-css';
+                                        document.head.appendChild(styleInfo);
+                                    }
+                                    styleInfo.textContent = data.config.customCSS;
+                                }
+                            }
                         }
-                    };
-
-                    ws.onclose = () => {
-                        console.log('Disconnected. Reconnecting in 5s...');
-                        setTimeout(connectWebSocket, 5000);
-                    };
-
-                    ws.onerror = (err) => {
-                        console.error('WebSocket error', err);
-                        ws.close();
-                    };
+                    } else if (data.type === 'reload') {
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    console.error('Error parsing WS message', e);
                 }
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected. Reconnecting in 5s...');
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error', err);
+                ws.close();
+            };
+        }
 
         function render() {
-                    const list = document.getElementById('subgoals-list');
-                    list.innerHTML = '';
+            const list = document.getElementById('subgoals-list');
+            list.innerHTML = '';
 
-                    const { steps } = currentConfig;
+            const { steps } = currentConfig;
 
-                    if (steps && Array.isArray(steps)) {
-                        // Sort by count
-                        const sortedSteps = [...steps].sort((a, b) => parseFloat(a.count) - parseFloat(b.count));
+            if (steps && Array.isArray(steps)) {
+                // Sort by count
+                const sortedSteps = [...steps].sort((a, b) => parseFloat(a.count) - parseFloat(b.count));
 
-                        sortedSteps.forEach(step => {
-                            const li = document.createElement('li');
-                            li.className = 'subgoal-item';
+                sortedSteps.forEach(step => {
+                    const li = document.createElement('li');
+                    li.className = 'subgoal-item';
 
-                            const countSpan = document.createElement('span');
-                            countSpan.className = 'subgoal-count';
-                            countSpan.textContent = `+${step.count}`;
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'subgoal-count';
+                    countSpan.textContent = `+${step.count}`;
 
-                            const labelSpan = document.createElement('span');
-                            labelSpan.className = 'subgoal-label';
-                            labelSpan.textContent = `: ${step.label}`;
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'subgoal-label';
+                    labelSpan.textContent = `: ${step.label}`;
 
-                            li.appendChild(countSpan);
-                            li.appendChild(labelSpan);
-                            list.appendChild(li);
-                        });
-                    }
-                }
+                    li.appendChild(countSpan);
+                    li.appendChild(labelSpan);
+                    list.appendChild(li);
+                });
+            }
+        }
 
-                connectWebSocket();
+        connectWebSocket();
     </script>
 </body>
 
