@@ -176,7 +176,6 @@
                                 let styleInfo = document.getElementById('custom-css');
                                 if (!styleInfo) {
                                     styleInfo = document.querySelector('style:last-of-type');
-                                    // Make sure we don't overwrite the main style
                                     if (!styleInfo || !styleInfo.id || styleInfo.id !== 'custom-css') {
                                         styleInfo = document.createElement('style');
                                         styleInfo.id = 'custom-css';
@@ -239,10 +238,8 @@
             text.textContent = `${currentCount} / ${goalCount} Subs`;
 
             const markersContainer = document.getElementById('markers-container');
-            markersContainer.innerHTML = '';
 
             if (steps && Array.isArray(steps)) {
-                // Determine shift percentage to keep label inside bounds
                 const calculateShift = (percentage) => {
                     if (percentage < 20) return (percentage / 20) * 50;
                     if (percentage > 80) return 50 + ((percentage - 80) / 20) * 50;
@@ -251,15 +248,26 @@
 
                 const getAbsoluteStep = (step) => {
                     let val = parseFloat(step.count);
-                    if (isNaN(val)) return 0;
-                    const strVal = String(step.count).trim();
-                    if (strVal.startsWith('+') || val <= startCount) {
-                        return startCount + val;
-                    }
-                    return val;
+                    if (isNaN(val)) return startCount;
+                    return startCount + val;
                 };
 
                 const sortedSteps = [...steps].sort((a, b) => getAbsoluteStep(a) - getAbsoluteStep(b));
+
+                const viewState = JSON.stringify({
+                    s: sortedSteps.map(s => ({ c: getAbsoluteStep(s), l: s.label })),
+                    sc: startCount,
+                    gc: goalCount,
+                    cc: currentCount,
+                    tr: totalRange
+                });
+
+                if (markersContainer.dataset.viewState === viewState && markersContainer.hasChildNodes()) {
+                    return;
+                }
+                markersContainer.dataset.viewState = viewState;
+                markersContainer.innerHTML = '';
+
                 let nextGoalFound = false;
 
                 sortedSteps.forEach(step => {
@@ -293,7 +301,6 @@
 
                             const shift = calculateShift(stepPercentage);
 
-                            // Apply dynamic shift
                             label.style.transform = `translateX(-${shift}%)`;
                             label.style.setProperty('--tx', `-${shift}%`);
                             label.style.setProperty('--arrow-pos', `${shift}%`); // Shift arrow to follow marker
@@ -302,6 +309,8 @@
                         }
                     }
                 });
+            } else {
+                markersContainer.innerHTML = '';
             }
         }
 
