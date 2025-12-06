@@ -265,7 +265,7 @@
                     if (!isNaN(stepRelative)) {
                         let stepPercentage = 0;
                         if (totalRange > 0) {
-                            stepPercentage = (stepRelative / totalRange) * 100;
+                            stepPercentage = ((stepRelative - startCount) / totalRange) * 100;
                         }
 
 
@@ -282,7 +282,7 @@
 
 
                         let isNextGoal = false;
-                        if (!nextGoalFound && stepRelative > progress) {
+                        if (!nextGoalFound && stepRelative > currentCount) {
                             isNextGoal = true;
                             nextGoalFound = true;
                         }
