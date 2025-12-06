@@ -103,6 +103,7 @@
             pointer-events: auto;
             left: 50%;
             transform: translateX(-50%);
+            --arrow-pos: 50%;
         }
 
         .step-label.visible {
@@ -115,7 +116,7 @@
             content: '';
             position: absolute;
             bottom: -5px;
-            left: 50%;
+            left: var(--arrow-pos);
             transform: translateX(-50%);
             border-width: 5px 5px 0;
             border-style: solid;
@@ -125,12 +126,12 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(5px) translateX(-50%);
+                transform: translateY(5px) translateX(var(--tx));
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0) translateX(-50%);
+                transform: translateY(0) translateX(var(--tx));
             }
         }
     </style>
@@ -175,6 +176,7 @@
                                 let styleInfo = document.getElementById('custom-css');
                                 if (!styleInfo) {
                                     styleInfo = document.querySelector('style:last-of-type');
+                                    // Make sure we don't overwrite the main style
                                     if (!styleInfo || !styleInfo.id || styleInfo.id !== 'custom-css') {
                                         styleInfo = document.createElement('style');
                                         styleInfo.id = 'custom-css';
@@ -240,6 +242,13 @@
             markersContainer.innerHTML = '';
 
             if (steps && Array.isArray(steps)) {
+                // Determine shift percentage to keep label inside bounds
+                const calculateShift = (percentage) => {
+                    if (percentage < 20) return (percentage / 20) * 50;
+                    if (percentage > 80) return 50 + ((percentage - 80) / 20) * 50;
+                    return 50;
+                };
+
                 const getAbsoluteStep = (step) => {
                     let val = parseFloat(step.count);
                     if (isNaN(val)) return 0;
@@ -281,6 +290,14 @@
                             const label = document.createElement('div');
                             label.className = 'step-label visible';
                             label.textContent = `${step.label}`;
+
+                            const shift = calculateShift(stepPercentage);
+
+                            // Apply dynamic shift
+                            label.style.transform = `translateX(-${shift}%)`;
+                            label.style.setProperty('--tx', `-${shift}%`);
+                            label.style.setProperty('--arrow-pos', `${shift}%`); // Shift arrow to follow marker
+
                             marker.appendChild(label);
                         }
                     }
