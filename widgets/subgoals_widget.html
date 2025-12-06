@@ -239,7 +239,6 @@
             markersContainer.innerHTML = '';
 
             if (steps && Array.isArray(steps)) {
-                // Steps are user defined, we just render them
                 const sortedSteps = [...steps].sort((a, b) => parseFloat(a.count) - parseFloat(b.count));
                 let nextGoalFound = false;
 
@@ -271,8 +270,6 @@
                             const label = document.createElement('div');
                             label.className = 'step-label visible';
                             label.textContent = `${step.label}`;
-
-                            // Label is physically nested, always centered (-50%) via CSS
                             marker.appendChild(label);
                         }
                     }
