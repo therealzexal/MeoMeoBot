@@ -18,6 +18,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
         return defaultPort;
     };
 
+
     const handleRequest = (req, res) => {
         if (req.url === '/widget/subgoals') {
             const filePath = path.join(__dirname, '..', 'widgets', 'subgoals_widget.html');
@@ -61,21 +62,55 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
                 });
                 res.end(content);
             });
+        } else if (req.url.startsWith('/widget/assets/')) {
+            const assetName = req.url.replace('/widget/assets/', '');
+            const assetPath = path.join(__dirname, '..', 'widgets', 'assets', assetName);
+
+            // Security check to prevent directory traversal
+            if (!path.resolve(assetPath).startsWith(path.resolve(path.join(__dirname, '..', 'widgets', 'assets')))) {
+                res.statusCode = 403;
+                return res.end('Forbidden');
+            }
+
+            fs.readFile(assetPath, (err, data) => {
+                if (err) {
+                    res.statusCode = 404;
+                    return res.end('Asset Not Found');
+                }
+
+                const ext = path.extname(assetPath).toLowerCase();
+                const mimeTypes = {
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif',
+                    '.svg': 'image/svg+xml',
+                    '.webm': 'video/webm'
+                };
+
+                res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+                res.end(data);
+            });
         } else {
             res.statusCode = 404;
             res.end('Widget Not Found');
         }
     };
 
-    const start = () => {
+    const start = (onPortChanged) => {
         const portInitial = resolvePort();
         const onListening = () => {
             port = server.address().port;
             if (port !== portInitial) {
                 bot.updateConfig({ subgoalsWidgetPort: port });
+                console.log(`[SUBGOALS] Port switched to ${port}`);
             }
 
             console.log(`Subgoals Widget Server running on port ${port}`);
+
+            if (onPortChanged && typeof onPortChanged === 'function') {
+                onPortChanged(port);
+            }
 
             wss = new WebSocket.Server({ server });
 

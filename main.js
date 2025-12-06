@@ -235,7 +235,16 @@ app.whenReady().then(async () => {
 
     chatServer.start();
     spotifyServer.start();
-    subgoalsServer.start();
+    subgoalsServer.start((newPort) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            // We can just ask the renderer to reload urls, or send the new map. 
+            // Simplest is to invoke the handler logic again or send a signal.
+            // Let's send a signal 'permissions-updated' or custom 'widget-port-changed'
+            // Actually, the renderer calls 'get-widget-urls'.
+            // We can send 'refresh-widget-urls'.
+            mainWindow.webContents.send('refresh-widget-urls');
+        }
+    });
 
     setTimeout(() => {
         const reloadMsg = { type: 'reload' };

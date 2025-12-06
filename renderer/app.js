@@ -134,6 +134,7 @@ function setupEventListeners() {
     window.api.on('update-downloaded', () => updateUpdaterStatus('downloaded'));
     window.api.on('notification', (msg, type) => showNotification(msg, type));
     window.api.on('participants-updated', () => loadParticipants());
+    window.api.on('refresh-widget-urls', () => loadWidgetUrls());
 }
 
 async function connectBot() {
