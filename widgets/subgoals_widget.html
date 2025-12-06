@@ -172,13 +172,15 @@
                         if (data.config) {
                             currentConfig = { ...currentConfig, ...data.config };
 
-                            // Update CSS dynamically using a dedicated style tag
                             if (data.config.customCSS) {
                                 let styleInfo = document.getElementById('custom-css');
                                 if (!styleInfo) {
-                                    styleInfo = document.createElement('style');
-                                    styleInfo.id = 'custom-css';
-                                    document.head.appendChild(styleInfo);
+                                    styleInfo = document.querySelector('style:last-of-type');
+                                    if (!styleInfo || !styleInfo.id || styleInfo.id !== 'custom-css') {
+                                        styleInfo = document.createElement('style');
+                                        styleInfo.id = 'custom-css';
+                                        document.head.appendChild(styleInfo);
+                                    }
                                 }
                                 styleInfo.textContent = data.config.customCSS;
                             }
@@ -239,16 +241,26 @@
             markersContainer.innerHTML = '';
 
             if (steps && Array.isArray(steps)) {
-                const sortedSteps = [...steps].sort((a, b) => parseFloat(a.count) - parseFloat(b.count));
+                const getAbsoluteStep = (step) => {
+                    let val = parseFloat(step.count);
+                    if (isNaN(val)) return 0;
+                    const strVal = String(step.count).trim();
+                    if (strVal.startsWith('+') || val <= startCount) {
+                        return startCount + val;
+                    }
+                    return val;
+                };
+
+                const sortedSteps = [...steps].sort((a, b) => getAbsoluteStep(a) - getAbsoluteStep(b));
                 let nextGoalFound = false;
 
                 sortedSteps.forEach(step => {
-                    const stepRelative = parseFloat(step.count);
+                    const stepAbsolute = getAbsoluteStep(step);
 
-                    if (!isNaN(stepRelative)) {
+                    if (!isNaN(stepAbsolute)) {
                         let stepPercentage = 0;
                         if (totalRange > 0) {
-                            stepPercentage = ((stepRelative - startCount) / totalRange) * 100;
+                            stepPercentage = ((stepAbsolute - startCount) / totalRange) * 100;
                         }
 
                         if (stepPercentage < 0) stepPercentage = 0;
@@ -261,7 +273,7 @@
                         markersContainer.appendChild(marker);
 
                         let isNextGoal = false;
-                        if (!nextGoalFound && stepRelative > currentCount) {
+                        if (!nextGoalFound && stepAbsolute > currentCount) {
                             isNextGoal = true;
                             nextGoalFound = true;
                         }
