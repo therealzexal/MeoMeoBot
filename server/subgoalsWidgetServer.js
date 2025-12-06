@@ -32,7 +32,12 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
 
                 let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
 
-                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.writeHead(200, {
+                    'Content-Type': 'text/html',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                });
                 res.end(content);
             });
         } else if (req.url === '/widget/subgoals-list') {
@@ -48,7 +53,12 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
 
                 let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
 
-                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.writeHead(200, {
+                    'Content-Type': 'text/html',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                });
                 res.end(content);
             });
         } else {
@@ -59,7 +69,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
 
     const start = () => {
         const portInitial = resolvePort();
-        server = http.createServer(handleRequest).listen(portInitial, () => {
+        const onListening = () => {
             port = server.address().port;
             if (port !== portInitial) {
                 bot.updateConfig({ subgoalsWidgetPort: port });
@@ -87,9 +97,21 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
                     }));
                 }
             });
-        }).on('error', (err) => {
-            console.error(`[SUBGOALS SERVER ERROR] ${err.message}`);
+        };
+
+        server = http.createServer(handleRequest);
+
+        server.once('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`[SUBGOALS] Port ${portInitial} in use, trying random port...`);
+                server = http.createServer(handleRequest); // Create new server instance
+                server.listen(0, onListening);
+            } else {
+                console.error(`[SUBGOALS SERVER ERROR] ${err.message}`);
+            }
         });
+
+        server.listen(portInitial, onListening);
     };
 
     const broadcastSubUpdate = (count) => {
