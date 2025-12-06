@@ -168,7 +168,10 @@
         };
 
         function connectWebSocket() {
-            const ws = new WebSocket('ws://localhost:8091');
+            const host = window.location.hostname;
+            const port = new URL(document.URL).port;
+            const wsUrl = `ws://${host}:${port}`;
+            const ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
                 console.log('Connected to Subgoals Widget Server');
@@ -181,6 +184,20 @@
                         if (data.widget && data.widget !== 'subgoals') return;
                         if (data.config) {
                             currentConfig = { ...currentConfig, ...data.config };
+
+                            if (data.config.customCSS) {
+                                let styleInfo = document.getElementById('custom-css');
+                                if (!styleInfo) {
+                                    styleInfo = document.querySelector('style:last-of-type');
+                                    if (!styleInfo || styleInfo.innerHTML.includes('__CUSTOM_CSS__')) {
+                                        styleInfo = document.createElement('style');
+                                        styleInfo.id = 'custom-css';
+                                        document.head.appendChild(styleInfo);
+                                    }
+                                }
+                                styleInfo.textContent = data.config.customCSS;
+                            }
+
                             render();
                         }
                     } else if (data.type === 'sub-update') {
