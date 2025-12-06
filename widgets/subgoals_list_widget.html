@@ -86,20 +86,29 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
-                        if (data.widget && data.widget !== 'subgoals-list') return;
-
-                        if (data.config) {
-                            currentConfig = { ...currentConfig, ...data.config };
-                            if (data.config.customCSS) {
-                                let styleInfo = document.getElementById('custom-css');
-                                if (!styleInfo) {
-                                    styleInfo = document.createElement('style');
-                                    styleInfo.id = 'custom-css';
-                                    document.head.appendChild(styleInfo);
-                                }
-                                styleInfo.textContent = data.config.customCSS;
+                        // Accept both subgoals (for steps) and subgoals-list (for css)
+                        if (data.widget === 'subgoals') {
+                            if (data.config && data.config.steps) {
+                                currentConfig.steps = data.config.steps;
+                                render();
                             }
-                            render();
+                        } else if (data.widget === 'subgoals-list') {
+                            if (data.config) {
+                                // Merge everything but mostly we care about CSS here if we treat them separately
+                                // But wait, if subgoals-list config has steps (it shouldn't), we might overwrite?
+                                // Let's assume subgoals-list is purely for display config/CSS.
+
+                                if (data.config.customCSS) {
+                                    let styleInfo = document.getElementById('custom-css');
+                                    if (!styleInfo) {
+                                        styleInfo = document.createElement('style');
+                                        styleInfo.id = 'custom-css';
+                                        document.head.appendChild(styleInfo);
+                                    }
+                                    styleInfo.textContent = data.config.customCSS;
+                                }
+                                // If subgoals-list config had other display params, we'd take them here
+                            }
                         }
                     } else if (data.type === 'reload') {
                         window.location.reload();
