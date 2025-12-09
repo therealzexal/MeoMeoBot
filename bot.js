@@ -18,6 +18,9 @@ class TwitchBot {
 
         this.currentSubCount = this.getWidgetConfig('subgoals')?.currentCount || 0;
         this.subPollInterval = null;
+        this.followPollInterval = null;
+        this.lastFollowerId = null;
+        this.onAlert = null;
     }
 
     setClipCooldown(seconds) {
@@ -137,17 +140,41 @@ class TwitchBot {
         this.client.on('disconnected', () => {
             this.isConnected = false;
             if (this.subPollInterval) clearInterval(this.subPollInterval);
+            if (this.followPollInterval) clearInterval(this.followPollInterval);
             if (this.onDisconnected) this.onDisconnected();
         });
 
-        this.client.on('subscription', () => this.incrementSubCount());
-        this.client.on('resub', () => this.incrementSubCount());
-        this.client.on('subgift', () => this.incrementSubCount());
-        this.client.on('anonsubgift', () => this.incrementSubCount());
-        this.client.on('submysterygift', (channel, username, numbOfSubs) => this.incrementSubCount(numbOfSubs));
+        
+        this.client.on('subscription', (channel, username, method, message, userstate) => {
+            this.incrementSubCount();
+            this.triggerAlert('sub', { username });
+        });
+        this.client.on('resub', (channel, username, months, message, userstate, methods) => {
+            this.incrementSubCount();
+            this.triggerAlert('sub', { username, months });
+        });
+        this.client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
+            this.incrementSubCount();
+            this.triggerAlert('sub', { username, recipient });
+        });
+        this.client.on('submysterygift', (channel, username, numbOfSubs, methods, userstate) => {
+            this.incrementSubCount(numbOfSubs);
+            this.triggerAlert('sub', { username, amount: numbOfSubs });
+        });
+
+        
+        this.client.on('raided', (channel, username, viewers) => {
+            this.triggerAlert('raid', { username, viewers });
+        });
+
+        
+        this.client.on('cheer', (channel, userstate, message) => {
+            this.triggerAlert('cheer', { username: userstate['display-name'] || userstate.username, amount: userstate.bits });
+        });
 
         this.client.connect().then(() => {
             this.startSubPolling();
+            this.startFollowPolling();
         }).catch(console.error);
     }
 
@@ -195,6 +222,92 @@ class TwitchBot {
             }
         } catch (error) {
             console.error('[SUBGOALS] Error fetching sub count:', error);
+        }
+    }
+
+    startFollowPolling() {
+        this.fetchFollowers();
+        if (this.followPollInterval) clearInterval(this.followPollInterval);
+        this.followPollInterval = setInterval(() => this.fetchFollowers(), 5000);
+    }
+
+    async fetchFollowers() {
+        if (!this.userId || !this.clientId) return;
+
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${this.userId}&first=1`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                const latestFollow = data.data[0];
+
+                
+                if (!this.lastFollowerId) {
+                    this.lastFollowerId = latestFollow.user_id;
+                    return;
+                }
+
+                
+                if (this.lastFollowerId !== latestFollow.user_id) {
+                    this.lastFollowerId = latestFollow.user_id;
+
+                    
+                    this.triggerAlert('follow', {
+                        username: latestFollow.user_name
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[ALERTS] Error fetching followers:', error);
+        }
+    }
+
+    triggerAlert(type, data) {
+        console.log(`[BOT] Triggering Alert: ${type}`, data);
+
+        
+        const allConfig = this.getWidgetConfig('alerts');
+        const typeConfig = allConfig ? allConfig[type] : null;
+
+        if (typeConfig && typeConfig.enabled === false) return; 
+
+        const alertPayload = {
+            type,
+            username: data.username || 'Inconnu',
+            amount: data.amount,
+            text: typeConfig?.textTemplate || this.getDefaultText(type),
+            image: typeConfig?.image,
+            audio: typeConfig?.audio,
+            volume: typeConfig?.volume,
+            duration: typeConfig?.duration,
+            layout: typeConfig?.layout
+        };
+
+        
+        alertPayload.text = alertPayload.text
+            .replace('{username}', alertPayload.username)
+            .replace('{amount}', alertPayload.amount || '');
+
+        if (this.onAlert) this.onAlert(alertPayload);
+    }
+
+    getDefaultText(type) {
+        switch (type) {
+            case 'follow': return '{username} suit la chaîne !';
+            case 'sub': return '{username} s\'est abonné !';
+            case 'raid': return 'Raid de {username} !';
+            case 'cheer': return '{username} a envoyé {amount} bits !';
+            default: return 'Nouvelle alerte';
         }
     }
 

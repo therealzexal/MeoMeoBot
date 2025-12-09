@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('api', {
         return () => {
             ipcRenderer.removeListener(channel, subscription);
         };
-    }
+    },
+    removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });

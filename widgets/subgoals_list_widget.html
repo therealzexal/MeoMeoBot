@@ -23,7 +23,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: flex-start;
-            /* Align list to left by default */
+            
             padding: 20px;
             box-sizing: border-box;
         }
@@ -49,7 +49,7 @@
         .subgoal-count {
             font-weight: 800;
             color: #ff00cc;
-            /* Default accent color */
+            
         }
 
         .subgoal-label {
@@ -61,7 +61,7 @@
 <body>
     <div id="widget-container">
         <ul class="subgoals-list" id="subgoals-list">
-            <!-- Items will be injected here -->
+            
         </ul>
     </div>
 
@@ -84,7 +84,7 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config' || data.type === 'config-update') {
-                        // Accept both subgoals (for steps) and subgoals-list (for css)
+                        
                         if (data.widget === 'subgoals') {
                             if (data.config && data.config.steps) {
                                 currentConfig.steps = data.config.steps;
@@ -129,7 +129,7 @@
             const { steps } = currentConfig;
 
             if (steps && Array.isArray(steps)) {
-                // Sort by count
+                
                 const sortedSteps = [...steps].sort((a, b) => parseFloat(a.count) - parseFloat(b.count));
 
                 sortedSteps.forEach(step => {

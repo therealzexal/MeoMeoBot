@@ -33,7 +33,7 @@ function generateCSS() {
 
 
     for (let i = 1; i <= 35; i++) {
-        const random_x = Math.random() * 110 - 5; // -5 to 105vw
+        const random_x = Math.random() * 110 - 5; 
         const random_offset = random_range(-10, 10);
         const random_x_end = random_x + random_offset;
         const random_x_end_yoyo = random_x + (random_offset / 2);
@@ -66,7 +66,7 @@ function generateCSS() {
 
     for (let i = 1; i <= 15; i++) {
         const realIndex = 35 + i;
-        const random_x = Math.random() * 110 - 5; // -5 to 105vw
+        const random_x = Math.random() * 110 - 5; 
         const random_offset = random_range(-15, 15);
         const random_x_end = random_x + random_offset;
         const random_x_end_yoyo = random_x + (random_offset / 2);

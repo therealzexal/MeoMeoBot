@@ -25,6 +25,7 @@ async function initializeApp() {
     loadEmoteWallConfig();
     loadBadgePrefs();
     setupSubgoalsConfig();
+    setupRouletteConfig();
 }
 
 async function loadAllData() {
@@ -213,6 +214,7 @@ async function loadWidgetUrls() {
         if (document.getElementById('emoteWallWidgetUrlDisplay')) document.getElementById('emoteWallWidgetUrlDisplay').textContent = urls.emoteWall;
         if (document.getElementById('subgoalsWidgetUrlDisplay')) document.getElementById('subgoalsWidgetUrlDisplay').textContent = urls.subgoals;
         if (document.getElementById('subgoalsListWidgetUrlDisplay')) document.getElementById('subgoalsListWidgetUrlDisplay').textContent = urls.subgoalsList;
+        if (document.getElementById('rouletteWidgetUrlDisplay')) document.getElementById('rouletteWidgetUrlDisplay').textContent = urls.roulette;
     } catch (e) { console.error('Erreur URLs widgets', e); }
 }
 
@@ -302,6 +304,27 @@ function setupSubgoalsConfig() {
     if (configureBtn) {
         configureBtn.addEventListener('click', async () => {
             await window.api.invoke('open-subgoals-config');
+        });
+    }
+}
+
+function setupRouletteConfig() {
+    const configureBtn = document.getElementById('configureRouletteBtn');
+    if (configureBtn) {
+        configureBtn.addEventListener('click', async () => {
+            await window.api.invoke('open-roulette-config');
+        });
+    }
+
+    const spinBtn = document.getElementById('spinRouletteBtn');
+    if (spinBtn) {
+        spinBtn.addEventListener('click', async () => {
+            try {
+                await window.api.invoke('trigger-roulette-spin');
+                showNotification('Roulette lancée !', 'success');
+            } catch (e) {
+                showNotification('Erreur lancement roulette: ' + e, 'error');
+            }
         });
     }
 }

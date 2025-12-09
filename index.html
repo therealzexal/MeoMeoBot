@@ -51,6 +51,7 @@
             <div class="tab" data-tab="moderation">Modération</div>
             <div class="tab" data-tab="cast">Cast</div>
             <div class="tab" data-tab="widgets">Widgets</div>
+            <div class="tab" data-tab="alerts">Alertes</div>
         </div>
         <div class="settings-tab">
             <div class="tab icon-tab" data-tab="config" title="Configuration">
@@ -193,7 +194,7 @@
                     <div class="widget-col-actions">
                         <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Thèmes</button>
                         <button class="btn btn-danger btn-sm" id="resetChatConfigBtn"
-                            title="Réinitialiser la config">Reset Config</button>
+                            title="Réinitialiser la config">Réinitialiser</button>
                         <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
                     </div>
                 </div>
@@ -279,6 +280,57 @@
                             onclick="editWidgetCss('subgoals-list')">Thèmes</button>
                     </div>
                 </div>
+
+                <div class="widget-row" data-widget="roulette">
+                    <div class="widget-col-name"><strong>Roulette</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="rouletteWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-primary btn-sm" id="configureRouletteBtn">Configurer</button>
+                        <button class="btn btn-success btn-sm" id="spinRouletteBtn"
+                            title="Lancer la roulette">Lancer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="alerts-tab">
+        <div class="card full-height-card" style="display: flex; flex-direction: column;">
+            <div class="alerts-layout" style="display: flex; height: 100%;">
+
+                <div class="alerts-sidebar">
+
+                </div>
+
+
+                <div class="alerts-config-area" style="flex: 1; overflow-y: auto; padding: 0 10px;">
+                    <div id="alert-config-form">
+
+                    </div>
+                </div>
+
+
+                <div class="alerts-preview-col"
+                    style="width: 250px; border-left: 1px solid var(--border-color); padding-left: 10px; display: flex; flex-direction: column;">
+                    <div id="alert-preview-box"
+                        style="width: 100%; aspect-ratio: 16/9; background: #333; border: 1px solid #555; position: relative; overflow: hidden; margin-bottom: 10px;">
+
+                        <div id="preview-alert-container"
+                            style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); text-align: center; width: 100%;">
+                            <div id="preview-image"></div>
+                            <div id="preview-text" style="font-weight: bold; color: white;"></div>
+                            <div id="preview-message" style="color: #eee;"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" id="testAlertBtn">Tester l'alerte</button>
+                    <button class="btn btn-primary" id="saveAlertsBtn" style="margin-top: auto;">Sauvegarder
+                        Tout</button>
+                    <span id="alerts-status-msg"
+                        style="text-align: center; height: 20px; font-size: 13px; font-weight: 500; margin-top: 10px;"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -360,7 +412,9 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+
+    <script src="renderer/input_customizer.js"></script>
+    <script src="renderer/alerts.js" type="module"></script>
     <script src="renderer/app.js" type="module"></script>
 </body>
 

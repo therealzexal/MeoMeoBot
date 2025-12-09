@@ -14,6 +14,8 @@ const { createChatWidgetServer } = require('./server/chatWidgetServer');
 
 const { createSpotifyWidgetServer } = require('./server/spotifyWidgetServer');
 const { createSubgoalsWidgetServer } = require('./server/subgoalsWidgetServer');
+const { createRouletteWidgetServer } = require('./server/rouletteWidgetServer');
+const { createAlertsWidgetServer } = require('./server/alertsWidgetServer');
 
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
@@ -29,6 +31,8 @@ const UPDATE_CHECK_INTERVAL = 800000;
 const DEFAULT_WIDGET_PORT = 8087;
 const DEFAULT_SPOTIFY_WIDGET_PORT = 8090;
 const DEFAULT_SUBGOALS_WIDGET_PORT = 8091;
+const DEFAULT_ROULETTE_WIDGET_PORT = 8092;
+const DEFAULT_ALERTS_WIDGET_PORT = 8093;
 
 let mainWindow;
 let cssEditorWindow = null;
@@ -37,12 +41,14 @@ let mediaServer;
 let chatServer;
 let spotifyServer;
 let subgoalsServer;
+let rouletteServer;
+let alertsWidgetServer;
 let currentlyPlayingPath = null;
 let updateCheckTimer = null;
 let bonjourInstance = null;
 
 async function reloadThemeContent() {
-    const widgets = ['chat', 'spotify', 'subgoals', 'emote-wall'];
+    const widgets = ['chat', 'spotify', 'subgoals', 'emote-wall', 'roulette', 'alerts'];
     const userThemesDir = path.join(app.getPath('userData'), 'themes');
     const builtInThemesDir = app.isPackaged
         ? path.join(app.getAppPath(), 'widgets/themes')
@@ -54,12 +60,10 @@ async function reloadThemeContent() {
             const filename = config.currentTheme;
             let themeContent = '';
 
-            // Try user theme first
             const userThemePath = path.join(userThemesDir, filename);
             if (fs.existsSync(userThemePath)) {
                 themeContent = await fs.promises.readFile(userThemePath, 'utf8');
             } else {
-                // Try built-in theme
                 const builtInThemePath = path.join(builtInThemesDir, filename);
                 if (fs.existsSync(builtInThemePath)) {
                     themeContent = await fs.promises.readFile(builtInThemePath, 'utf8');
@@ -69,7 +73,6 @@ async function reloadThemeContent() {
             if (themeContent) {
                 config.customCSS = themeContent;
                 bot.saveWidgetConfig(widget, config);
-                console.log(`[THEME] Reloaded content for ${widget} from ${filename}`);
             }
         }
     }
@@ -107,7 +110,6 @@ function createWindow() {
     if (process.argv.includes('--dev')) {
         mainWindow.webContents.openDevTools();
     }
-    // bot initialized in app.whenReady
     setupBotEvents();
     autoConnectBot();
 }
@@ -139,7 +141,7 @@ function openCssEditorWindow(widgetName = 'chat') {
         }
     });
 
-    cssEditorWindow.loadFile('css_editor.html');
+    cssEditorWindow.loadFile('widgets/config/css_editor.html');
     cssEditorWindow.setMenu(null);
 
     cssEditorWindow.on('ready-to-show', () => {
@@ -185,7 +187,7 @@ function openSubgoalsConfigWindow() {
         }
     });
 
-    subgoalsConfigWindow.loadFile('subgoals_config.html');
+    subgoalsConfigWindow.loadFile('widgets/config/subgoals_config.html');
     subgoalsConfigWindow.setMenu(null);
 
     subgoalsConfigWindow.on('ready-to-show', () => {
@@ -202,6 +204,70 @@ function openSubgoalsConfigWindow() {
 }
 
 ipcMain.handle('open-subgoals-config', () => openSubgoalsConfigWindow());
+
+let rouletteConfigWindow = null;
+function openRouletteConfigWindow() {
+    if (rouletteConfigWindow) {
+        rouletteConfigWindow.focus();
+        return;
+    }
+
+    rouletteConfigWindow = new BrowserWindow({
+        width: 900,
+        height: 600,
+        title: 'Configuration Roulette',
+        parent: mainWindow,
+        modal: false,
+        show: false,
+        frame: false,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    rouletteConfigWindow.loadFile('widgets/config/roulette_config.html');
+    rouletteConfigWindow.setMenu(null);
+
+    rouletteConfigWindow.on('ready-to-show', () => {
+        rouletteConfigWindow.show();
+    });
+
+    rouletteConfigWindow.on('closed', () => {
+        rouletteConfigWindow = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+}
+ipcMain.handle('open-roulette-config', () => openRouletteConfigWindow());
+
+ipcMain.handle('trigger-roulette-spin', () => {
+    if (rouletteServer) {
+        rouletteServer.broadcastSpin();
+        return { success: true };
+    }
+    throw new Error('Serveur Roulette non démarré');
+});
+
+ipcMain.handle('open-file-dialog', async (event, filters) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: filters || []
+    });
+    if (canceled) return null;
+    return filePaths[0];
+});
+
+ipcMain.handle('trigger-alert-test', (event, alertData) => {
+    if (alertsWidgetServer) {
+        alertsWidgetServer.addToQueue(alertData);
+        return { success: true };
+    }
+
+    return { success: false, error: 'Serveur Alertes non démarré' };
+});
 
 ipcMain.handle('resize-css-editor', (event, widthDelta) => {
     if (cssEditorWindow) {
@@ -232,6 +298,13 @@ app.whenReady().then(async () => {
         defaultPort: DEFAULT_SPOTIFY_WIDGET_PORT
     });
     subgoalsServer = createSubgoalsWidgetServer(bot, DEFAULT_SUBGOALS_WIDGET_PORT);
+    rouletteServer = createRouletteWidgetServer(bot, DEFAULT_ROULETTE_WIDGET_PORT);
+    alertsWidgetServer = createAlertsWidgetServer(bot, DEFAULT_ALERTS_WIDGET_PORT);
+
+
+    bot.onAlert = (alert) => {
+        if (alertsWidgetServer) alertsWidgetServer.addToQueue(alert);
+    };
 
     const onServerPortChanged = () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -242,17 +315,19 @@ app.whenReady().then(async () => {
     chatServer.start(onServerPortChanged);
     spotifyServer.start(onServerPortChanged);
     subgoalsServer.start(onServerPortChanged);
+    rouletteServer.start(onServerPortChanged);
+    alertsWidgetServer.start(onServerPortChanged);
 
     setTimeout(() => {
         const reloadMsg = { type: 'reload' };
         if (chatServer) chatServer.broadcastChat(reloadMsg);
         if (spotifyServer) spotifyServer.broadcast(reloadMsg);
         if (subgoalsServer) subgoalsServer.broadcast(reloadMsg);
-        console.log('[APP] Sent reload signal to all widgets');
+        if (rouletteServer) rouletteServer.broadcast(reloadMsg);
     }, 5000);
 
     mainWindow.webContents.on('did-finish-load', () => {
-        // Force refresh of widget URLs once window is loaded
+
         mainWindow.webContents.send('refresh-widget-urls');
 
         if (app.isPackaged) {
@@ -272,6 +347,7 @@ app.on('before-quit', () => {
     if (chatServer) chatServer.stop();
     if (spotifyServer) spotifyServer.stop();
     if (subgoalsServer) subgoalsServer.stop();
+    if (rouletteServer) rouletteServer.stop();
     if (bonjourInstance) {
         try { bonjourInstance.destroy(); } catch (e) { }
     }
@@ -458,6 +534,8 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
         subgoalsServer.broadcastConfig(config, 'subgoals');
     } else if (widgetName === 'subgoals-list' && subgoalsServer) {
         subgoalsServer.broadcastConfig(config, 'subgoals-list');
+    } else if (widgetName === 'roulette' && rouletteServer) {
+        rouletteServer.broadcastConfig(config);
     } else if (widgetName === 'chat' && chatServer) {
         chatServer.broadcastConfig(config);
     } else if (chatServer) {
@@ -494,6 +572,8 @@ ipcMain.handle('reset-widget-config', async (event, widgetName) => {
         spotifyServer.broadcastConfig(config);
     } else if (widgetName === 'subgoals' && subgoalsServer) {
         subgoalsServer.broadcastConfig(config);
+    } else if (widgetName === 'roulette' && rouletteServer) {
+        rouletteServer.broadcastConfig(config);
     }
 
     return { success: true };
@@ -703,6 +783,9 @@ ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
     if (widgetName === 'subgoals' && subgoalsServer) {
         return subgoalsServer.getUrl(localIp);
     }
+    if (widgetName === 'roulette' && rouletteServer) {
+        return rouletteServer.getUrl(localIp);
+    }
     return chatServer ? chatServer.getUrl(localIp, widgetName) : '';
 });
 
@@ -713,7 +796,8 @@ ipcMain.handle('get-widget-urls', async () => {
         spotify: spotifyServer ? spotifyServer.getUrl(localIp) : '',
         emoteWall: chatServer ? chatServer.getUrl(localIp, 'emote-wall') : '',
         subgoals: subgoalsServer ? subgoalsServer.getUrl(localIp) : '',
-        subgoalsList: subgoalsServer ? subgoalsServer.getUrl(localIp) + '-list' : ''
+        subgoalsList: subgoalsServer ? subgoalsServer.getUrl(localIp) + '-list' : '',
+        roulette: rouletteServer ? rouletteServer.getUrl(localIp) : ''
     };
 });
 
@@ -752,11 +836,9 @@ ipcMain.handle('discover-devices', async () => {
     const browser = bonjourInstance.find({ type: 'googlecast' });
 
     browser.on('up', (service) => {
-        console.log('[CAST] Service found:', JSON.stringify(service));
         const host = service.referer?.address || (service.addresses && service.addresses[0]) || service.host;
 
         if (service.name && host && !devices.some(d => d.host === host)) {
-            console.log('[CAST] Adding device:', service.name, host);
             devices.push({
                 name: service.name,
                 host: host,

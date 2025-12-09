@@ -4,14 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Configuration Subgoals</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="css/css-editor.css">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../../css/css-editor.css">
     <style>
         .css-editor-left {
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            /* Let inner content scroll */
         }
 
         .subgoals-config-group {
@@ -21,7 +20,6 @@
             border-radius: 8px;
             border: 1px solid var(--border);
             flex-shrink: 0;
-            /* Don't shrink general settings */
         }
 
         .subgoals-config-group.steps-group {
@@ -29,7 +27,6 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
-            /* Enable flex scrolling */
             margin-bottom: 10px;
         }
 
@@ -84,7 +81,7 @@
             border: 1px solid var(--border);
             border-radius: 4px;
             max-height: none;
-            /* Override previous fixed height */
+
         }
 
         .step-item {
@@ -184,7 +181,8 @@
         </div>
     </div>
 
-    <script src="renderer/subgoals_config_renderer.js"></script>
+    <script src="../../renderer/input_customizer.js"></script>
+    <script src="../../renderer/subgoals_config_renderer.js"></script>
 </body>
 
 </html>

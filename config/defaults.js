@@ -13,6 +13,8 @@ module.exports = {
         castFolderPath: "",
         clipCooldown: 60,
         widgetPort: 8087,
+        rouletteWidgetPort: 8092,
+        alertsWidgetPort: 8093,
         spotifyWidgetPort: 8090,
         spotifyClientId: "",
         spotifyClientSecret: "",
@@ -105,6 +107,10 @@ module.exports = {
             trackArtist: "Artiste",
             trackAlbum: "Album",
             coverUrl: "https://i.scdn.co/image/ab67616d0000b2738c0e06848d16c69ea4cbe5b7"
+        },
+        roulette: {
+            customCSS: "",
+            choices: ["Choix 1", "Choix 2", "Choix 3", "Choix 4", "Choix 5"]
         }
     },
     commands: {

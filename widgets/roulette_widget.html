@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Roulette Widget</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #wheel-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+            transition: opacity 0.3s;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            transform: rotate(0deg);
+        }
+
+        #pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #fff;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        #hub {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: #fff;
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #winner-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+            text-align: center;
+            max-width: 80%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+        }
+
+        #winner-display.visible {
+            opacity: 1;
+        }
+
+        
+    </style>
+</head>
+
+<body>
+
+    <div id="wheel-container">
+        <div id="pointer"></div>
+        <canvas id="wheel" width="1000" height="1000"></canvas>
+        <div id="hub" onclick="spin()">SPIN</div>
+    </div>
+    <div id="winner-display"></div>
+
+    <script>
+        const INITIAL_CHOICES = [];
+        let choices = INITIAL_CHOICES.length > 0 ? INITIAL_CHOICES : ["Rouge", "Bleu", "Jaune", "Noir", "Blanc"];
+
+        const COLORS = [
+            { bg: '#ecf0f1', text: '#2c3e50' },
+            { bg: '#2c3e50', text: '#ecf0f1' },
+            { bg: '#3498db', text: '#ffffff' },
+            { bg: '#f1c40f', text: '#2c3e50' },
+            { bg: '#e74c3c', text: '#ffffff' }
+        ];
+
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const hub = document.getElementById('hub');
+        const winnerDisplay = document.getElementById('winner-display');
+
+        let startAngle = 0;
+        let arc = Math.PI * 2 / (choices.length || 1);
+        let spinTimeout = null;
+        let spinAngleStart = 10;
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        function drawRouletteWheel() {
+            if (choices.length === 0) return;
+
+            arc = Math.PI * 2 / choices.length;
+
+            ctx.clearRect(0, 0, 1000, 1000);
+
+            ctx.save();
+            ctx.translate(500, 500);
+            ctx.rotate(startAngle);
+            ctx.translate(-500, -500);
+
+            const outsideRadius = 480;
+            const textRadius = 360;
+            const insideRadius = 0;
+
+            for (let i = 0; i < choices.length; i++) {
+                const angle = i * arc;
+                const colorIndex = i % COLORS.length;
+                const style = COLORS[colorIndex];
+
+                ctx.fillStyle = style.bg;
+
+                ctx.beginPath();
+                ctx.arc(500, 500, outsideRadius, angle, angle + arc, false);
+                ctx.arc(500, 500, insideRadius, angle + arc, angle, true);
+                ctx.stroke();
+                ctx.fill();
+
+                ctx.save();
+                ctx.fillStyle = style.text;
+                ctx.translate(500 + Math.cos(angle + arc / 2) * textRadius,
+                    500 + Math.sin(angle + arc / 2) * textRadius);
+                ctx.rotate(angle + arc / 2 + Math.PI);
+                ctx.rotate(Math.PI / 2);
+                const text = choices[i];
+                ctx.font = 'bold 40px Inter';
+                ctx.textAlign = "bottom";
+                ctx.fillText(text, 0, 10);
+
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(500, 500, outsideRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+            if (spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+            const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+            startAngle += (spinAngle * Math.PI / 180);
+            drawRouletteWheel();
+            spinTimeout = requestAnimationFrame(rotateWheel);
+        }
+
+        function stopRotateWheel() {
+            clearTimeout(spinTimeout);
+            isSpinning = false;
+
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arc * 180 / Math.PI;
+            const index = Math.floor((360 - degrees % 360) / arcd);
+
+            ctx.save();
+            ctx.restore();
+
+            const winner = choices[index];
+            showWinner(winner);
+        }
+
+        function showWinner(text) {
+            winnerDisplay.textContent = text;
+            winnerDisplay.classList.add('visible');
+        }
+
+        function easeOut(t, b, c, d) {
+            const ts = (t /= d) * t;
+            const tc = ts * t;
+            return b + c * (tc + -3 * ts + 3 * t);
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            winnerDisplay.classList.remove('visible');
+            spinAngleStart = Math.random() * 10 + 10;
+            spinTime = 0;
+            spinTimeTotal = Math.random() * 3000 + 4000;
+            rotateWheel();
+        }
+
+        drawRouletteWheel();
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        let ws;
+
+        function connectWs() {
+            ws = new WebSocket(`${protocol}//${host}`);
+
+            ws.onopen = () => {
+                console.log('Connected to server');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'reload') {
+                    window.location.reload();
+                    return;
+                }
+
+                if (data.type === 'config-update' && data.widget === 'roulette') {
+                    if (data.config.choices) {
+                        choices = data.config.choices;
+                        drawRouletteWheel();
+                    }
+                    if (typeof data.config.customCSS === 'string') {
+                        let style = document.getElementById('dynamic-custom-css');
+                        if (!style) {
+                            style = document.createElement('style');
+                            style.id = 'dynamic-custom-css';
+                            document.head.appendChild(style);
+                        }
+                        style.textContent = data.config.customCSS;
+                    }
+                } else if (data.type === 'spin') {
+                    spin();
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected. Retrying in 3s...');
+                setTimeout(connectWs, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('WS Error:', err);
+                ws.close();
+            };
+        }
+
+        connectWs();
+
+    </script>
+</body>
+
+</html>

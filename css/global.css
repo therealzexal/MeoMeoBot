@@ -640,6 +640,76 @@ textarea {
     background-color: var(--text-secondary);
 }
 
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.custom-number-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.custom-number-wrapper input[type="number"] {
+    padding-right: 30px;
+}
+
+.custom-spin-btns {
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 24px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+}
+
+.custom-spin-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+}
+
+.custom-spin-btn:first-child {
+    border-bottom: 1px solid var(--border);
+    border-top-right-radius: 3px;
+}
+
+.custom-spin-btn:last-child {
+    border-bottom-right-radius: 3px;
+}
+
+.custom-spin-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.custom-spin-btn:active {
+    background: var(--accent);
+    color: white;
+}
+
+.custom-spin-btn svg {
+    width: 10px;
+    height: 10px;
+    stroke-width: 3;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

@@ -3,56 +3,36 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 
-function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
+function createRouletteWidgetServer(bot, defaultPort = 8092) {
     let server = null;
     let port = 0;
     let wss = null;
 
     const resolvePort = () => {
-        const storedPort = bot?.getConfig?.()?.subgoalsWidgetPort;
+        const storedPort = bot?.getConfig?.()?.rouletteWidgetPort;
         const parsed = parseInt(storedPort, 10);
         if (Number.isInteger(parsed) && parsed > 0 && parsed < 65536) {
             return parsed;
         }
-        if (bot?.updateConfig) bot.updateConfig({ subgoalsWidgetPort: defaultPort });
+        if (bot?.updateConfig) bot.updateConfig({ rouletteWidgetPort: defaultPort });
         return defaultPort;
     };
 
-
     const handleRequest = (req, res) => {
-        if (req.url === '/widget/subgoals') {
-            const filePath = path.join(__dirname, '..', 'widgets', 'subgoals_widget.html');
+        if (req.url === '/widget/roulette') {
+            const filePath = path.join(__dirname, '..', 'widgets', 'roulette_widget.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
                     res.statusCode = 500;
                     return res.end('Error loading widget file');
                 }
 
-                const config = bot.getWidgetConfig('subgoals') || {};
+                const config = bot.getWidgetConfig('roulette') || {};
                 const customCSS = config.customCSS || '';
+                const choices = JSON.stringify(config.choices || []);
 
                 let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
-
-                res.writeHead(200, {
-                    'Content-Type': 'text/html',
-                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0',
-                });
-                res.end(content);
-            });
-        } else if (req.url === '/widget/subgoals-list') {
-            const filePath = path.join(__dirname, '..', 'widgets', 'subgoals_list_widget.html');
-            fs.readFile(filePath, 'utf8', (err, data) => {
-                if (err) {
-                    res.statusCode = 500;
-                    return res.end('Error loading widget file');
-                }
-
-                const config = bot.getWidgetConfig('subgoals-list') || {};
-                const customCSS = config.customCSS || '';
-
-                let content = data.replace('/* __CUSTOM_CSS__ */', customCSS);
+                content = content.replace('const INITIAL_CHOICES = [];', `const INITIAL_CHOICES = ${choices};`);
 
                 res.writeHead(200, {
                     'Content-Type': 'text/html',
@@ -66,6 +46,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
             const assetName = req.url.replace('/widget/assets/', '');
             const assetPath = path.join(__dirname, '..', 'widgets', 'assets', assetName);
 
+            
             if (!path.resolve(assetPath).startsWith(path.resolve(path.join(__dirname, '..', 'widgets', 'assets')))) {
                 res.statusCode = 403;
                 return res.end('Forbidden');
@@ -101,7 +82,7 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
         const onListening = () => {
             port = server.address().port;
             if (port !== portInitial) {
-                bot.updateConfig({ subgoalsWidgetPort: port });
+                bot.updateConfig({ rouletteWidgetPort: port });
             }
 
             if (onPortChanged && typeof onPortChanged === 'function') {
@@ -111,52 +92,43 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
             wss = new WebSocket.Server({ server });
 
             wss.on('connection', (ws) => {
-                const subgoalsConfig = bot.getWidgetConfig('subgoals');
-                if (subgoalsConfig) {
+                const config = bot.getWidgetConfig('roulette');
+                if (config) {
                     ws.send(JSON.stringify({
                         type: 'config-update',
-                        widget: 'subgoals',
-                        config: subgoalsConfig
-                    }));
-                }
-                const subgoalsListConfig = bot.getWidgetConfig('subgoals-list');
-                if (subgoalsListConfig) {
-                    ws.send(JSON.stringify({
-                        type: 'config-update',
-                        widget: 'subgoals-list',
-                        config: subgoalsListConfig
+                        widget: 'roulette',
+                        config: config
                     }));
                 }
             });
         };
 
         server = http.createServer(handleRequest);
-
         server.once('error', (err) => {
             if (err.code === 'EADDRINUSE') {
-                console.warn(`[SUBGOALS] Port ${portInitial} in use, trying random port...`);
+                console.warn(`[ROULETTE] Port ${portInitial} in use, trying random port...`);
                 server = http.createServer(handleRequest);
                 server.listen(0, onListening);
             } else {
-                console.error(`[SUBGOALS SERVER ERROR] ${err.message}`);
+                console.error(`[ROULETTE SERVER ERROR] ${err.message}`);
             }
         });
 
         server.listen(portInitial, onListening);
     };
 
-    const broadcastSubUpdate = (count) => {
+    const broadcastConfig = (config) => {
         if (wss && wss.clients) {
-            const payload = JSON.stringify({ type: 'sub-update', count });
+            const payload = JSON.stringify({ type: 'config-update', widget: 'roulette', config });
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) client.send(payload);
             });
         }
     };
 
-    const broadcastConfig = (config, widgetType = 'subgoals') => {
+    const broadcastSpin = (winnerIndex, angle) => {
         if (wss && wss.clients) {
-            const payload = JSON.stringify({ type: 'config-update', widget: widgetType, config });
+            const payload = JSON.stringify({ type: 'spin', winnerIndex, angle });
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) client.send(payload);
             });
@@ -177,9 +149,9 @@ function createSubgoalsWidgetServer(bot, defaultPort = 8091) {
         if (wss) wss.close();
     };
 
-    const getUrl = (localIp) => `http://${localIp}:${port}/widget/subgoals`;
+    const getUrl = (localIp) => `http://${localIp}:${port}/widget/roulette`;
 
-    return { start, stop, getPort: () => port, broadcastSubUpdate, broadcastConfig, broadcast, getUrl };
+    return { start, stop, getPort: () => port, broadcastConfig, broadcastSpin, broadcast, getUrl };
 }
 
-module.exports = { createSubgoalsWidgetServer };
+module.exports = { createRouletteWidgetServer };
