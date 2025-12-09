@@ -83,16 +83,13 @@ function updateChoice(index, value) {
 
 async function saveConfig() {
     try {
-        
         const cleanChoices = choices.map(c => c.trim()).filter(c => c.length > 0);
 
         await ipcRenderer.invoke('save-widget-config', 'roulette', { choices: cleanChoices });
 
-        
         const iframe = document.getElementById('preview-frame');
-        if (iframe) iframe.src = iframe.src; 
+        if (iframe) iframe.src = iframe.src;
 
-        
         const saveBtn = document.getElementById('saveBtn');
         const originalText = saveBtn.textContent;
         saveBtn.textContent = 'Sauvegardé !';
