@@ -15,11 +15,8 @@ class TwitchBot {
         this.clientId = null;
         this.clipCooldown = (this.getConfig().clipCooldown || 30) * 1000;
         this.onCooldown = false;
-        this.clientId = null;
-        this.clipCooldown = (this.getConfig().clipCooldown || 30) * 1000;
-        this.onCooldown = false;
 
-        this.currentSubCount = 0;
+        this.currentSubCount = this.getWidgetConfig('subgoals')?.currentCount || 0;
         this.subPollInterval = null;
     }
 
@@ -156,6 +153,7 @@ class TwitchBot {
 
     incrementSubCount(amount = 1) {
         this.currentSubCount += amount;
+        this.saveWidgetConfig('subgoals', { currentCount: this.currentSubCount });
         if (this.onSubCountUpdate) this.onSubCountUpdate(this.currentSubCount);
     }
 
@@ -191,6 +189,7 @@ class TwitchBot {
             const data = await response.json();
             if (data.total !== undefined) {
                 this.currentSubCount = data.total;
+                this.saveWidgetConfig('subgoals', { currentCount: this.currentSubCount });
                 if (this.onSubCountUpdate) this.onSubCountUpdate(this.currentSubCount);
                 return this.currentSubCount;
             }
