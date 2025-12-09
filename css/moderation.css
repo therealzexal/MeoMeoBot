@@ -29,4 +29,11 @@
 
 .moderation-layout .interactive-header .header-main-controls .form-group:first-child {
     flex-grow: 1;
+    min-width: 0;
+    
+}
+
+.moderation-layout .interactive-header .header-main-controls button,
+.moderation-layout .interactive-header .header-main-controls .controls {
+    flex-shrink: 0;
 }

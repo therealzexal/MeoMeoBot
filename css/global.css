@@ -508,6 +508,12 @@ textarea {
     flex-shrink: 0;
 }
 
+.inline-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
 .list-item .inline-confirm {
     display: none;
     align-items: center;
@@ -524,7 +530,7 @@ textarea {
     display: flex;
 }
 
-.list-item .control-button {
+.control-button {
     background: none;
     border: none;
     padding: 4px;
@@ -534,19 +540,20 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
-.list-item .control-button:hover {
+.control-button:hover {
     background-color: var(--bg-secondary);
 }
 
-.list-item .control-button svg {
-    width: 14px;
-    height: 14px;
+.control-button svg {
+    width: 20px;
+    height: 20px;
     stroke: var(--text-secondary);
 }
 
-.list-item .control-button:hover svg {
+.control-button:hover svg {
     stroke: var(--text-primary);
 }
 
@@ -980,6 +987,14 @@ input[type="number"] {
 
 .single-line-form .form-group {
     margin-bottom: 0;
+}
+
+.status-msg {
+    margin-left: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+    opacity: 0;
 }
 
 .single-line-form .btn {

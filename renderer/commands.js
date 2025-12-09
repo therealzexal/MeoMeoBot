@@ -1,4 +1,4 @@
-import { showNotification } from './ui.js';
+import { showNotification, createDeleteControl, ICONS, NOTIFICATIONS } from './ui.js';
 
 export async function loadCommands() {
     try {
@@ -47,27 +47,23 @@ export async function loadCommands() {
 
             const editBtn = document.createElement('button');
             editBtn.className = 'control-button';
-            editBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+            editBtn.innerHTML = ICONS.edit;
 
             const saveBtn = document.createElement('button');
             saveBtn.className = 'control-button';
             saveBtn.style.display = 'none';
-            saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#00b35f" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-
-            const delBtn = document.createElement('button');
-            delBtn.className = 'control-button';
-            delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+            saveBtn.innerHTML = ICONS.save;
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'control-button';
             cancelBtn.style.display = 'none';
-            cancelBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e91916" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            cancelBtn.innerHTML = ICONS.cancel;
 
             editBtn.onclick = () => {
                 viewContainer.style.display = 'none';
                 editContainer.style.display = 'contents';
                 editBtn.style.display = 'none';
-                delBtn.style.display = 'none';
+                deleteControl.style.display = 'none';
                 saveBtn.style.display = 'flex';
                 cancelBtn.style.display = 'flex';
             };
@@ -76,7 +72,7 @@ export async function loadCommands() {
                 viewContainer.style.display = 'contents';
                 editContainer.style.display = 'none';
                 editBtn.style.display = 'flex';
-                delBtn.style.display = 'flex';
+                deleteControl.style.display = 'flex';
                 saveBtn.style.display = 'none';
                 cancelBtn.style.display = 'none';
                 nameInput.value = cmd;
@@ -95,47 +91,21 @@ export async function loadCommands() {
                         await window.api.invoke('remove-command', cmd);
                     }
                     await window.api.invoke('add-command', finalCmd, newResp);
-                    showNotification('Commande modifiée', 'success');
+                    await window.api.invoke('add-command', finalCmd, newResp);
+                    showNotification(NOTIFICATIONS.SUCCESS.COMMAND_MODIFIED, 'success');
                     loadCommands();
                 } catch (e) {
-                    showNotification('Erreur modification: ' + e, 'error');
+                    showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
                 }
             };
 
-            const confirmDelBtn = document.createElement('button');
-            confirmDelBtn.className = 'control-button';
-            confirmDelBtn.style.display = 'none';
-            confirmDelBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#00b35f" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            confirmDelBtn.title = 'Confirmer suppression';
 
-            const cancelDelBtn = document.createElement('button');
-            cancelDelBtn.className = 'control-button';
-            cancelDelBtn.style.display = 'none';
-            cancelDelBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e91916" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-            cancelDelBtn.title = 'Annuler';
-
-            delBtn.onclick = () => {
-                editBtn.style.display = 'none';
-                delBtn.style.display = 'none';
-                confirmDelBtn.style.display = 'flex';
-                cancelDelBtn.style.display = 'flex';
-            };
-
-            cancelDelBtn.onclick = () => {
-                confirmDelBtn.style.display = 'none';
-                cancelDelBtn.style.display = 'none';
-                editBtn.style.display = 'flex';
-                delBtn.style.display = 'flex';
-            };
-
-            confirmDelBtn.onclick = () => removeCommand(cmd);
+            const deleteControl = createDeleteControl(() => removeCommand(cmd));
 
             controls.appendChild(editBtn);
             controls.appendChild(saveBtn);
             controls.appendChild(cancelBtn);
-            controls.appendChild(delBtn);
-            controls.appendChild(confirmDelBtn);
-            controls.appendChild(cancelDelBtn);
+            controls.appendChild(deleteControl);
 
             div.appendChild(viewContainer);
             div.appendChild(editContainer);
@@ -154,7 +124,7 @@ export async function addCommand() {
     const resp = respInput.value.trim();
 
     if (!cmd || !resp) {
-        showNotification('Remplissez la commande et la réponse.', 'error');
+        showNotification(NOTIFICATIONS.ERROR.MISSING_FIELDS, 'error');
         return;
     }
 
@@ -165,9 +135,9 @@ export async function addCommand() {
         cmdInput.value = '';
         respInput.value = '';
         loadCommands();
-        showNotification(`Commande ${finalCmd} ajoutée`, 'success');
+        showNotification(NOTIFICATIONS.COMMAND_ADDED.replace('{cmd}', finalCmd), 'success');
     } catch (error) {
-        showNotification('Erreur ajout commande: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
     }
 }
 
@@ -175,8 +145,8 @@ async function removeCommand(command) {
     try {
         await window.api.invoke('remove-command', command);
         loadCommands();
-        showNotification(`Commande ${command} supprimée`, 'info');
+        showNotification(NOTIFICATIONS.SUCCESS.DELETED, 'info');
     } catch (error) {
-        showNotification('Erreur suppression: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
     }
 }

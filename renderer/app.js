@@ -1,5 +1,5 @@
 import { setupTabs } from './tabs.js';
-import { setupWindowControls, setupConfirmationOverlay, showNotification, updateUpdaterStatus } from './ui.js';
+import { setupWindowControls, setupConfirmationOverlay, showNotification, updateUpdaterStatus, setupInlineConfirmLogic, NOTIFICATIONS } from './ui.js';
 import { loadParticipants, startGiveaway, stopGiveaway, drawWinner, clearParticipants, saveGiveawayConfig } from './giveaway.js';
 import { loadCommands, addCommand } from './commands.js';
 import { loadBannedWords, addBannedWord, clearBannedWords, saveAutoMessage, saveClipConfig } from './moderation.js';
@@ -40,7 +40,7 @@ async function loadAllData() {
         const status = await window.api.invoke('get-bot-status');
         updateBotStatus(status.connected ? 'connected' : 'disconnected');
     } catch (error) {
-        showNotification(`Erreur critique au chargement: ${error.message || error}`, "error");
+        showNotification(NOTIFICATIONS.ERROR.LOAD.replace('{error}', error.message || error), "error");
     }
 }
 
@@ -59,20 +59,26 @@ function setupEventListeners() {
     document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
     document.getElementById('clearParticipantsBtn').addEventListener('click', () => window.showConfirmation('Vider la liste des participants ?', clearParticipants));
 
-    document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
-    document.getElementById('saveClipConfig').addEventListener('click', saveClipConfig);
-
     const addBannedWordBtn = document.getElementById('addBannedWordBtn');
     const newBannedWordInput = document.getElementById('newBannedWord');
-    addBannedWordBtn.addEventListener('click', addBannedWord);
-    newBannedWordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBannedWord(); } });
-    document.getElementById('clearBannedWordsBtn').addEventListener('click', () => {
-        window.showConfirmation('Vider toute la liste des mots bannis ? Cette action est irréversible.', clearBannedWords);
-    });
+    if (addBannedWordBtn) addBannedWordBtn.addEventListener('click', addBannedWord);
+    if (newBannedWordInput) {
+        newBannedWordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addBannedWord();
+            }
+        });
+    }
 
-    const saveBadgeBtn = document.getElementById('saveBadgePrefs');
-    if (saveBadgeBtn) saveBadgeBtn.addEventListener('click', saveBadgePrefs);
+    setupInlineConfirmLogic(
+        document.getElementById('clearBannedWordsBtn'),
+        document.getElementById('confirmClearBannedWordsBtn'),
+        document.getElementById('cancelClearBannedWordsBtn'),
+        clearBannedWords
+    );
 
+    document.getElementById('saveAutoMessage').addEventListener('click', saveAutoMessage);
     const resetChatConfigBtn = document.getElementById('resetChatConfigBtn');
     if (resetChatConfigBtn) {
         let resetTimeout;
@@ -96,9 +102,9 @@ function setupEventListeners() {
 
             try {
                 await window.api.invoke('reset-widget-config', 'chat');
-                showNotification('Configuration du Tchat réinitialisée !', 'success');
+                showNotification(NOTIFICATIONS.SUCCESS.CONFIG_RESET, 'success');
             } catch (e) {
-                showNotification('Erreur lors de la réinitialisation : ' + e, 'error');
+                showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
             }
         });
     }
@@ -141,16 +147,16 @@ function setupEventListeners() {
 async function connectBot() {
     try {
         const result = await window.api.invoke('connect-bot');
-        if (result.success) showNotification('Bot connecté !', 'success');
-        else showNotification('Erreur connexion: ' + result.error, 'error');
-    } catch (e) { showNotification('Erreur IPC: ' + e, 'error'); }
+        if (result.success) showNotification(NOTIFICATIONS.SUCCESS.CONNECTED, 'success');
+        else showNotification(NOTIFICATIONS.ERROR.CONNECT.replace('{error}', result.error), 'error');
+    } catch (e) { showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
 }
 
 async function disconnectBot() {
     try {
         await window.api.invoke('disconnect-bot');
-        showNotification('Bot déconnecté.', 'info');
-    } catch (e) { showNotification('Erreur déconnexion: ' + e, 'error'); }
+        showNotification(NOTIFICATIONS.SUCCESS.DISCONNECTED, 'info');
+    } catch (e) { showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
 }
 
 async function saveConfig() {
@@ -165,8 +171,8 @@ async function saveConfig() {
     };
     try {
         await window.api.invoke('save-config', config);
-        showNotification('Configuration sauvegardée', 'success');
-    } catch (e) { showNotification('Erreur sauvegarde: ' + e, 'error'); }
+        showNotification(NOTIFICATIONS.SUCCESS.SAVED, 'success');
+    } catch (e) { showNotification(NOTIFICATIONS.ERROR.SAVE + ': ' + e, 'error'); }
 }
 
 
@@ -266,7 +272,7 @@ async function saveBadgePrefs() {
     });
     try {
         await window.api.invoke('save-badge-prefs', prefs);
-        showNotification('Préférences badges sauvegardées', 'success');
+        showNotification('Préférences sauvegardées', 'success');
     } catch (e) { showNotification('Erreur sauvegarde badges: ' + e, 'error'); }
 }
 
@@ -321,7 +327,7 @@ function setupRouletteConfig() {
         spinBtn.addEventListener('click', async () => {
             try {
                 await window.api.invoke('trigger-roulette-spin');
-                showNotification('Roulette lancée !', 'success');
+                showNotification('Roulette lancée', 'success');
             } catch (e) {
                 showNotification('Erreur lancement roulette: ' + e, 'error');
             }

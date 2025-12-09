@@ -7,8 +7,8 @@ module.exports = {
         autoMessage: "",
         giveawayCommand: "!giveaway",
         giveawayStartMessage: "Giveaway ouvert ! Utilise !giveaway pour participer !",
-        giveawayStopMessage: "Giveaway ferme ! Merci a tous les participants !",
-        giveawayWinMessage: "Felicitations @{winner}, tu as gagne le giveaway !",
+        giveawayStopMessage: "Giveaway fermé ! Merci à tous les participants !",
+        giveawayWinMessage: "Felicitations @{winner}, tu as gagné le giveaway !",
         bannedWords: [],
         castFolderPath: "",
         clipCooldown: 60,
@@ -106,7 +106,7 @@ module.exports = {
             trackTitle: "Mon titre",
             trackArtist: "Artiste",
             trackAlbum: "Album",
-            coverUrl: "https://i.scdn.co/image/ab67616d0000b2738c0e06848d16c69ea4cbe5b7"
+            coverUrl: "https://en.wikipedia.org/wiki/Choke_Enough#/media/File:Oklou_-_Choke_Enough.jpg"
         },
         roulette: {
             customCSS: "",

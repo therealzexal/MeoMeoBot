@@ -23,7 +23,7 @@ async function loadSavedFolder() {
             loadVideos(config.castFolder);
         }
     } catch (error) {
-        console.error('Erreur chargement dossier cast sauvegardé:', error);
+        console.error('Erreur de chargement du dossier:', error);
     }
 }
 

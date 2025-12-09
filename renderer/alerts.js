@@ -1,4 +1,6 @@
 
+import { NOTIFICATIONS } from './ui.js';
+
 let currentType = 'follow';
 let currentConfig = {};
 let widgetPort = 8093;
@@ -279,11 +281,11 @@ function updatePreview(type) {
 async function saveConfig() {
     try {
         await window.api.invoke('save-widget-config', 'alerts', currentConfig);
-        showStatus('Sauvegardé !', 'success');
+        showStatus(NOTIFICATIONS.SUCCESS.SAVED, 'success');
         return true;
     } catch (e) {
         console.error(e);
-        showStatus('Erreur', 'error');
+        showStatus(NOTIFICATIONS.ERROR.SAVE, 'error');
         return false;
     }
 }
@@ -297,7 +299,7 @@ async function triggerTest() {
             type: currentType,
             username: 'TestUser',
             amount: 100,
-            text: (config.textTemplate || EVENT_TYPES[currentType].defaultText).replace('{username}', 'TestUser').replace('{amount}', '100'),
+            text: (config.textTemplate || EVENT_TYPES[currentType].defaultText).replace('{username}', 'Zexal').replace('{amount}', '100'),
             image: config.image,
             audio: config.audio,
             volume: config.volume,

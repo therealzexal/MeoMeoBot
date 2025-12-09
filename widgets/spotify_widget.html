@@ -159,7 +159,7 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config-update' && data.widget === 'spotify') {
-                        // Merge the new config update into the existing config
+                        
                         currentConfig = { ...currentConfig, ...data.config };
                         applyConfig(currentConfig);
                     } else if (data.type === 'reload') {

@@ -361,12 +361,12 @@ function openConfigEditor() {
                 if (res.success) {
                     row.remove();
                     await loadThemes(currentWidget);
-                    setStatus('Thème supprimé', 'ok');
+                    setStatus(NOTIFICATIONS.SUCCESS.THEME_DELETED, 'ok');
                 } else {
-                    alert('Erreur suppression: ' + res.message);
+                    alert(NOTIFICATIONS.ERROR.DELETE.replace('{error}', res.message));
                 }
             } catch (e) {
-                alert('Erreur: ' + e);
+                alert(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e));
             }
         };
 
@@ -428,7 +428,7 @@ async function loadWidgetConfig(widgetName) {
         renderPreview();
         updateCssGuide();
     } catch (e) {
-        setStatus('Erreur chargement config: ' + e, 'err');
+        setStatus(NOTIFICATIONS.ERROR.LOAD.replace('{error}', e), 'err');
     }
 }
 
@@ -448,14 +448,14 @@ async function saveWidgetConfig() {
 
         const result = await window.api.invoke('save-widget-config', currentWidget, update);
         if (result.success) {
-            setStatus('Sauvegardé avec succès !', 'ok');
+            setStatus(NOTIFICATIONS.SUCCESS.SAVED, 'ok');
             const config = await window.api.invoke('get-widget-config', currentWidget);
             currentWidgetConfig = config || {};
         } else {
-            setStatus('Erreur sauvegarde', 'err');
+            setStatus(NOTIFICATIONS.ERROR.SAVE, 'err');
         }
     } catch (e) {
-        setStatus('Erreur: ' + e, 'err');
+        setStatus(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'err');
     }
 }
 
@@ -668,17 +668,6 @@ function getSubgoalsListPreviewHtml(customCss) {
 function getSubgoalsPreviewHtml(customCss) {
     return `<!DOCTYPE html>
     <html>
-        <head>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-                body { margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: transparent; }
-                #widget-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-                .progress-container { position: relative; width: 100%; max-width: 800px; height: 40px; background: rgba(0, 0, 0, 0.5); border-radius: 20px; overflow: visible; border: 2px solid rgba(255, 255, 255, 0.2); }
-                .progress-bar { height: 100%; background: linear-gradient(90deg, #ff00cc, #333399); width: 50%; border-radius: 18px; position: relative; box-shadow: 0 0 10px rgba(255, 0, 204, 0.5); }
-                .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 800; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); z-index: 10; white-space: nowrap; }
-                .step-marker { position: absolute; top: -10px; bottom: -10px; width: 2px; background: rgba(255, 255, 255, 0.8); z-index: 5; display: flex; flex-direction: column; align-items: center; }
-                .step-label { position: absolute; top: -35px; background: rgba(0, 0, 0, 0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transform: translateX(-50%); border: 1px solid rgba(255, 255, 255, 0.3); }
-                .step-label::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); border-width: 5px 5px 0; border-style: solid; border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent; }
                 ${customCss}
             </style>
         </head>
@@ -771,16 +760,16 @@ function init() {
                     await saveWidgetConfig();
 
                     if (result.success) {
-                        setStatus('Thème réinitialisé et appliqué !', 'ok');
+                        setStatus(NOTIFICATIONS.SUCCESS.THEME_APPLIED, 'ok');
                     } else {
-                        setStatus('Thème rechargé et appliqué !', 'ok');
+                        setStatus(NOTIFICATIONS.SUCCESS.THEME_RELOADED, 'ok');
                     }
                 } catch (err) {
-                    setStatus('Erreur réinitialisation: ' + err, 'err');
+                    setStatus(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', err), 'err');
                 }
             } else {
                 if (cssInput) cssInput.value = '';
-                setStatus('Remis à zéro', 'ok');
+                setStatus(NOTIFICATIONS.SUCCESS.RESET, 'ok');
             }
             renderPreview();
         });
@@ -807,7 +796,7 @@ function init() {
                 if (cssInput) cssInput.value = content;
                 renderPreview();
             } catch (err) {
-                alert('Erreur chargement thème: ' + err);
+                alert(NOTIFICATIONS.ERROR.LOAD.replace('{error}', err));
             }
         });
     }
@@ -827,7 +816,7 @@ function init() {
                     setStatus(result.message || 'Import annulé', 'info');
                 }
             } catch (error) {
-                setStatus(`Erreur lors de l'importation du thème: ${error.message}`, 'err');
+                setStatus(NOTIFICATIONS.THEME_IMPORT_ERROR.replace('{error}', error.message), 'err');
             }
         });
     }
@@ -862,7 +851,7 @@ function init() {
                 const cssContent = cssInput ? cssInput.value : '';
                 const result = await window.api.invoke('create-theme', currentWidget, name, cssContent);
                 if (result.success) {
-                    setStatus(`Thème "${name}" créé avec succès !`, 'ok');
+                    setStatus(NOTIFICATIONS.SUCCESS.THEME_CREATED.replace('{name}', name), 'ok');
                     await loadThemes(currentWidget);
                     const selector = document.getElementById('themeSelector');
                     if (selector) selector.value = result.filename;
@@ -870,7 +859,7 @@ function init() {
                     if (newThemeModal) newThemeModal.style.display = 'none';
                 }
             } catch (e) {
-                setStatus('Erreur création thème: ' + e, 'err');
+                setStatus(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'err');
             }
         });
     }
@@ -907,8 +896,8 @@ function init() {
                 const modal = document.getElementById('themeConfigModal');
                 if (modal) modal.style.display = 'none';
                 loadThemes(currentWidget);
-                setStatus('Configuration des thèmes sauvegardée', 'ok');
-            } catch (e) { alert('Erreur sauvegarde: ' + e); }
+                setStatus(NOTIFICATIONS.SUCCESS.SAVED, 'ok');
+            } catch (e) { alert(NOTIFICATIONS.ERROR.SAVE + ': ' + e); }
         });
     }
 }

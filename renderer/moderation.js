@@ -1,4 +1,4 @@
-import { showNotification } from './ui.js';
+import { showNotification, createDeleteControl, NOTIFICATIONS } from './ui.js';
 
 export async function loadBannedWords() {
     try {
@@ -16,38 +16,14 @@ function updateBannedWordsList(words) {
     words.forEach(word => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        div.innerHTML = `
-            <span>${word}</span>
-            <div class="controls">
-                <button class="control-button delete-btn" title="Supprimer">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-                <button class="control-button confirm-btn" style="display: none;" title="Confirmer">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#00b35f" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </button>
-                <button class="control-button cancel-btn" style="display: none;" title="Annuler">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#e91916" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-        `;
 
-        const delBtn = div.querySelector('.delete-btn');
-        const confirmBtn = div.querySelector('.confirm-btn');
-        const cancelBtn = div.querySelector('.cancel-btn');
+        const span = document.createElement('span');
+        span.textContent = word;
 
-        delBtn.onclick = () => {
-            delBtn.style.display = 'none';
-            confirmBtn.style.display = 'inline-flex';
-            cancelBtn.style.display = 'inline-flex';
-        };
+        const deleteControl = createDeleteControl(() => removeBannedWord(word));
 
-        cancelBtn.onclick = () => {
-            confirmBtn.style.display = 'none';
-            cancelBtn.style.display = 'none';
-            delBtn.style.display = 'inline-flex';
-        };
-
-        confirmBtn.onclick = () => removeBannedWord(word);
+        div.appendChild(span);
+        div.appendChild(deleteControl);
 
         list.appendChild(div);
     });
@@ -62,9 +38,9 @@ export async function addBannedWord() {
         await window.api.invoke('add-banned-word', word);
         input.value = '';
         loadBannedWords();
-        showNotification(`Mot "${word}" banni`, 'success');
+        showNotification(NOTIFICATIONS.BANNED_WORD_ADDED.replace('{word}', word), 'success');
     } catch (error) {
-        showNotification('Erreur ajout mot banni: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
     }
 }
 
@@ -72,9 +48,9 @@ async function removeBannedWord(word) {
     try {
         await window.api.invoke('remove-banned-word', word);
         loadBannedWords();
-        showNotification(`Mot "${word}" débanni`, 'info');
+        showNotification(NOTIFICATIONS.BANNED_WORD_REMOVED.replace('{word}', word), 'info');
     } catch (error) {
-        showNotification('Erreur suppression: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
     }
 }
 
@@ -82,9 +58,10 @@ export async function clearBannedWords() {
     try {
         await window.api.invoke('clear-banned-words');
         loadBannedWords();
-        showNotification('Liste des mots bannis vidée', 'info');
+        setStatus('clear-banned-words-status', NOTIFICATIONS.SUCCESS.CLEARED, 'success');
     } catch (error) {
-        showNotification('Erreur nettoyage: ' + error, 'error');
+        setStatus('clear-banned-words-status', NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
+        console.error(error);
     }
 }
 
@@ -97,9 +74,10 @@ export async function saveAutoMessage() {
             autoMessage: message,
             autoMessageInterval: interval
         });
-        showNotification('Message auto sauvegardé', 'success');
+        setStatus('auto-message-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        showNotification('Erreur sauvegarde: ' + error, 'error');
+        setStatus('auto-message-status', NOTIFICATIONS.ERROR.SAVE, 'error');
+        console.error(error);
     }
 }
 
@@ -107,8 +85,25 @@ export async function saveClipConfig() {
     const cooldown = parseInt(document.getElementById('clipCooldown').value, 10);
     try {
         await window.api.invoke('save-config', { clipCooldown: cooldown });
-        showNotification('Config Clip sauvegardée', 'success');
+        setStatus('clip-config-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        showNotification('Erreur sauvegarde: ' + error, 'error');
+        setStatus('clip-config-status', NOTIFICATIONS.ERROR.SAVE, 'error');
+        console.error(error);
     }
+}
+
+function setStatus(elementId, msg, type = 'success') {
+    const statusMsg = document.getElementById(elementId);
+    if (!statusMsg) return;
+
+    statusMsg.textContent = msg;
+    statusMsg.style.color = type === 'success' ? '#4ecca3' : '#e63946';
+    statusMsg.style.opacity = '1';
+
+    setTimeout(() => {
+        statusMsg.style.opacity = '0';
+        setTimeout(() => {
+            statusMsg.textContent = '';
+        }, 300);
+    }, 2000);
 }

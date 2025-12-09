@@ -1,4 +1,4 @@
-import { showNotification } from './ui.js';
+import { showNotification, NOTIFICATIONS } from './ui.js';
 
 export async function loadParticipants() {
     try {
@@ -46,21 +46,19 @@ function updateGiveawayStatus(isActive) {
 export async function startGiveaway() {
     try {
         await window.api.invoke('start-giveaway');
-        showNotification('Giveaway démarré !', 'success');
         updateGiveawayStatus(true);
         loadParticipants();
     } catch (error) {
-        showNotification('Erreur démarrage giveaway: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.START.replace('{error}', error), 'error');
     }
 }
 
 export async function stopGiveaway() {
     try {
         await window.api.invoke('stop-giveaway');
-        showNotification('Giveaway arrêté.', 'info');
         updateGiveawayStatus(false);
     } catch (error) {
-        showNotification('Erreur arrêt giveaway: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.STOP.replace('{error}', error), 'error');
     }
 }
 
@@ -72,13 +70,12 @@ export async function drawWinner() {
         if (winner) {
             display.textContent = `🏆 Vainqueur : ${winner} !`;
             display.classList.add('animate-winner');
-            showNotification(`Vainqueur : ${winner}`, 'success');
         } else {
-            display.textContent = 'Aucun participant...';
-            showNotification('Aucun participant pour le tirage.', 'error');
+            display.textContent = NOTIFICATIONS.GIVEAWAY_NO_PARTICIPANT;
+            showNotification(NOTIFICATIONS.GIVEAWAY_NO_PARTICIPANT, 'error');
         }
     } catch (error) {
-        showNotification('Erreur tirage: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', error), 'error');
     }
 }
 
@@ -87,9 +84,9 @@ export async function clearParticipants() {
         await window.api.invoke('clear-participants');
         loadParticipants();
         document.getElementById('winnerDisplay').textContent = '';
-        showNotification('Liste des participants vidée.', 'info');
+        showNotification(NOTIFICATIONS.SUCCESS.CLEARED, 'info');
     } catch (error) {
-        showNotification('Erreur nettoyage: ' + error, 'error');
+        showNotification(NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
     }
 }
 
@@ -97,15 +94,34 @@ export async function saveGiveawayConfig() {
     const command = document.getElementById('giveawayCommand').value;
     const startMsg = document.getElementById('giveawayStartMessage').value;
     const stopMsg = document.getElementById('giveawayStopMessage').value;
+    const winMsg = document.getElementById('giveawayWinMessage').value;
 
     try {
         await window.api.invoke('save-config', {
             giveawayCommand: command,
             giveawayStartMessage: startMsg,
-            giveawayStopMessage: stopMsg
+            giveawayStopMessage: stopMsg,
+            giveawayWinMessage: winMsg
         });
-        showNotification('Configuration Giveaway sauvegardée', 'success');
+        setStatus(NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        showNotification('Erreur sauvegarde: ' + error, 'error');
+        setStatus(NOTIFICATIONS.ERROR.SAVE, 'error');
+        console.error(error);
     }
+}
+
+function setStatus(msg, type = 'success') {
+    const statusMsg = document.getElementById('giveaway-status-msg');
+    if (!statusMsg) return;
+
+    statusMsg.textContent = msg;
+    statusMsg.style.color = type === 'success' ? '#4ecca3' : '#e63946';
+    statusMsg.style.opacity = '1';
+
+    setTimeout(() => {
+        statusMsg.style.opacity = '0';
+        setTimeout(() => {
+            statusMsg.textContent = '';
+        }, 300);
+    }, 2000);
 }
