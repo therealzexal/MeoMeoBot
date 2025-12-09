@@ -130,13 +130,11 @@
             const wrapper = document.getElementById('spotify-wrapper');
             const customCssStyle = document.getElementById('custom-css');
 
-            
             if (cover) cover.src = safe.coverUrl || FALLBACK_COVER;
             if (title) title.textContent = safe.trackTitle || 'Titre du morceau';
             if (artist) artist.textContent = safe.trackArtist || 'Artiste';
             if (album) album.textContent = safe.trackAlbum || 'Album';
 
-            
             if (safe.customCSS !== undefined && customCssStyle) {
                 customCssStyle.textContent = safe.customCSS;
             }
@@ -161,7 +159,7 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config-update' && data.widget === 'spotify') {
-                        
+                        // Merge the new config update into the existing config
                         currentConfig = { ...currentConfig, ...data.config };
                         applyConfig(currentConfig);
                     } else if (data.type === 'reload') {
