@@ -69,6 +69,46 @@ function createAlertsWidgetServer(bot, defaultPort = 8093) {
                 res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
                 res.end(data);
             });
+        } else if (req.url.startsWith('/local-file')) {
+            const url = new URL(req.url, `http://127.0.0.1:${port}`);
+            const filePath = url.searchParams.get('path');
+
+            if (!filePath) {
+                res.statusCode = 400;
+                return res.end('No path specified');
+            }
+
+            
+            fs.stat(filePath, (err, stats) => {
+                if (err || !stats.isFile()) {
+                    res.statusCode = 404;
+                    return res.end('File not found');
+                }
+
+                fs.readFile(filePath, (err, data) => {
+                    if (err) {
+                        res.statusCode = 500;
+                        return res.end('Error reading file');
+                    }
+                    const ext = path.extname(filePath).toLowerCase();
+                    const mimeTypes = {
+                        '.png': 'image/png',
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.gif': 'image/gif',
+                        '.svg': 'image/svg+xml',
+                        '.webm': 'video/webm',
+                        '.mp3': 'audio/mpeg',
+                        '.wav': 'audio/wav',
+                        '.ogg': 'audio/ogg'
+                    };
+                    res.writeHead(200, {
+                        'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+                        'Access-Control-Allow-Origin': '*'
+                    });
+                    res.end(data);
+                });
+            });
         } else {
             res.statusCode = 404;
             res.end('Widget Not Found');
@@ -94,7 +134,7 @@ function createAlertsWidgetServer(bot, defaultPort = 8093) {
     const skipCurrent = () => {
         broadcast({ type: 'skip' });
         isPlaying = false;
-        processQueue(); 
+        processQueue();
     };
 
     const broadcast = (data) => {
@@ -124,7 +164,7 @@ function createAlertsWidgetServer(bot, defaultPort = 8093) {
 
             wss.on('connection', (ws) => {
                 console.log('[ALERTS] Client connected');
-                
+
                 const config = bot.getWidgetConfig('alerts');
                 if (config) {
                     ws.send(JSON.stringify({ type: 'config-update', config }));

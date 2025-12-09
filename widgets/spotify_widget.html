@@ -96,8 +96,8 @@
             color: var(--pill-text);
         }
     </style>
-    <style>
-        
+    <style id="custom-css">
+        /* __CUSTOM_CSS__ */
     </style>
 </head>
 
@@ -128,11 +128,18 @@
             const artist = document.getElementById('spotifyArtist');
             const album = document.getElementById('spotifyAlbum');
             const wrapper = document.getElementById('spotify-wrapper');
+            const customCssStyle = document.getElementById('custom-css');
 
+            
             if (cover) cover.src = safe.coverUrl || FALLBACK_COVER;
             if (title) title.textContent = safe.trackTitle || 'Titre du morceau';
             if (artist) artist.textContent = safe.trackArtist || 'Artiste';
             if (album) album.textContent = safe.trackAlbum || 'Album';
+
+            
+            if (safe.customCSS !== undefined && customCssStyle) {
+                customCssStyle.textContent = safe.customCSS;
+            }
 
             const isPlaying = safe.isPlaying !== false && !!(safe.trackTitle || safe.trackArtist || safe.coverUrl);
             if (wrapper) {
@@ -154,7 +161,8 @@
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'config-update' && data.widget === 'spotify') {
-                        currentConfig = data.config || currentConfig;
+                        
+                        currentConfig = { ...currentConfig, ...data.config };
                         applyConfig(currentConfig);
                     } else if (data.type === 'reload') {
                         window.location.reload();

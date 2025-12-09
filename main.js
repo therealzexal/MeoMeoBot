@@ -427,6 +427,7 @@ function setupBotEvents() {
     bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
 
     bot.onChatMessage = (messageData) => {
+        if (messageData.text && messageData.text.startsWith('!')) return;
         sendChatToWidgets(messageData);
     };
 

@@ -12,7 +12,10 @@ function stripJsCssComments(content) {
 
     return content.replace(regex, (match, string, quote, escape, blockComment, lineComment) => {
         if (string) return string;
-        if (blockComment) return '';
+        if (blockComment) {
+            if (blockComment.includes('__CUSTOM_CSS__')) return match;
+            return '';
+        }
         if (lineComment) return '';
         return match;
     });

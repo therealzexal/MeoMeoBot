@@ -70,7 +70,7 @@
             margin-bottom: 0;
         }
 
-        
+
         .animate-in {
             animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
         }
@@ -111,8 +111,6 @@
                 transform: translate(-50%, -50%) scale(0.8);
             }
         }
-
-        
     </style>
 </head>
 
@@ -166,7 +164,19 @@
                     }
 
                     if (data.type === 'alert') {
-                        playAlert(data.alert);
+                        
+                        const alert = data.alert;
+
+                        if (alert.image && alert.image.startsWith('file://')) {
+                            const rawPath = alert.image.replace('file://', '');
+                            alert.image = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
+                        }
+
+                        if (alert.audio && alert.audio.startsWith('file://')) {
+                            const rawPath = alert.audio.replace('file://', '');
+                            alert.audio = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
+                        }
+                        playAlert(alert);
                     } else if (data.type === 'skip') {
                         stopAlert();
                     }
