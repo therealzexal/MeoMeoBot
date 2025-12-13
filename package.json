@@ -54,8 +54,6 @@
       "bot.js",
       "index.html",
       "style.css",
-      "css_editor.html",
-      "subgoals_config.html",
       "package.json",
       "assets/**/*",
       "config/**/*",
@@ -64,6 +62,16 @@
       "widgets/**/*",
       "css/**/*",
       "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",
+        "to": "ffmpeg.exe"
+      },
+      {
+        "from": "node_modules/@ffprobe-installer/win32-x64/ffprobe.exe",
+        "to": "ffprobe.exe"
+      }
     ]
   }
 }
