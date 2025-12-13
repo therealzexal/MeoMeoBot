@@ -7,3 +7,14 @@
 @import 'css/config.css';
 @import 'css/alerts.css';
 @import 'css/css-editor.css';
+
+.status-msg {
+    margin-left: 10px;
+    font-size: 0.9em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-weight: 500;
+}
+.status-msg.success { color: var(--success); }
+.status-msg.error { color: var(--danger); }
+.status-msg.info { color: var(--info); }

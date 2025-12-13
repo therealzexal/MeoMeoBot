@@ -99,8 +99,81 @@ class TwitchBot {
             console.log('[MOD] Helix Ban/Timeout success:', data);
             return true;
         } catch (error) {
-            console.error('[MOD] Helix Ban/Timeout error:', error);
-            throw error;
+            console.error('[MOD] Erreur Ban/Timeout:', error);
+            return false;
+        }
+    }
+
+    async helixRequest(endpoint, method = 'GET', body = null) {
+        const config = this.getConfig();
+        const token = config.token ? config.token.replace('oauth:', '') : '';
+
+        if (!token || !this.clientId || !this.userId) {
+            throw new Error('Missing credentials (token, clientId or userId)');
+        }
+
+        const url = `https://api.twitch.tv/helix/${endpoint}`;
+        const options = {
+            method,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Client-Id': this.clientId,
+                'Content-Type': 'application/json'
+            }
+        };
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url + (url.includes('?') ? '&' : '?') + `broadcaster_id=${this.userId}`, options);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || response.statusText);
+        }
+
+        if (response.status === 204) return null;
+        return await response.json();
+    }
+
+    async getChannelRewards() {
+        try {
+            const data = await this.helixRequest('channel_points/custom_rewards');
+            return data.data;
+        } catch (e) {
+            console.error('[POINTS] Error fetching rewards:', e);
+            throw e;
+        }
+    }
+
+    async createChannelReward(rewardData) {
+        try {
+            const data = await this.helixRequest('channel_points/custom_rewards', 'POST', rewardData);
+            return data.data[0];
+        } catch (e) {
+            console.error('[POINTS] Error creating reward:', e);
+            throw e;
+        }
+    }
+
+    async updateChannelReward(rewardId, rewardData) {
+        try {
+            const data = await this.helixRequest(`channel_points/custom_rewards?id=${rewardId}`, 'PATCH', rewardData);
+            return data.data[0];
+        } catch (e) {
+            console.error('[POINTS] Error updating reward:', e);
+            throw e;
+        }
+    }
+
+    async deleteChannelReward(rewardId) {
+        try {
+            await this.helixRequest(`channel_points/custom_rewards?id=${rewardId}`, 'DELETE');
+            return true;
+        } catch (e) {
+            console.error('[POINTS] Error deleting reward:', e);
+            throw e;
         }
     }
 
@@ -144,14 +217,14 @@ class TwitchBot {
             if (this.onDisconnected) this.onDisconnected();
         });
 
-        
+
         this.client.on('subscription', (channel, username, method, message, userstate) => {
             this.incrementSubCount();
             this.triggerAlert('sub', { username });
         });
         this.client.on('resub', (channel, username, months, message, userstate, methods) => {
             this.incrementSubCount();
-            this.triggerAlert('sub', { username, months });
+            this.triggerAlert('resub', { username, months, message });
         });
         this.client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
             this.incrementSubCount();
@@ -162,12 +235,12 @@ class TwitchBot {
             this.triggerAlert('sub', { username, amount: numbOfSubs });
         });
 
-        
+
         this.client.on('raided', (channel, username, viewers) => {
             this.triggerAlert('raid', { username, viewers });
         });
 
-        
+
         this.client.on('cheer', (channel, userstate, message) => {
             this.triggerAlert('cheer', { username: userstate['display-name'] || userstate.username, amount: userstate.bits });
         });
@@ -251,17 +324,17 @@ class TwitchBot {
             if (data.data && data.data.length > 0) {
                 const latestFollow = data.data[0];
 
-                
+
                 if (!this.lastFollowerId) {
                     this.lastFollowerId = latestFollow.user_id;
                     return;
                 }
 
-                
+
                 if (this.lastFollowerId !== latestFollow.user_id) {
                     this.lastFollowerId = latestFollow.user_id;
 
-                    
+
                     this.triggerAlert('follow', {
                         username: latestFollow.user_name
                     });
@@ -275,11 +348,11 @@ class TwitchBot {
     triggerAlert(type, data) {
         console.log(`[BOT] Triggering Alert: ${type}`, data);
 
-        
+
         const allConfig = this.getWidgetConfig('alerts');
         const typeConfig = allConfig ? allConfig[type] : null;
 
-        if (typeConfig && typeConfig.enabled === false) return; 
+        if (typeConfig && typeConfig.enabled === false) return;
 
         const alertPayload = {
             type,
@@ -293,7 +366,7 @@ class TwitchBot {
             layout: typeConfig?.layout
         };
 
-        
+
         alertPayload.text = alertPayload.text
             .replace('{username}', alertPayload.username)
             .replace('{amount}', alertPayload.amount || '');

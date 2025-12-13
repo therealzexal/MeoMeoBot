@@ -1,4 +1,5 @@
-import { showNotification } from './ui.js';
+import { showStatus } from './ui.js';
+import { API } from './api.js';
 
 export function setupCast() {
     const selectFolderBtn = document.getElementById('select-cast-folder-btn');
@@ -12,13 +13,13 @@ export function setupCast() {
     });
 
     window.api.on('cast-status', (status) => {
-        showNotification(status.message, status.success ? 'success' : 'error');
+        showStatus('global-status-msg', status.message, status.success ? 'success' : 'error');
     });
 }
 
 async function loadSavedFolder() {
     try {
-        const config = await window.api.invoke('get-config');
+        const config = await API.getConfig();
         if (config && config.castFolder) {
             loadVideos(config.castFolder);
         }
@@ -29,14 +30,14 @@ async function loadSavedFolder() {
 
 async function selectCastFolder() {
     try {
-        const folderPath = await window.api.invoke('select-folder');
+        const folderPath = await API.cast.selectFolder();
         if (folderPath) {
-            await window.api.invoke('save-config', { castFolder: folderPath });
+            await API.saveConfig({ castFolder: folderPath });
             loadVideos(folderPath);
         }
     } catch (error) {
         console.error('Erreur sélection dossier:', error);
-        showNotification('Erreur lors de la sélection du dossier', 'error');
+        showStatus('global-status-msg', 'Erreur lors de la sélection du dossier', 'error');
     }
 }
 
@@ -47,7 +48,7 @@ async function loadVideos(folderPath) {
     grid.innerHTML = '<div class="loading-spinner">Chargement des vidéos...</div>';
 
     try {
-        const videos = await window.api.invoke('get-videos', folderPath);
+        const videos = await API.cast.getVideos(folderPath);
         grid.innerHTML = '';
 
         if (videos.length === 0) {
@@ -92,7 +93,7 @@ function showDevicePicker(videoPath) {
     list.innerHTML = '<div class="loading-spinner">Recherche des appareils...</div>';
     status.textContent = 'Recherche en cours...';
 
-    window.api.invoke('discover-devices');
+    API.cast.discoverDevices();
 
     const closeHandler = () => {
         overlay.classList.remove('active');
@@ -126,13 +127,13 @@ function showDevicePicker(videoPath) {
 
 async function playOnDevice(device, videoPath) {
     try {
-        showNotification(`Lancement sur ${device.name}...`, 'info');
-        await window.api.invoke('play-on-device', {
+        showStatus('global-status-msg', `Lancement sur ${device.name}...`, 'info');
+        await API.cast.playOnDevice({
             deviceHost: device.host,
             devicePort: device.port,
             videoPath
         });
     } catch (error) {
-        showNotification('Erreur lancement cast: ' + error, 'error');
+        showStatus('global-status-msg', 'Erreur lancement cast: ' + error, 'error');
     }
 }

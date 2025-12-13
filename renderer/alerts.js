@@ -1,316 +1,504 @@
-
-import { NOTIFICATIONS } from './ui.js';
+import { NOTIFICATIONS, createRow, createInputGroup, createSliderGroup, createSelectGroup, createFilePickerGroup, showStatus } from './ui.js';
+import { API } from './api.js';
 
 let currentType = 'follow';
 let currentConfig = {};
-let widgetPort = 8093;
+let widgetPort = 8097;
 
-const sidebar = document.querySelector('.alerts-sidebar');
-const configForm = document.getElementById('alert-config-form');
-const previewContainer = document.getElementById('preview-alert-container');
-const previewImage = document.getElementById('preview-image');
-const previewText = document.getElementById('preview-text');
-const previewMessage = document.getElementById('preview-message');
-const statusMsg = document.getElementById('alerts-status-msg');
+let sidebar;
+let configForm;
+let previewFrame;
+let scalerWrapper;
+
+
 
 const EVENT_TYPES = {
     'follow': { label: 'Follow', defaultText: '{username} suit la chaîne !', hasMessage: false },
-    'sub': { label: 'Abonnement', defaultText: '{username} s\'est abonné !', hasMessage: false },
-    'raid': { label: 'Raid', defaultText: 'Raid de {username} !', hasMessage: false },
-    'cheer': { label: 'Bits', defaultText: '{username} a envoyé {amount} bits !', hasMessage: true }
+    'sub': { label: 'Sub', defaultText: '{username} s\'est abonné !', hasMessage: false },
+    'resub': { label: 'Re-Sub', defaultText: '{username} s\'est réabonné ({months} mois) !', hasMessage: true },
+    'donation': { label: 'Dons', defaultText: '{username} a fait un don de {amount} !', hasMessage: true },
+    'cheer': { label: 'Bits', defaultText: '{username} a envoyé {amount} bits !', hasMessage: true },
+    'raid': { label: 'Raid', defaultText: 'Raid de {username} !', hasMessage: false }
 };
 
+
+const alertsWidget = API.createWidgetHelper('alerts');
+
 function init() {
-    window.api.invoke('get-widget-config', 'alerts').then(globalConfig => {
+    sidebar = document.querySelector('.alerts-sidebar');
+    configForm = document.getElementById('alert-config-form');
+    previewFrame = document.getElementById('preview-frame');
+    scalerWrapper = document.getElementById('preview-frame-wrapper');
+
+    if (scalerWrapper && scalerWrapper.parentElement) {
+        updatePreviewScale();
+        const resizeObserver = new ResizeObserver(() => {
+            updatePreviewScale();
+        });
+        resizeObserver.observe(scalerWrapper.parentElement);
+    }
+
+
+
+
+    renderSidebar();
+    renderForm(currentType);
+
+    alertsWidget.onRefresh((globalConfig, appConfig) => {
         currentConfig = globalConfig || {};
 
-        window.api.invoke('get-config').then(appConfig => {
-            if (appConfig && appConfig.alertsWidgetPort) {
-                widgetPort = appConfig.alertsWidgetPort;
-            }
-            renderSidebar();
+
+        if (appConfig && appConfig.alertsWidgetPort && appConfig.alertsWidgetPort !== 49968) {
+            widgetPort = appConfig.alertsWidgetPort;
+        } else {
+            widgetPort = 8097;
+        }
+
+        const urlCode = document.getElementById('alertsWidgetUrlDisplay');
+        if (urlCode) {
+            urlCode.textContent = `http://127.0.0.1:${widgetPort}/widget/alerts`;
+        }
+
+        if (currentType && currentType !== 'themes') updatePreview(currentType);
+        else if (currentType === 'themes') updateGlobalThemePreview(currentConfig.customCSS);
+
+
+
+        renderSidebar();
+        if (currentType === 'themes') {
+            renderThemesTab();
+        } else {
             renderForm(currentType);
+        }
+    });
+
+    const saveBtn = document.getElementById('saveAlertsBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveConfig);
+
+    const testBtn = document.getElementById('testAlertBtn');
+    if (testBtn) testBtn.addEventListener('click', triggerTest);
+
+
+    function updatePreviewScale() {
+        if (!scalerWrapper) return;
+        const parent = scalerWrapper.parentElement;
+        if (!parent) return;
+
+        const parentWidth = parent.clientWidth;
+        parent.style.height = `${parentWidth * 9 / 16}px`;
+
+        const targetWidth = 640;
+        const scale = parentWidth / targetWidth;
+
+        scalerWrapper.style.transformOrigin = 'center center';
+        scalerWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        scalerWrapper.style.top = '50%';
+        scalerWrapper.style.left = '50%';
+    }
+
+
+
+    function renderSidebar() {
+        if (!sidebar) return;
+        sidebar.innerHTML = '';
+
+        Object.keys(EVENT_TYPES).forEach(type => {
+            const meta = EVENT_TYPES[type];
+            const isActive = type === currentType;
+            const typeConfig = currentConfig[type] || {};
+            const isEnabled = typeConfig.enabled !== false;
+
+            const btn = document.createElement('div');
+            btn.className = `alert-type-btn ${isActive ? 'active' : ''}`;
+            btn.dataset.type = type;
+
+            btn.onclick = (e) => {
+                if (e.target.type !== 'checkbox') {
+                    switchType(type);
+                }
+            };
+
+            const label = document.createElement('span');
+            label.textContent = meta.label;
+
+            const toggle = document.createElement('input');
+            toggle.type = 'checkbox';
+            toggle.checked = isEnabled;
+            toggle.onclick = (e) => {
+                updateConfig(type, 'enabled', e.target.checked);
+            };
+
+            btn.appendChild(label);
+            btn.appendChild(toggle);
+            sidebar.appendChild(btn);
         });
 
-        const saveBtn = document.getElementById('saveAlertsBtn');
-        if (saveBtn) saveBtn.addEventListener('click', saveConfig);
+        const themeBtn = document.createElement('div');
+        themeBtn.className = `alert-type-btn ${currentType === 'themes' ? 'active' : ''}`;
+        themeBtn.onclick = () => switchType('themes');
+        themeBtn.innerHTML = '<span>Thèmes Global</span>';
+        sidebar.appendChild(themeBtn);
+    }
 
-        const testBtn = document.getElementById('testAlertBtn');
-        if (testBtn) testBtn.addEventListener('click', triggerTest);
+    function switchType(type) {
+        currentType = type;
+        renderSidebar();
+        if (type === 'themes') {
+            renderThemesTab();
+        } else {
+            renderForm(type);
+            updatePreview(type);
+        }
+    }
 
-    }).catch(err => {
-        console.error(err);
-    });
+    function renderThemesTab() {
+        configForm.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'alert-config-group';
+        container.style.flex = '1';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.height = '100%';
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'css-editor-textarea';
+        textarea.style.flex = '1';
+        textarea.style.width = '100%';
+        textarea.style.background = '#222';
+        textarea.style.color = '#fff';
+        textarea.style.border = '1px solid #444';
+        textarea.style.padding = '10px';
+        textarea.style.marginTop = '20px';
+        textarea.style.marginBottom = '20px';
+        textarea.style.resize = 'none';
+
+
+        const legacyPattern = /\.alert-text\s*\{\s*font-size:\s*1\.5em;/;
+        if (currentConfig.customCSS && legacyPattern.test(currentConfig.customCSS)) {
+            currentConfig.customCSS = `
+.alert-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
-
-function showStatus(msg, type = 'success') {
-    if (!statusMsg) return;
-    statusMsg.textContent = msg;
-    statusMsg.style.color = type === 'success' ? 'var(--success)' : 'var(--danger)';
-    statusMsg.style.opacity = '1';
-
-    setTimeout(() => {
-        statusMsg.style.opacity = '0';
-        setTimeout(() => {
-            statusMsg.textContent = '';
-        }, 500);
-    }, 2000);
+.alert-image {
+    max-width: 600px;
+    margin-bottom: 20px;
 }
+.alert-image img {
+    width: 100%;
+    display: block;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+}
+.alert-text {
+    font-size: 36px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.alert-message {
+    font-size: 24px;
+    font-weight: 700;
+    color: #eee;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    margin-top: 10px;
+}
+`;
+        }
 
-function renderSidebar() {
-    if (!sidebar) return;
-    sidebar.innerHTML = '';
+        textarea.value = currentConfig.customCSS || `
+.alert-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.alert-image {
+    max-width: 600px;
+    margin-bottom: 20px;
+}
+.alert-image img {
+    width: 100%;
+    display: block;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+}
+.alert-text {
+    font-size: 36px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.alert-message {
+    font-size: 24px;
+    font-weight: 700;
+    color: #eee;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    margin-top: 10px;
+}
+`;
+        textarea.addEventListener('change', (e) => {
+            if (!currentConfig.globalTheme) currentConfig.globalTheme = '';
+            currentConfig.globalTheme = e.target.value;
+        });
 
-    Object.keys(EVENT_TYPES).forEach(type => {
-        const meta = EVENT_TYPES[type];
-        const isActive = type === currentType;
+        textarea.addEventListener('input', (e) => {
+            if (!currentConfig.customCSS) currentConfig.customCSS = '';
+            currentConfig.customCSS = e.target.value;
+            updateGlobalThemePreview(currentConfig.customCSS);
+        });
+
+        container.appendChild(textarea);
+        configForm.appendChild(container);
+
+
+        updateGlobalThemePreview(currentConfig.customCSS || '');
+    }
+
+
+
+    function renderForm(type) {
+        if (!configForm) return;
+        configForm.innerHTML = '';
+
         const typeConfig = currentConfig[type] || {};
-        const isEnabled = typeConfig.enabled !== false;
+        const meta = EVENT_TYPES[type];
 
-        const btn = document.createElement('div');
-        btn.className = `alert-type-btn ${isActive ? 'active' : ''}`;
-        btn.dataset.type = type;
+        const container = document.createElement('div');
+        container.className = 'compact-container';
 
-        btn.onclick = (e) => {
-            if (e.target.type !== 'checkbox') {
-                switchType(type);
-            }
+        const urlDisplay = document.createElement('div');
+        urlDisplay.className = 'widget-url-display';
+        urlDisplay.innerHTML = `<span style="color:var(--text-secondary); margin-right:5px;">Source OBS:</span> <code class="chat-widget-url">http://127.0.0.1:${widgetPort}/widget/alerts</code>`;
+        container.appendChild(urlDisplay);
+
+        container.appendChild(createInputGroup('Message', typeConfig.textTemplate || meta.defaultText, (val) => updateConfig(type, 'textTemplate', val)));
+
+        const visualRow = createRow();
+        visualRow.appendChild(createFilePickerGroup('Image', typeConfig.image, 'image', (val) => updateConfig(type, 'image', val)));
+        visualRow.appendChild(createFilePickerGroup('Son', typeConfig.audio, 'audio', (val) => updateConfig(type, 'audio', val)));
+        container.appendChild(visualRow);
+
+        const settingsRow = createRow();
+        settingsRow.appendChild(createSelectGroup('Disposition', typeConfig.layout || 'top', [
+            { value: 'top', label: 'Image au-dessus' },
+            { value: 'side', label: 'Image à gauche' }
+        ], (val) => updateConfig(type, 'layout', val)));
+
+        settingsRow.appendChild(createSliderGroup('Volume', typeConfig.volume !== undefined ? typeConfig.volume : 0.5, (val) => updateConfig(type, 'volume', parseFloat(val))));
+        settingsRow.appendChild(createInputGroup('Durée (ms)', typeConfig.duration || 5000, (val) => updateConfig(type, 'duration', parseInt(val)), 'number'));
+        container.appendChild(settingsRow);
+
+        configForm.appendChild(container);
+        updatePreview(type);
+    }
+
+
+
+
+    function updateConfig(type, key, value) {
+        if (!currentConfig[type]) currentConfig[type] = {};
+        currentConfig[type][key] = value;
+        updatePreview(type);
+    }
+
+    function updatePreview(type) {
+        if (!previewFrame) return;
+        const config = currentConfig[type] || {};
+        const meta = EVENT_TYPES[type];
+
+
+
+
+
+
+
+
+        const css = currentConfig.customCSS || '';
+        const html = getAlertsPreviewHtml(type, config, css, meta);
+
+        previewFrame.srcdoc = html;
+    }
+
+    function updateGlobalThemePreview(css) {
+
+
+        const sampleType = 'follow';
+        const config = currentConfig[sampleType] || {};
+        const meta = EVENT_TYPES[sampleType];
+
+        const html = getAlertsPreviewHtml(sampleType, config, css, meta);
+        if (previewFrame) previewFrame.srcdoc = html;
+    }
+
+    function getAlertsPreviewHtml(type, config, css, meta) {
+        const defaultCSS = `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: 'Inter', sans-serif; }
+        
+        #alert-container {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+            transition: opacity 0.3s;
+        }
+
+        /* Animation Classes */
+        .animate-in { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .animate-out { animation: fadeOut 0.5s ease forwards; }
+
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+            70% { transform: translate(-50%, -50%) scale(0.9); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+
+        .layout-side-by-side { flex-direction: row !important; }
+        .layout-side-by-side .alert-image { margin-right: 20px; margin-bottom: 0; }
+        .alert-text { font-size: 12px; font-weight: 900; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; }
+        .alert-message { font-size: 12px; font-weight: 700; color: #eee; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-top: 10px; }
+        .alert-image { max-width: 600px; margin-bottom: 20px; }
+        .alert-image img { width: 100%; display: block; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+    `;
+
+
+        let text = config.textTemplate || meta.defaultText;
+        text = text.replace('{username}', 'Pseudo');
+        text = text.replace('{amount}', '100');
+        text = text.replace('{months}', '12');
+
+        const layoutClass = config.layout === 'side' ? 'layout-side-by-side' : '';
+
+        let imageHtml = '';
+        if (config.image) {
+            imageHtml = `<div id="alert-image" class="alert-image"><img src="${config.image}"></div>`;
+        } else {
+            imageHtml = `<div id="alert-image" class="alert-image" style="font-size:48px; color:#777;">[IMG]</div>`;
+        }
+
+        let messageHtml = '';
+        if (meta.hasMessage || config.message) {
+            messageHtml = `<div id="alert-message" class="alert-message">Ceci est un message de test.</div>`;
+        }
+
+
+        const script = `
+        const container = document.getElementById('alert-container');
+        const imgContainer = document.querySelector('#alert-image');
+        const textContainer = document.getElementById('alert-text');
+        const msgContainer = document.getElementById('alert-message');
+        const audio = document.getElementById('alert-audio');
+        
+        const ws = new WebSocket('ws://127.0.0.1:${widgetPort}');
+        ws.onopen = () => console.log('Preview Connected to WS');
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'alert') {
+                    playAlert(data.alert);
+                } else if (data.type === 'skip') {
+                     container.style.opacity = '0';
+                }
+            } catch(e) { console.error(e); }
         };
 
-        const label = document.createElement('span');
-        label.textContent = meta.label;
+        function playAlert(alert) {
+             container.className = 'alert-box';
+             container.classList.remove('animate-in', 'animate-out');
+             void container.offsetWidth; // Reflow
 
-        const toggle = document.createElement('input');
-        toggle.type = 'checkbox';
-        toggle.checked = isEnabled;
-        toggle.onclick = (e) => {
-            updateConfig(type, 'enabled', e.target.checked);
-        };
+             const imgWrapper = document.getElementById('alert-image');
+             imgWrapper.innerHTML = '';
+             if (alert.image) {
+                const img = document.createElement('img');
+                img.src = alert.image;
+                imgWrapper.appendChild(img);
+             }
 
-        btn.appendChild(label);
-        btn.appendChild(toggle);
-        sidebar.appendChild(btn);
-    });
-}
+             document.getElementById('alert-text').innerHTML = alert.text || '';
+             document.getElementById('alert-message').innerHTML = alert.message || '';
 
-function switchType(type) {
-    currentType = type;
-    renderSidebar();
-    renderForm(type);
-    updatePreview(type);
-}
+             if (alert.layout === 'side') container.classList.add('layout-side-by-side');
 
-function renderForm(type) {
-    if (!configForm) return;
-    configForm.innerHTML = '';
+             if (alert.audio) {
+                 audio.src = alert.audio;
+                 audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
+                 audio.play().catch(e => console.log(e));
+             }
 
-    const typeConfig = currentConfig[type] || {};
-    const meta = EVENT_TYPES[type];
+             container.style.opacity = '1';
+             container.classList.add('animate-in');
+             
+             setTimeout(() => {
+                 container.classList.remove('animate-in');
+                 container.classList.add('animate-out');
+             }, alert.duration || 5000);
+        }
+    `;
 
-    const container = document.createElement('div');
-    container.className = 'compact-container';
+        return `<!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            ${defaultCSS}
+            ${css}
+        </style>
+    </head>
+    <body>
+        <div id="alert-container" class="alert-box ${layoutClass}">
+            ${imageHtml}
+            <div id="alert-text-wrapper">
+                <div id="alert-text" class="alert-text">${text}</div>
+                ${messageHtml}
+            </div>
+        </div>
+        <audio id="alert-audio"></audio>
+        <script>${script}</script>
+    </body>
+    </html>`;
+    }
 
-    const urlDisplay = document.createElement('div');
-    urlDisplay.className = 'widget-url-display';
-    urlDisplay.innerHTML = `<span style="color:var(--text-secondary); margin-right:5px;">Source OBS :</span> <code class="chat-widget-url">http://127.0.0.1:${widgetPort}/widget/alerts</code>`;
-    container.appendChild(urlDisplay);
-
-    container.appendChild(createInputGroup('Message', typeConfig.textTemplate || meta.defaultText, (val) => updateConfig(type, 'textTemplate', val)));
-
-    const visualRow = createRow();
-    visualRow.appendChild(createFilePickerGroup('Image', typeConfig.image, 'image', (val) => updateConfig(type, 'image', val)));
-    visualRow.appendChild(createFilePickerGroup('Son', typeConfig.audio, 'audio', (val) => updateConfig(type, 'audio', val)));
-    container.appendChild(visualRow);
-
-    const settingsRow = createRow();
-    settingsRow.appendChild(createSelectGroup('Disposition', typeConfig.layout || 'top', [
-        { value: 'top', label: 'Image au-dessus' },
-        { value: 'side', label: 'Image à gauche' }
-    ], (val) => updateConfig(type, 'layout', val)));
-
-    settingsRow.appendChild(createSliderGroup('Volume', typeConfig.volume !== undefined ? typeConfig.volume : 0.5, (val) => updateConfig(type, 'volume', parseFloat(val))));
-    settingsRow.appendChild(createInputGroup('Durée (ms)', typeConfig.duration || 5000, (val) => updateConfig(type, 'duration', parseInt(val)), 'number'));
-    container.appendChild(settingsRow);
-
-    configForm.appendChild(container);
-    updatePreview(type);
-}
-
-function createRow() {
-    const div = document.createElement('div');
-    div.className = 'form-row';
-    return div;
-}
-
-function createInputGroup(label, value, onChange, type = 'text') {
-    const div = document.createElement('div');
-    div.className = 'form-group';
-    div.innerHTML = `<label>${label}</label>`;
-    const input = document.createElement('input');
-    input.type = type;
-    input.value = value;
-    input.addEventListener('input', (e) => onChange(e.target.value));
-    div.appendChild(input);
-    return div;
-}
-
-function createSliderGroup(label, value, onChange) {
-    const div = document.createElement('div');
-    div.className = 'form-group';
-    const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.innerHTML = `<label>${label}</label><span>${Math.round(value * 100)}%</span>`;
-
-    const input = document.createElement('input');
-    input.type = 'range';
-    input.min = 0;
-    input.max = 1;
-    input.step = 0.05;
-    input.value = value;
-    input.style.width = '100%';
-    input.addEventListener('input', (e) => {
-        header.querySelector('span').textContent = `${Math.round(e.target.value * 100)}%`;
-        onChange(e.target.value);
-    });
-    div.appendChild(header);
-    div.appendChild(input);
-    return div;
-}
-
-function createSelectGroup(label, value, options, onChange) {
-    const div = document.createElement('div');
-    div.className = 'form-group';
-    div.innerHTML = `<label>${label}</label>`;
-    const select = document.createElement('select');
-    options.forEach(opt => {
-        const o = document.createElement('option');
-        o.value = opt.value;
-        o.textContent = opt.label;
-        if (opt.value === value) o.selected = true;
-        select.appendChild(o);
-    });
-    select.addEventListener('change', (e) => onChange(e.target.value));
-    div.appendChild(select);
-    return div;
-}
-
-function createFilePickerGroup(label, value, type, onChange) {
-    const div = document.createElement('div');
-    div.className = 'form-group';
-    div.innerHTML = `<label>${label}</label>`;
-
-    const container = document.createElement('div');
-    container.className = 'file-picker-container';
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = value || '';
-    input.readOnly = true;
-    input.placeholder = 'Aucun fichier';
-
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-secondary';
-    btn.textContent = '...';
-    btn.onclick = async () => {
-        const filters = type === 'image'
-            ? [{ name: 'Images', extensions: ['jpg', 'png', 'gif'] }]
-            : [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg'] }];
-
+    async function saveConfig() {
         try {
-            const path = await window.api.invoke('open-file-dialog', filters);
-            if (path) {
-                const fileUri = `file://${path.replace(/\\/g, '/')}`;
-                input.value = fileUri;
-                onChange(fileUri);
-            }
+            await API.widgets.saveConfig('alerts', currentConfig);
+            showStatus('alerts-status-msg', NOTIFICATIONS.SUCCESS.SAVED, 'success');
+            return true;
         } catch (e) {
             console.error(e);
+            showStatus('alerts-status-msg', NOTIFICATIONS.ERROR.SAVE, 'error');
+            return false;
         }
-    };
-
-    container.appendChild(input);
-    container.appendChild(btn);
-    div.appendChild(container);
-    return div;
-}
-
-function updateConfig(type, key, value) {
-    if (!currentConfig[type]) currentConfig[type] = {};
-    currentConfig[type][key] = value;
-    updatePreview(type);
-}
-
-function updatePreview(type) {
-    if (!previewContainer) return;
-    const config = currentConfig[type] || {};
-    const meta = EVENT_TYPES[type];
-
-    previewImage.innerHTML = '';
-    previewText.textContent = '';
-    previewMessage.textContent = '';
-    previewContainer.className = '';
-
-    if (config.layout === 'side') {
-        previewContainer.style.flexDirection = 'row';
-        previewContainer.style.alignItems = 'center';
-        previewImage.style.marginRight = '20px';
-    } else {
-        previewContainer.style.flexDirection = 'column';
-        previewImage.style.marginRight = '0';
     }
 
-    if (config.image) {
-        const img = document.createElement('img');
-        img.src = config.image;
-        img.style.maxWidth = '150px';
-        img.style.maxHeight = '100px';
-        previewImage.appendChild(img);
-    } else {
-        previewImage.textContent = '[IMG]';
-        previewImage.style.color = '#777';
-        previewImage.style.fontSize = '12px';
-    }
+    async function triggerTest() {
+        try {
+            const savedConfig = await API.widgets.getConfig('alerts');
+            const config = (savedConfig && savedConfig[currentType]) ? savedConfig[currentType] : {};
 
-    let text = config.textTemplate || meta.defaultText;
-    text = text.replace('{username}', 'Pseudo');
-    text = text.replace('{amount}', '100');
-    previewText.textContent = text;
-}
+            const dummyData = {
+                type: currentType,
+                username: 'TestUser',
+                amount: 100,
+                text: (config.textTemplate || EVENT_TYPES[currentType].defaultText).replace('{username}', 'Zexal').replace('{amount}', '100'),
+                image: config.image,
+                audio: config.audio,
+                volume: config.volume,
+                duration: config.duration,
+                layout: config.layout
+            };
 
-async function saveConfig() {
-    try {
-        await window.api.invoke('save-widget-config', 'alerts', currentConfig);
-        showStatus(NOTIFICATIONS.SUCCESS.SAVED, 'success');
-        return true;
-    } catch (e) {
-        console.error(e);
-        showStatus(NOTIFICATIONS.ERROR.SAVE, 'error');
-        return false;
-    }
-}
-
-async function triggerTest() {
-    try {
-        const savedConfig = await window.api.invoke('get-widget-config', 'alerts');
-        const config = (savedConfig && savedConfig[currentType]) ? savedConfig[currentType] : {};
-
-        const dummyData = {
-            type: currentType,
-            username: 'TestUser',
-            amount: 100,
-            text: (config.textTemplate || EVENT_TYPES[currentType].defaultText).replace('{username}', 'Zexal').replace('{amount}', '100'),
-            image: config.image,
-            audio: config.audio,
-            volume: config.volume,
-            duration: config.duration,
-            layout: config.layout
-        };
-
-        await window.api.invoke('trigger-alert-test', dummyData);
-    } catch (e) {
-        console.error(e);
-        showStatus('Erreur Test', 'error');
+            await API.alerts.triggerTest(dummyData);
+        } catch (e) {
+            console.error(e);
+            showStatus('alerts-status-msg', 'Erreur Test', 'error');
+        }
     }
 }
 

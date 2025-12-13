@@ -10,6 +10,7 @@ const { Bonjour } = require('bonjour-service');
 const { Client, DefaultMediaReceiver } = require('castv2-client');
 const { autoUpdater } = require('electron-updater');
 const WebSocket = require('ws');
+const StreamlabsClient = require('./server/streamlabs');
 const { createChatWidgetServer } = require('./server/chatWidgetServer');
 
 const { createSpotifyWidgetServer } = require('./server/spotifyWidgetServer');
@@ -32,7 +33,7 @@ const DEFAULT_WIDGET_PORT = 8087;
 const DEFAULT_SPOTIFY_WIDGET_PORT = 8090;
 const DEFAULT_SUBGOALS_WIDGET_PORT = 8091;
 const DEFAULT_ROULETTE_WIDGET_PORT = 8092;
-const DEFAULT_ALERTS_WIDGET_PORT = 8093;
+const DEFAULT_ALERTS_WIDGET_PORT = 8097;
 
 let mainWindow;
 let cssEditorWindow = null;
@@ -46,6 +47,7 @@ let alertsWidgetServer;
 let currentlyPlayingPath = null;
 let updateCheckTimer = null;
 let bonjourInstance = null;
+let streamlabsClient = null;
 
 async function reloadThemeContent() {
     const widgets = ['chat', 'spotify', 'subgoals', 'emote-wall', 'roulette', 'alerts'];
@@ -77,6 +79,68 @@ async function reloadThemeContent() {
         }
     }
 }
+
+
+
+ipcMain.handle('get-themes', async () => {
+    const userThemesDir = path.join(app.getPath('userData'), 'themes');
+    const builtInThemesDir = app.isPackaged
+        ? path.join(app.getAppPath(), 'widgets/themes')
+        : path.join(__dirname, 'widgets/themes');
+
+    const themeConfigPath = path.join(app.getPath('userData'), 'themeConfig.json');
+    let themeConfig = {};
+    if (fs.existsSync(themeConfigPath)) {
+        themeConfig = JSON.parse(await fs.promises.readFile(themeConfigPath, 'utf8'));
+    }
+
+    const allThemes = new Set();
+    const isBuiltin = new Set();
+
+    if (fs.existsSync(userThemesDir)) {
+        const userFiles = await fs.promises.readdir(userThemesDir);
+        userFiles.filter(f => f.endsWith('.css')).forEach(f => allThemes.add(f));
+    }
+
+    if (fs.existsSync(builtInThemesDir)) {
+        const builtInFiles = await fs.promises.readdir(builtInThemesDir);
+        builtInFiles.filter(f => f.endsWith('.css')).forEach(f => {
+            allThemes.add(f);
+            isBuiltin.add(f);
+        });
+    }
+
+    const prefix = 'theme_';
+    return {
+        themes: Array.from(allThemes).map(f => ({
+            id: f,
+            name: (themeConfig[f]?.name || f.replace(prefix, '').replace('.css', '')).replace(/_/g, ' '),
+            builtin: isBuiltin.has(f)
+        })).sort((a, b) => {
+            if (a.builtin && !b.builtin) return -1;
+            if (!a.builtin && b.builtin) return 1;
+            return a.name.localeCompare(b.name);
+        })
+    };
+});
+
+
+
+ipcMain.handle('get-channel-rewards', async () => {
+    return await bot.getChannelRewards();
+});
+
+ipcMain.handle('create-channel-reward', async (event, rewardData) => {
+    return await bot.createChannelReward(rewardData);
+});
+
+ipcMain.handle('update-channel-reward', async (event, rewardId, rewardData) => {
+    return await bot.updateChannelReward(rewardId, rewardData);
+});
+
+ipcMain.handle('delete-channel-reward', async (event, rewardId) => {
+    return await bot.deleteChannelReward(rewardId);
+});
 
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
@@ -300,6 +364,12 @@ app.whenReady().then(async () => {
     subgoalsServer = createSubgoalsWidgetServer(bot, DEFAULT_SUBGOALS_WIDGET_PORT);
     rouletteServer = createRouletteWidgetServer(bot, DEFAULT_ROULETTE_WIDGET_PORT);
     alertsWidgetServer = createAlertsWidgetServer(bot, DEFAULT_ALERTS_WIDGET_PORT);
+
+    streamlabsClient = new StreamlabsClient(bot);
+    const config = bot.getConfig();
+    if (config.streamlabsSocketToken) {
+        streamlabsClient.start(config.streamlabsSocketToken);
+    }
 
 
     bot.onAlert = (alert) => {
@@ -543,6 +613,8 @@ ipcMain.handle('save-widget-config', (event, widgetName, config) => {
         if (widgetName === 'emote-wall') {
             chatServer.broadcastConfig(config, widgetName);
         }
+    } else if (widgetName === 'alerts' && alertsWidgetServer) {
+        alertsWidgetServer.broadcast({ type: 'config-update', config });
     }
     return { success: true };
 });
@@ -580,45 +652,7 @@ ipcMain.handle('reset-widget-config', async (event, widgetName) => {
     return { success: true };
 });
 
-ipcMain.handle('get-themes', async (event, widgetType) => {
-    const userThemesDir = path.join(app.getPath('userData'), 'themes');
-    const builtInThemesDir = path.join(__dirname, 'widgets/themes');
-    const configPath = path.join(userThemesDir, 'themes.json');
 
-    const prefix = widgetType === 'subgoals' ? 'sub_' : widgetType + '_';
-
-    if (!fs.existsSync(userThemesDir)) {
-        fs.mkdirSync(userThemesDir, { recursive: true });
-    }
-
-    let themeConfig = {};
-    try {
-        if (fs.existsSync(configPath)) {
-            const content = await fs.promises.readFile(configPath, 'utf8');
-            themeConfig = JSON.parse(content);
-        }
-    } catch (e) { console.error('Error reading theme config:', e); }
-
-    const allThemes = new Set();
-
-    try {
-        if (fs.existsSync(userThemesDir)) {
-            const userFiles = await fs.promises.readdir(userThemesDir);
-            userFiles.filter(f => f.endsWith('.css') && f.startsWith(prefix))
-                .forEach(f => allThemes.add(f));
-        }
-    } catch (e) { console.error('Error reading user themes:', e); }
-
-    try {
-        if (fs.existsSync(builtInThemesDir)) {
-            const builtInFiles = await fs.promises.readdir(builtInThemesDir);
-            builtInFiles.filter(f => f.endsWith('.css') && f.startsWith(prefix))
-                .forEach(f => allThemes.add(f));
-        }
-    } catch (e) { console.error('Error reading built-in themes:', e); }
-
-    return Array.from(allThemes);
-});
 
 ipcMain.handle('get-theme-content', async (event, filename) => {
     const userThemesDir = path.join(app.getPath('userData'), 'themes');
@@ -792,6 +826,7 @@ ipcMain.handle('get-widget-url', async (event, widgetName = 'chat') => {
 
 ipcMain.handle('get-widget-urls', async () => {
     const localIp = getLocalIp();
+
     return {
         chat: chatServer ? chatServer.getUrl(localIp, 'chat') : '',
         spotify: spotifyServer ? spotifyServer.getUrl(localIp) : '',
@@ -988,6 +1023,9 @@ ipcMain.handle('is-giveaway-active', () => bot.isGiveawayActive());
 ipcMain.handle('save-config', (event, config) => {
     bot.updateConfig(config);
     if (config.clipCooldown !== undefined) bot.setClipCooldown(config.clipCooldown);
+    if (config.streamlabsSocketToken !== undefined && streamlabsClient) {
+        streamlabsClient.updateToken(config.streamlabsSocketToken);
+    }
     if (config.channel || config.username || config.token) setTimeout(() => bot.connect(), 500);
     return { success: true };
 });
@@ -1017,6 +1055,7 @@ ipcMain.handle('get-sub-count', async () => {
     return { count: 0 };
 });
 
+
 ipcMain.handle('simulate-sub', () => {
     if (bot && bot.simulateSub) {
         bot.simulateSub();
@@ -1024,3 +1063,15 @@ ipcMain.handle('simulate-sub', () => {
     }
     return { success: false };
 });
+
+app.on('will-quit', () => {
+    if (chatServer) chatServer.stop();
+    if (spotifyServer) spotifyServer.stop();
+    if (subgoalsServer) subgoalsServer.stop();
+    if (rouletteServer) rouletteServer.stop();
+    if (alertsWidgetServer) alertsWidgetServer.stop();
+    if (streamlabsClient) streamlabsClient.stop();
+    if (mediaServer) mediaServer.close();
+    if (bonjourInstance) bonjourInstance.destroy();
+});
+

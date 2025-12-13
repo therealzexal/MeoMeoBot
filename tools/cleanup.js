@@ -4,7 +4,7 @@ const path = require('path');
 const rootDir = path.resolve(__dirname, '..');
 
 const extensions = ['.js', '.css', '.html'];
-const ignoredDirs = ['.git', 'node_modules', '.dist', 'dist', 'tools'];
+const ignoredDirs = ['.git', 'node_modules', '.dist', 'dist', '.gemini'];
 const ignoredFiles = ['package-lock.json', 'cleanup.js'];
 
 function stripJsCssComments(content) {

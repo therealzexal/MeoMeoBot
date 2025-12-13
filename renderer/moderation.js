@@ -1,8 +1,9 @@
-import { showNotification, createDeleteControl, NOTIFICATIONS } from './ui.js';
+import { showStatus, createDeleteControl, NOTIFICATIONS } from './ui.js';
+import { API } from './api.js';
 
 export async function loadBannedWords() {
     try {
-        const response = await window.api.invoke('get-banned-words');
+        const response = await API.moderation.getBannedWords();
         updateBannedWordsList(response.bannedWords || []);
     } catch (error) {
         console.error('Erreur chargement mots bannis:', error);
@@ -35,32 +36,32 @@ export async function addBannedWord() {
     if (!word) return;
 
     try {
-        await window.api.invoke('add-banned-word', word);
+        await API.moderation.addBannedWord(word);
         input.value = '';
         loadBannedWords();
-        showNotification(NOTIFICATIONS.BANNED_WORD_ADDED.replace('{word}', word), 'success');
+        showStatus('banned-words-status-msg', NOTIFICATIONS.BANNED_WORD_ADDED.replace('{word}', word), 'success');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
+        showStatus('banned-words-status-msg', NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
     }
 }
 
 async function removeBannedWord(word) {
     try {
-        await window.api.invoke('remove-banned-word', word);
+        await API.moderation.removeBannedWord(word);
         loadBannedWords();
-        showNotification(NOTIFICATIONS.BANNED_WORD_REMOVED.replace('{word}', word), 'info');
+        showStatus('banned-words-status-msg', NOTIFICATIONS.BANNED_WORD_REMOVED.replace('{word}', word), 'success');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
+        showStatus('banned-words-status-msg', NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
     }
 }
 
 export async function clearBannedWords() {
     try {
-        await window.api.invoke('clear-banned-words');
+        await API.moderation.clearBannedWords();
         loadBannedWords();
-        setStatus('clear-banned-words-status', NOTIFICATIONS.SUCCESS.CLEARED, 'success');
+        showStatus('clear-banned-words-status', NOTIFICATIONS.SUCCESS.CLEARED, 'success');
     } catch (error) {
-        setStatus('clear-banned-words-status', NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
+        showStatus('clear-banned-words-status', NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
         console.error(error);
     }
 }
@@ -70,13 +71,13 @@ export async function saveAutoMessage() {
     const interval = parseInt(document.getElementById('autoMessageInterval').value, 10);
 
     try {
-        await window.api.invoke('save-config', {
+        await API.saveConfig({
             autoMessage: message,
             autoMessageInterval: interval
         });
-        setStatus('auto-message-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
+        showStatus('auto-message-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        setStatus('auto-message-status', NOTIFICATIONS.ERROR.SAVE, 'error');
+        showStatus('auto-message-status', NOTIFICATIONS.ERROR.SAVE, 'error');
         console.error(error);
     }
 }
@@ -84,10 +85,10 @@ export async function saveAutoMessage() {
 export async function saveClipConfig() {
     const cooldown = parseInt(document.getElementById('clipCooldown').value, 10);
     try {
-        await window.api.invoke('save-config', { clipCooldown: cooldown });
-        setStatus('clip-config-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
+        await API.saveConfig({ clipCooldown: cooldown });
+        showStatus('clip-config-status', NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        setStatus('clip-config-status', NOTIFICATIONS.ERROR.SAVE, 'error');
+        showStatus('clip-config-status', NOTIFICATIONS.ERROR.SAVE, 'error');
         console.error(error);
     }
 }

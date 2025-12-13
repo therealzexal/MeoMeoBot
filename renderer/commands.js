@@ -1,8 +1,9 @@
-import { showNotification, createDeleteControl, ICONS, NOTIFICATIONS } from './ui.js';
+import { showStatus, createDeleteControl, ICONS, NOTIFICATIONS } from './ui.js';
+import { API } from './api.js';
 
 export async function loadCommands() {
     try {
-        const { commands } = await window.api.invoke('get-commands');
+        const { commands } = await API.commands.getAll();
         const list = document.getElementById('commandsList');
         list.innerHTML = '';
 
@@ -88,14 +89,13 @@ export async function loadCommands() {
 
                 try {
                     if (finalCmd !== cmd) {
-                        await window.api.invoke('remove-command', cmd);
+                        await API.commands.remove(cmd);
                     }
-                    await window.api.invoke('add-command', finalCmd, newResp);
-                    await window.api.invoke('add-command', finalCmd, newResp);
-                    showNotification(NOTIFICATIONS.SUCCESS.COMMAND_MODIFIED, 'success');
+                    await API.commands.add(finalCmd, newResp);
+                    showStatus('commands-status-msg', NOTIFICATIONS.SUCCESS.COMMAND_MODIFIED, 'success');
                     loadCommands();
                 } catch (e) {
-                    showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
+                    showStatus('commands-status-msg', NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
                 }
             };
 
@@ -124,29 +124,29 @@ export async function addCommand() {
     const resp = respInput.value.trim();
 
     if (!cmd || !resp) {
-        showNotification(NOTIFICATIONS.ERROR.MISSING_FIELDS, 'error');
+        showStatus('commands-status-msg', NOTIFICATIONS.ERROR.MISSING_FIELDS, 'error');
         return;
     }
 
     const finalCmd = cmd.startsWith('!') ? cmd : `!${cmd}`;
 
     try {
-        await window.api.invoke('add-command', finalCmd, resp);
+        await API.commands.add(finalCmd, resp);
         cmdInput.value = '';
         respInput.value = '';
         loadCommands();
-        showNotification(NOTIFICATIONS.COMMAND_ADDED.replace('{cmd}', finalCmd), 'success');
+        showStatus('commands-status-msg', NOTIFICATIONS.COMMAND_ADDED.replace('{cmd}', finalCmd), 'success');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
+        showStatus('commands-status-msg', NOTIFICATIONS.ERROR.ADD.replace('{error}', error), 'error');
     }
 }
 
 async function removeCommand(command) {
     try {
-        await window.api.invoke('remove-command', command);
+        await API.commands.remove(command);
         loadCommands();
-        showNotification(NOTIFICATIONS.SUCCESS.DELETED, 'info');
+        // showStatus('commands-status-msg', NOTIFICATIONS.SUCCESS.DELETED, 'success');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
+        showStatus('commands-status-msg', NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
     }
 }

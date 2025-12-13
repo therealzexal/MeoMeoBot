@@ -1,3 +1,6 @@
+import { NOTIFICATIONS } from './ui.js';
+import { API } from './api.js';
+
 const defaultCss = {
     chat: `body {
     background: transparent;
@@ -279,8 +282,8 @@ const cssClasses = {
 
 async function loadThemes(widget) {
     try {
-        const themes = await window.api.invoke('get-themes', widget);
-        const configStr = await window.api.invoke('get-theme-config');
+        const themes = await API.widgets.getThemes(widget);
+        const configStr = await API.widgets.getThemeConfig();
         const config = JSON.parse(configStr || '{}');
         const selector = document.getElementById('themeSelector');
         if (!selector) return;
@@ -357,7 +360,7 @@ function openConfigEditor() {
 
         confirmBtn.onclick = async () => {
             try {
-                const res = await window.api.invoke('delete-theme', currentWidget, opt.value);
+                const res = await API.widgets.deleteTheme(currentWidget, opt.value);
                 if (res.success) {
                     row.remove();
                     await loadThemes(currentWidget);
@@ -403,7 +406,7 @@ async function loadWidgetConfig(widgetName) {
     }
 
     try {
-        const config = await window.api.invoke('get-widget-config', currentWidget);
+        const config = await API.widgets.getConfig(currentWidget);
         currentWidgetConfig = config || {};
 
         const savedCss = currentWidgetConfig.customCSS || '';
@@ -446,10 +449,10 @@ async function saveWidgetConfig() {
             update.maxMessages = parseInt(maxMessagesInput.value, 10) || 10;
         }
 
-        const result = await window.api.invoke('save-widget-config', currentWidget, update);
+        const result = await API.widgets.saveConfig(currentWidget, update);
         if (result.success) {
             setStatus(NOTIFICATIONS.SUCCESS.SAVED, 'ok');
-            const config = await window.api.invoke('get-widget-config', currentWidget);
+            const config = await API.widgets.getConfig(currentWidget);
             currentWidgetConfig = config || {};
         } else {
             setStatus(NOTIFICATIONS.ERROR.SAVE, 'err');
@@ -709,7 +712,7 @@ function toggleCssGuide(show, shouldResize = false) {
 
     if (shouldResize && isVisible !== (cssGuidePanel.style.display !== 'none')) {
         const delta = isVisible ? 350 : -350;
-        window.api.invoke('resize-css-editor', delta);
+        API.widgets.resizeCssEditor(delta);
     }
 
     cssGuidePanel.style.display = isVisible ? 'flex' : 'none';
@@ -752,9 +755,9 @@ function init() {
 
             if (filename) {
                 try {
-                    const result = await window.api.invoke('delete-theme', currentWidget, filename);
+                    const result = await API.widgets.deleteTheme(currentWidget, filename);
 
-                    const content = await window.api.invoke('get-theme-content', filename);
+                    const content = await API.widgets.getThemeContent(filename);
                     if (cssInput) cssInput.value = content;
 
                     await saveWidgetConfig();
@@ -792,7 +795,7 @@ function init() {
                 return;
             }
             try {
-                const content = await window.api.invoke('get-theme-content', filename);
+                const content = await API.widgets.getThemeContent(filename);
                 if (cssInput) cssInput.value = content;
                 renderPreview();
             } catch (err) {
@@ -808,7 +811,7 @@ function init() {
     if (importThemeBtn) {
         importThemeBtn.addEventListener('click', async () => {
             try {
-                const result = await window.api.invoke('import-theme', currentWidget);
+                const result = await API.widgets.importTheme(currentWidget);
                 if (result.success) {
                     setStatus(result.message, 'ok');
                     loadThemes(currentWidget);
@@ -849,7 +852,7 @@ function init() {
 
             try {
                 const cssContent = cssInput ? cssInput.value : '';
-                const result = await window.api.invoke('create-theme', currentWidget, name, cssContent);
+                const result = await API.widgets.createTheme(currentWidget, name, cssContent);
                 if (result.success) {
                     setStatus(NOTIFICATIONS.SUCCESS.THEME_CREATED.replace('{name}', name), 'ok');
                     await loadThemes(currentWidget);
@@ -876,7 +879,7 @@ function init() {
     if (saveThemeConfigBtn) {
         saveThemeConfigBtn.addEventListener('click', async () => {
             try {
-                const configStr = await window.api.invoke('get-theme-config');
+                const configStr = await API.widgets.getThemeConfig();
                 const fullConfig = JSON.parse(configStr || '{}');
 
                 const inputs = document.querySelectorAll('.theme-name-input');
@@ -892,7 +895,7 @@ function init() {
                     }
                 });
 
-                await window.api.invoke('save-theme-config', JSON.stringify(fullConfig, null, 2));
+                await API.widgets.saveThemeConfig(JSON.stringify(fullConfig, null, 2));
                 const modal = document.getElementById('themeConfigModal');
                 if (modal) modal.style.display = 'none';
                 loadThemes(currentWidget);

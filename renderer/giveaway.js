@@ -1,11 +1,12 @@
-import { showNotification, NOTIFICATIONS } from './ui.js';
+import { showStatus, NOTIFICATIONS } from './ui.js';
+import { API } from './api.js';
 
 export async function loadParticipants() {
     try {
-        const participants = await window.api.invoke('get-participants');
+        const participants = await API.giveaway.getParticipants();
         updateParticipantsList(participants);
 
-        const isActive = await window.api.invoke('is-giveaway-active');
+        const isActive = await API.giveaway.isActive();
         updateGiveawayStatus(isActive);
     } catch (error) {
         console.error('Erreur chargement participants:', error);
@@ -45,26 +46,26 @@ function updateGiveawayStatus(isActive) {
 
 export async function startGiveaway() {
     try {
-        await window.api.invoke('start-giveaway');
+        await API.giveaway.start();
         updateGiveawayStatus(true);
         loadParticipants();
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.START.replace('{error}', error), 'error');
+        showStatus('giveaway-control-status-msg', NOTIFICATIONS.ERROR.START.replace('{error}', error), 'error');
     }
 }
 
 export async function stopGiveaway() {
     try {
-        await window.api.invoke('stop-giveaway');
+        await API.giveaway.stop();
         updateGiveawayStatus(false);
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.STOP.replace('{error}', error), 'error');
+        showStatus('giveaway-control-status-msg', NOTIFICATIONS.ERROR.STOP.replace('{error}', error), 'error');
     }
 }
 
 export async function drawWinner() {
     try {
-        const result = await window.api.invoke('draw-winner');
+        const result = await API.giveaway.drawWinner();
         const winner = result.winner;
         const display = document.getElementById('winnerDisplay');
         if (winner) {
@@ -72,21 +73,21 @@ export async function drawWinner() {
             display.classList.add('animate-winner');
         } else {
             display.textContent = NOTIFICATIONS.GIVEAWAY_NO_PARTICIPANT;
-            showNotification(NOTIFICATIONS.GIVEAWAY_NO_PARTICIPANT, 'error');
+            showStatus('giveaway-control-status-msg', NOTIFICATIONS.GIVEAWAY_NO_PARTICIPANT, 'error');
         }
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', error), 'error');
+        showStatus('giveaway-control-status-msg', NOTIFICATIONS.ERROR.GENERIC.replace('{error}', error), 'error');
     }
 }
 
 export async function clearParticipants() {
     try {
-        await window.api.invoke('clear-participants');
+        await API.giveaway.clearParticipants();
         loadParticipants();
         document.getElementById('winnerDisplay').textContent = '';
-        showNotification(NOTIFICATIONS.SUCCESS.CLEARED, 'info');
+        showStatus('giveaway-control-status-msg', NOTIFICATIONS.SUCCESS.CLEARED, 'success');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
+        showStatus('giveaway-control-status-msg', NOTIFICATIONS.ERROR.CLEAR.replace('{error}', error), 'error');
     }
 }
 
@@ -97,31 +98,17 @@ export async function saveGiveawayConfig() {
     const winMsg = document.getElementById('giveawayWinMessage').value;
 
     try {
-        await window.api.invoke('save-config', {
+        await API.saveConfig({
             giveawayCommand: command,
             giveawayStartMessage: startMsg,
             giveawayStopMessage: stopMsg,
             giveawayWinMessage: winMsg
         });
-        setStatus(NOTIFICATIONS.SUCCESS.SAVED, 'success');
+        showStatus('giveaway-status-msg', NOTIFICATIONS.SUCCESS.SAVED, 'success');
     } catch (error) {
-        setStatus(NOTIFICATIONS.ERROR.SAVE, 'error');
+        showStatus('giveaway-status-msg', NOTIFICATIONS.ERROR.SAVE, 'error');
         console.error(error);
     }
 }
 
-function setStatus(msg, type = 'success') {
-    const statusMsg = document.getElementById('giveaway-status-msg');
-    if (!statusMsg) return;
 
-    statusMsg.textContent = msg;
-    statusMsg.style.color = type === 'success' ? '#4ecca3' : '#e63946';
-    statusMsg.style.opacity = '1';
-
-    setTimeout(() => {
-        statusMsg.style.opacity = '0';
-        setTimeout(() => {
-            statusMsg.textContent = '';
-        }, 300);
-    }, 2000);
-}

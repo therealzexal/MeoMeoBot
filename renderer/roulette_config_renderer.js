@@ -1,5 +1,17 @@
 const { ipcRenderer } = require('electron');
 
+const widgetHelper = {
+    onRefresh: (cb) => {
+        const load = async () => {
+            const config = await ipcRenderer.invoke('get-widget-config', 'roulette');
+            cb(config);
+        };
+        load();
+        ipcRenderer.on('refresh-widget-urls', load);
+    },
+    getUrl: () => ipcRenderer.invoke('get-widget-url', 'roulette')
+};
+
 let choices = [];
 let widgetUrl = '';
 
@@ -11,31 +23,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('saveBtn').addEventListener('click', saveConfig);
 
-    await loadConfig();
-    await loadPreview();
-});
-
-async function loadConfig() {
-    try {
-        const config = await ipcRenderer.invoke('get-widget-config', 'roulette');
-        choices = config.choices || [];
-        renderChoices();
-    } catch (e) {
-        console.error('Error loading config:', e);
-    }
-}
-
-async function loadPreview() {
-    try {
-        widgetUrl = await ipcRenderer.invoke('get-widget-url', 'roulette');
-        const iframe = document.getElementById('preview-frame');
-        if (iframe && widgetUrl) {
-            iframe.src = widgetUrl;
+    widgetHelper.onRefresh((config) => {
+        if (config) {
+            choices = config.choices || [];
+            renderChoices();
         }
-    } catch (e) {
-        console.error('Error loading preview:', e);
-    }
-}
+
+        widgetHelper.getUrl().then(url => {
+            const iframe = document.getElementById('preview-frame');
+            if (iframe && url) {
+                iframe.src = url;
+            }
+        }).catch(console.error);
+    });
+});
 
 function renderChoices() {
     const list = document.getElementById('choicesList');

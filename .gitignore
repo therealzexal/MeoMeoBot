@@ -27,6 +27,7 @@ publish.ps1
 # Json
 package-lock.json
 
-#Md
+#Md & stuff
 release-notes.temp.md
 widgets/assets/soso.png
+/tools/

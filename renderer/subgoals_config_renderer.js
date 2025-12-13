@@ -20,23 +20,29 @@ const resetBtn = document.getElementById('resetBtn');
 const statusBar = document.getElementById('statusBar');
 const previewFrame = document.getElementById('preview-frame');
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadConfig();
-    setupEventListeners();
-    renderPreview();
-});
+const widgetHelper = {
+    onRefresh: (cb) => {
+        const load = async () => {
+            const config = await ipcRenderer.invoke('get-widget-config', 'subgoals');
+            cb(config);
+        };
+        load();
+        ipcRenderer.on('refresh-widget-urls', load);
+    }
+};
 
-async function loadConfig() {
-    try {
-        const config = await ipcRenderer.invoke('get-widget-config', 'subgoals');
+document.addEventListener('DOMContentLoaded', async () => {
+
+    widgetHelper.onRefresh((config) => {
         if (config) {
             currentConfig = { ...currentConfig, ...config };
             updateUI();
         }
-    } catch (e) {
-        showStatus('Erreur chargement config: ' + e.message, 'err');
-    }
-}
+    });
+
+    setupEventListeners();
+    
+});
 
 function updateUI() {
     startCountInput.value = currentConfig.startCount;
@@ -198,7 +204,14 @@ function getPreviewHtml() {
                 if (!nextGoalFound && stepRelative > progress) {
                     isNextGoal = true;
                     nextGoalFound = true;
+                    
+                    
                 }
+
+                
+                
+                
+                
 
                 if (isNextGoal) {
                     const shift = calculateShift(stepPercentage);

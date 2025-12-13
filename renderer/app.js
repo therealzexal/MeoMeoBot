@@ -1,12 +1,13 @@
 import { setupTabs } from './tabs.js';
-import { setupWindowControls, setupConfirmationOverlay, showNotification, updateUpdaterStatus, setupInlineConfirmLogic, NOTIFICATIONS } from './ui.js';
+import { setupWindowControls, setupConfirmationOverlay, updateUpdaterStatus, setupInlineConfirmLogic, NOTIFICATIONS, showStatus } from './ui.js';
+import { API } from './api.js';
 import { loadParticipants, startGiveaway, stopGiveaway, drawWinner, clearParticipants, saveGiveawayConfig } from './giveaway.js';
 import { loadCommands, addCommand } from './commands.js';
 import { loadBannedWords, addBannedWord, clearBannedWords, saveAutoMessage, saveClipConfig } from './moderation.js';
 import { setupCast } from './cast.js';
 
 window.editWidgetCss = (widgetName) => {
-    window.api.invoke('open-css-editor', widgetName);
+    API.widgets.openCssEditor(widgetName);
 };
 
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -30,17 +31,23 @@ async function initializeApp() {
 
 async function loadAllData() {
     try {
-        const config = await window.api.invoke('get-config');
+        const config = await API.getConfig();
         updateConfigForm(config);
 
         await loadCommands();
         await loadBannedWords();
         await loadParticipants();
 
-        const status = await window.api.invoke('get-bot-status');
+        const status = await API.getBotStatus();
         updateBotStatus(status.connected ? 'connected' : 'disconnected');
     } catch (error) {
-        showNotification(NOTIFICATIONS.ERROR.LOAD.replace('{error}', error.message || error), "error");
+        console.error(error);
+        const el = document.getElementById('connectionStatus');
+        if (el) {
+            el.className = 'status disconnected';
+            el.querySelector('span:last-child').textContent = 'Erreur Chargement';
+            el.title = error.message || error;
+        }
     }
 }
 
@@ -101,10 +108,10 @@ function setupEventListeners() {
             resetChatConfigBtn.textContent = resetChatConfigBtn.dataset.originalText || 'Reset Config';
 
             try {
-                await window.api.invoke('reset-widget-config', 'chat');
-                showNotification(NOTIFICATIONS.SUCCESS.CONFIG_RESET, 'success');
+                await API.widgets.resetConfig('chat');
+                showStatus('global-status-msg', NOTIFICATIONS.SUCCESS.CONFIG_RESET, 'success');
             } catch (e) {
-                showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
+                showStatus('global-status-msg', NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error');
             }
         });
     }
@@ -125,9 +132,9 @@ function setupEventListeners() {
         e.stopPropagation();
         const updateStatus = document.getElementById('updateStatus');
         if (updateStatus.classList.contains('update-available')) {
-            window.api.send('start-download');
+            API.updates.startDownload();
         } else if (updateStatus.classList.contains('downloaded')) {
-            window.api.send('quit-and-install');
+            API.updates.quitAndInstall();
         }
     });
     document.getElementById('update-deny-icon').addEventListener('click', (e) => {
@@ -139,24 +146,24 @@ function setupEventListeners() {
     window.api.on('update-status-check', (data) => updateUpdaterStatus(data.status));
     window.api.on('update-available', () => updateUpdaterStatus('update-available'));
     window.api.on('update-downloaded', () => updateUpdaterStatus('downloaded'));
-    window.api.on('notification', (msg, type) => showNotification(msg, type));
+    window.api.on('notification', (msg, type) => showStatus('global-status-msg', msg, type));
     window.api.on('participants-updated', () => loadParticipants());
     window.api.on('refresh-widget-urls', () => loadWidgetUrls());
 }
 
 async function connectBot() {
     try {
-        const result = await window.api.invoke('connect-bot');
-        if (result.success) showNotification(NOTIFICATIONS.SUCCESS.CONNECTED, 'success');
-        else showNotification(NOTIFICATIONS.ERROR.CONNECT.replace('{error}', result.error), 'error');
-    } catch (e) { showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
+        const result = await API.connectBot();
+        if (result.success) showStatus('global-status-msg', NOTIFICATIONS.SUCCESS.CONNECTED, 'success');
+        else showStatus('global-status-msg', NOTIFICATIONS.ERROR.CONNECT.replace('{error}', result.error), 'error');
+    } catch (e) { showStatus('global-status-msg', NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
 }
 
 async function disconnectBot() {
     try {
-        await window.api.invoke('disconnect-bot');
-        showNotification(NOTIFICATIONS.SUCCESS.DISCONNECTED, 'info');
-    } catch (e) { showNotification(NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
+        await API.disconnectBot();
+        showStatus('global-status-msg', NOTIFICATIONS.SUCCESS.DISCONNECTED, 'info');
+    } catch (e) { showStatus('global-status-msg', NOTIFICATIONS.ERROR.GENERIC.replace('{error}', e), 'error'); }
 }
 
 async function saveConfig() {
@@ -167,12 +174,13 @@ async function saveConfig() {
         twitchClientId: document.getElementById('twitchClientId').value,
         twitchAppToken: document.getElementById('twitchAppToken').value,
         spotifyClientId: document.getElementById('spotifyClientId').value,
-        spotifyClientSecret: document.getElementById('spotifyClientSecret').value
+        spotifyClientSecret: document.getElementById('spotifyClientSecret').value,
+        streamlabsSocketToken: document.getElementById('streamlabsSocketToken').value
     };
     try {
-        await window.api.invoke('save-config', config);
-        showNotification(NOTIFICATIONS.SUCCESS.SAVED, 'success');
-    } catch (e) { showNotification(NOTIFICATIONS.ERROR.SAVE + ': ' + e, 'error'); }
+        await API.saveConfig(config);
+        showStatus('global-status-msg', NOTIFICATIONS.SUCCESS.SAVED, 'success');
+    } catch (e) { showStatus('global-status-msg', NOTIFICATIONS.ERROR.SAVE + ': ' + e, 'error'); }
 }
 
 
@@ -186,6 +194,7 @@ function updateConfigForm(config) {
     document.getElementById('twitchAppToken').value = config.twitchAppToken || '';
     document.getElementById('spotifyClientId').value = config.spotifyClientId || '';
     document.getElementById('spotifyClientSecret').value = config.spotifyClientSecret || '';
+    document.getElementById('streamlabsSocketToken').value = config.streamlabsSocketToken || '';
 
     document.getElementById('giveawayCommand').value = config.giveawayCommand || '!giveaway';
     document.getElementById('giveawayStartMessage').value = config.giveawayStartMessage !== undefined ? config.giveawayStartMessage : 'Le giveaway commence ! Tape !giveaway pour participer.';
@@ -214,7 +223,7 @@ function updateBotStatus(status) {
 
 async function loadWidgetUrls() {
     try {
-        const urls = await window.api.invoke('get-widget-urls');
+        const urls = await API.widgets.getUrls();
         if (document.getElementById('widgetUrlDisplay')) document.getElementById('widgetUrlDisplay').textContent = urls.chat;
         if (document.getElementById('spotifyWidgetUrlDisplay')) document.getElementById('spotifyWidgetUrlDisplay').textContent = urls.spotify;
         if (document.getElementById('emoteWallWidgetUrlDisplay')) document.getElementById('emoteWallWidgetUrlDisplay').textContent = urls.emoteWall;
@@ -226,13 +235,13 @@ async function loadWidgetUrls() {
 
 async function startSpotifyAuth() {
     try {
-        await window.api.invoke('start-spotify-auth');
-    } catch (e) { showNotification('Erreur Auth Spotify: ' + e, 'error'); }
+        await API.startSpotifyAuth();
+    } catch (e) { showStatus('global-status-msg', 'Erreur Auth Spotify: ' + e, 'error'); }
 }
 
 async function loadBadgePrefs() {
     try {
-        const prefs = await window.api.invoke('get-badge-prefs');
+        const prefs = await API.getBadgePrefs();
         renderBadgePrefs(prefs);
     } catch (e) { console.error('Erreur de chargement badges', e); }
 }
@@ -271,14 +280,14 @@ async function saveBadgePrefs() {
         prefs[cb.dataset.badge] = cb.checked;
     });
     try {
-        await window.api.invoke('save-badge-prefs', prefs);
-        showNotification('Préférences sauvegardées', 'success');
-    } catch (e) { showNotification('Erreur sauvegarde badges: ' + e, 'error'); }
+        await API.saveBadgePrefs(prefs);
+        showStatus('global-status-msg', 'Préférences sauvegardées', 'success');
+    } catch (e) { showStatus('global-status-msg', 'Erreur sauvegarde badges: ' + e, 'error'); }
 }
 
 async function loadEmoteWallConfig() {
     try {
-        const config = await window.api.invoke('get-widget-config', 'emote-wall');
+        const config = await API.widgets.getConfig('emote-wall');
         if (config) {
             if (document.getElementById('emoteWallMinSize')) document.getElementById('emoteWallMinSize').value = config.minSize || 24;
             if (document.getElementById('emoteWallMaxSize')) document.getElementById('emoteWallMaxSize').value = config.maxSize || 64;
@@ -296,9 +305,9 @@ async function saveEmoteWallConfig() {
         animationDuration: parseInt(document.getElementById('emoteWallDuration').value, 10)
     };
     try {
-        await window.api.invoke('save-widget-config', 'emote-wall', config);
-        showNotification('Config Mur d\'Emotes sauvegardée', 'success');
-    } catch (e) { showNotification('Erreur de la sauvegarde Emote Wall: ' + e, 'error'); }
+        await API.widgets.saveConfig('emote-wall', config);
+        showStatus('global-status-msg', 'Config Mur d\'Emotes sauvegardée', 'success');
+    } catch (e) { showStatus('global-status-msg', 'Erreur de la sauvegarde Emote Wall: ' + e, 'error'); }
 }
 
 
@@ -309,7 +318,10 @@ function setupSubgoalsConfig() {
 
     if (configureBtn) {
         configureBtn.addEventListener('click', async () => {
-            await window.api.invoke('open-subgoals-config');
+
+
+
+            API.widgets.openSubgoalsConfig();
         });
     }
 }
@@ -318,7 +330,7 @@ function setupRouletteConfig() {
     const configureBtn = document.getElementById('configureRouletteBtn');
     if (configureBtn) {
         configureBtn.addEventListener('click', async () => {
-            await window.api.invoke('open-roulette-config');
+            await API.widgets.openRouletteConfig();
         });
     }
 
@@ -326,10 +338,10 @@ function setupRouletteConfig() {
     if (spinBtn) {
         spinBtn.addEventListener('click', async () => {
             try {
-                await window.api.invoke('trigger-roulette-spin');
-                showNotification('Roulette lancée', 'success');
+                await API.widgets.triggerRouletteSpin();
+                showStatus('global-status-msg', 'Roulette lancée', 'success');
             } catch (e) {
-                showNotification('Erreur lancement roulette: ' + e, 'error');
+                showStatus('global-status-msg', 'Erreur lancement roulette: ' + e, 'error');
             }
         });
     }
@@ -337,7 +349,7 @@ function setupRouletteConfig() {
 
 async function loadSubgoalsConfig() {
     try {
-        const config = await window.api.invoke('get-widget-config', 'subgoals');
+        const config = await API.widgets.getConfig('subgoals');
         if (config) {
             document.getElementById('subgoalsStartCount').value = config.startCount || 0;
             document.getElementById('subgoalsGoalCount').value = config.goalCount || 100;
@@ -381,7 +393,7 @@ async function saveSubgoalsConfig() {
         steps: subgoalsSteps
     };
     try {
-        await window.api.invoke('save-widget-config', 'subgoals', config);
-        showNotification('Config Subgoals sauvegardée', 'success');
-    } catch (e) { showNotification('Erreur sauvegarde Subgoals: ' + e, 'error'); }
+        await API.widgets.saveConfig('subgoals', config);
+        showStatus('global-status-msg', 'Config Subgoals sauvegardée', 'success');
+    } catch (e) { showStatus('global-status-msg', 'Erreur sauvegarde Subgoals: ' + e, 'error'); }
 }
