@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeoMeoBot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="header">
+        <h2 class="app-title">
+            <img src="assets/icon.png" alt="App Icon" class="app-icon">
+            <span>MeoMeoBot</span>
+        </h2>
+        <div class="header-right">
+            <div id="updateStatus" class="status checking">
+                <span class="status-dot"></span>
+                <span class="update-text-label">Vérification...</span>
+                <div id="update-action-container" class="hidden">
+                    <span id="update-confirm-icon" class="update-icon confirm-icon"
+                        title="Cliquer pour télécharger/installer">📥</span>
+                    <span id="update-deny-icon" class="update-icon deny-icon" title="Refuser/Annuler">❌</span>
+                </div>
+            </div>
+            <div id="connectionStatus" class="status disconnected">
+                <span class="status-dot"></span>
+                <span>Déconnecté</span>
+            </div>
+            <div class="window-controls">
+                <span id="global-status-msg" class="status-msg" style="margin-right: 15px;"></span>
+                <div class="control-btn" id="minimize-btn" title="Minimiser"><svg width="12" height="12"
+                        viewBox="0 0 12 12">
+                        <path d="M1 5.5h10v1H1z"></path>
+                    </svg></div>
+                <div class="control-btn" id="maximize-btn" title="Agrandir"><svg width="12" height="12"
+                        viewBox="0 0 12 12">
+                        <path d="M2.5 2.5h7v7h-7zM1 1v10h10V1H1z"></path>
+                    </svg></div>
+                <div class="control-btn" id="close-btn" title="Fermer"><svg width="12" height="12" viewBox="0 0 12 12">
+                        <path d="M2.22 2.22l7.56 7.56m-7.56 0l7.56-7.56"></path>
+                    </svg></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <div class="main-tabs">
+            <div class="tab active" data-tab="commands">Commandes</div>
+            <div class="tab" data-tab="giveaway">Giveaway</div>
+            <div class="tab" data-tab="moderation">Modération</div>
+            <div class="tab" data-tab="cast">Cast</div>
+            <div class="tab" data-tab="widgets">Widgets</div>
+            <div class="tab" data-tab="alerts">Alertes</div>
+            <div class="tab" data-tab="points">Points</div>
+        </div>
+        <div class="settings-tab">
+            <div class="tab icon-tab" data-tab="config" title="Configuration">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content active" id="commands-tab">
+        <div class="card full-height-card">
+            <div class="interactive-header">
+                <div class="header-main-controls single-line-form">
+                    <div class="form-group">
+                        <label>Commande</label>
+                        <input type="text" id="newCommand" placeholder="discord, twitter...">
+                    </div>
+                    <div class="form-group flex-grow">
+                        <label>Réponse</label>
+                        <input type="text" id="commandResponse" placeholder="Message de réponse">
+                    </div>
+                    <button class="btn btn-primary" id="addCommandBtn">Ajouter</button>
+                    <span id="commands-status-msg" class="status-msg"></span>
+                </div>
+            </div>
+            <div class="list-container" id="commandsList"></div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="giveaway-tab">
+        <div class="giveaway-layout">
+            <div class="giveaway-config">
+                <div class="card full-height-card config-card-layout">
+                    <div class="form-group">
+                        <label>Commande</label>
+                        <input type="text" id="giveawayCommand" value="!giveaway">
+                    </div>
+                    <div class="form-group flex-group">
+                        <label>Message de démarrage</label>
+                        <textarea id="giveawayStartMessage" rows="3"></textarea>
+                    </div>
+                    <div class="form-group flex-group">
+                        <label>Message de fermeture</label>
+                        <textarea id="giveawayStopMessage" rows="3"></textarea>
+                    </div>
+                    <div class="form-group flex-group">
+                        <label>Message de victoire ({winner})</label>
+                        <textarea id="giveawayWinMessage" rows="3"></textarea>
+                    </div>
+                    <div class="config-actions">
+                        <button class="btn btn-primary form-button" id="saveGiveawayConfig">Sauvegarder</button>
+                        <span id="giveaway-status-msg" class="status-msg"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="giveaway-main">
+                <div class="card full-height-card">
+                    <div class="giveaway-controls-wrapper">
+                        <button class="btn btn-success" id="startGiveawayBtn">Démarrer</button>
+                        <button class="btn btn-danger" id="stopGiveawayBtn">Arrêter</button>
+                        <button class="btn btn-primary" id="drawWinnerBtn">Tirer un Gagnant</button>
+                        <button class="btn btn-secondary" id="clearParticipantsBtn">Vider la Liste</button>
+                        <span id="giveaway-control-status-msg" class="status-msg"></span>
+                    </div>
+                    <div class="winner-display" id="winnerDisplay">Prêt pour le tirage</div>
+                    <div class="card-header">
+                        <span class="participant-count" id="participantsCount">0</span>
+                    </div>
+                    <div class="list-container" id="participantsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="moderation-tab">
+        <div class="moderation-layout">
+            <div class="card full-height-card">
+                <div class="interactive-header">
+                    <div class="header-main-controls single-line-form">
+                        <div class="form-group flex-grow">
+                            <label>Mot ou expression à bannir</label>
+                            <input type="text" id="newBannedWord" placeholder="Mot à bannir">
+                        </div>
+                        <button class="btn btn-primary" id="addBannedWordBtn">Ajouter</button>
+                        <span id="banned-words-status-msg" class="status-msg"></span>
+                        <div class="controls inline-controls">
+                            <button id="clearBannedWordsBtn" class="control-button delete-btn" title="Vider la liste">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path
+                                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg>
+                            </button>
+                            <button id="confirmClearBannedWordsBtn" class="control-button confirm-btn"
+                                style="display: none;" title="Confirmer">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#00b35f" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                            <button id="cancelClearBannedWordsBtn" class="control-button cancel-btn"
+                                style="display: none;" title="Annuler">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#e91916" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <span id="clear-banned-words-status" class="status-msg"></span>
+                    </div>
+                </div>
+                <div class="list-container" id="bannedWordsList"></div>
+            </div>
+            <div class="moderation-settings-col">
+                <div class="card">
+                    <h3 class="card-title">Message Automatique</h3>
+                    <div class="form-group">
+                        <label>Message (laisser vide pour désactiver)</label>
+                        <textarea id="autoMessage" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Intervalle (messages)</label>
+                        <input type="number" id="autoMessageInterval" value="40" min="1">
+                    </div>
+                    <div class="config-actions">
+                        <button class="btn btn-primary form-button" id="saveAutoMessage">Sauvegarder</button>
+                        <span id="auto-message-status" class="status-msg"></span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Commande !clip</h3>
+                    <div class="form-group">
+                        <label>Cooldown de la commande (secondes)</label>
+                        <input type="number" id="clipCooldown" value="60" min="10">
+                    </div>
+                    <div class="config-actions">
+                        <button class="btn btn-primary form-button" id="saveClipConfig">Sauvegarder Clip</button>
+                        <span id="clip-config-status" class="status-msg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="tab-content" id="cast-tab">
+        <div class="card full-height-card">
+            <div class="list-container" id="video-thumbnail-grid"></div>
+            <button class="fab" id="select-cast-folder-btn" title="Choisir un dossier">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="tab-content" id="widgets-tab">
+        <div class="card full-height-card">
+            <div class="widget-list-container">
+
+                <div class="widget-row" data-widget="chat">
+                    <div class="widget-col-name"><strong>Tchat</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="widgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config" id="badgePrefs"></div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('chat')">Thèmes</button>
+                        <button class="btn btn-danger btn-sm" id="resetChatConfigBtn"
+                            title="Réinitialiser la config">Réinitialiser</button>
+                        <button class="btn btn-primary btn-sm" id="saveBadgePrefs" title="Sauvegarder">💾</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="spotify">
+                    <div class="widget-col-name"><strong>Spotify</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="spotifyWidgetUrlDisplay">Chargement...</code></p>
+                        <p style="margin-top:6px;font-size:12px;color:var(--text-secondary);">
+                            Dashboard : <code
+                                id="spotifyRedirectDisplay">http://127.0.0.1:8090/auth/spotify/callback</code>
+                        </p>
+                    </div>
+                    <div class="widget-col-config">
+                        <div id="spotify-device-picker" class="hidden">
+                            <select id="spotify-devices" class="form-select"></select>
+                            <button class="btn btn-primary btn-sm" id="confirm-device">Valider</button>
+                        </div>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('spotify')">Thèmes</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="emote-wall">
+                    <div class="widget-col-name"><strong>Mur d'Emotes</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="emoteWallWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config">
+                        <div class="config-inline-grid">
+                            <div class="form-group">
+                                <label>Taille Min (px)</label>
+                                <input type="number" id="emoteWallMinSize" value="24" class="inline-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Taille Max (px)</label>
+                                <input type="number" id="emoteWallMaxSize" value="64" class="inline-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Intervalle (ms)</label>
+                                <input type="number" id="emoteWallSpawnInterval" value="100" class="inline-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Durée (ms)</label>
+                                <input type="number" id="emoteWallDuration" value="5000" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-primary btn-sm" id="saveEmoteWallConfig" title="Sauvegarder">💾</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="subgoals">
+                    <div class="widget-col-name"><strong>Subgoals</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="subgoalsWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config">
+                        <button class="btn btn-primary btn-sm" id="configureSubgoalsBtn">Configurer</button>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('subgoals')">Thèmes</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="subgoals-list">
+                    <div class="widget-col-name"><strong>Subgoals List</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="subgoalsListWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-config">
+                        <p style="font-size: 12px; color: var(--text-secondary);">Partage la configuration avec Subgoals
+                        </p>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editWidgetCss('subgoals-list')">Thèmes</button>
+                    </div>
+                </div>
+
+                <div class="widget-row" data-widget="roulette">
+                    <div class="widget-col-name"><strong>Roulette</strong></div>
+                    <div class="widget-col-links">
+                        <p class="chat-widget-url">Source OBS : <code class="chat-widget-url"
+                                id="rouletteWidgetUrlDisplay">Chargement...</code></p>
+                    </div>
+                    <div class="widget-col-actions">
+                        <button class="btn btn-primary btn-sm" id="configureRouletteBtn">Configurer</button>
+                        <button class="btn btn-success btn-sm" id="spinRouletteBtn"
+                            title="Lancer la roulette">Lancer</button>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="alerts-tab">
+        <div class="card full-height-card" style="display: flex; flex-direction: column;">
+            <div class="alerts-layout" style="display: flex; height: 100%;">
+
+                <div class="alerts-sidebar">
+
+                </div>
+
+
+                <div class="alerts-config-area"
+                    style="flex: 1; overflow-y: hidden; padding: 0 10px; display: flex; flex-direction: column;">
+                    <div id="alert-config-form" style="height: 100%; display: flex; flex-direction: column;">
+
+                    </div>
+                </div>
+
+
+                <div class="alerts-preview-col"
+                    style="width: 350px; border-left: 1px solid var(--border-color); padding-left: 10px; display: flex; flex-direction: column;">
+                    <div id="alert-preview-box"
+                        style="width: 100%; height: 320px; background: #333; border: 1px solid #555; position: relative; overflow: hidden; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+
+                        <div id="preview-frame-wrapper"
+                            style="width: 300px; height: 300px; position: relative; border: 1px dashed #666; background: transparent;">
+                            <div id="alert-preview-container" style="width: 100%; height: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" id="testAlertBtn">Tester l'alerte</button>
+                    <button class="btn btn-primary" id="saveAlertsBtn" style="margin-top: auto;">Sauvegarder
+                        Tout</button>
+                    <span id="alerts-status-msg"
+                        style="text-align: center; height: 20px; font-size: 13px; font-weight: 500; margin-top: 10px;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="points-tab">
+        <div class="card full-height-card">
+            <div class="interactive-header" style="display: flex; align-items: center;">
+                <button class="btn btn-primary" id="addRewardBtn" style="margin-right: 10px;">+ Nouvelle
+                    Récompense</button>
+                <button class="btn btn-secondary" id="refreshRewardsBtn">Rafraîchir</button>
+                <span id="points-status-msg" class="status-msg" style="margin-left: auto;"></span>
+            </div>
+            <div class="list-container" id="rewardsList">
+                <div class="loading-spinner">Chargement...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reward-editor-overlay" class="confirmation-overlay">
+        <div class="confirmation-box" style="width: 400px; max-width: 90vw;">
+            <h3 id="reward-editor-title">Nouvelle Récompense</h3>
+            <div class="form-group">
+                <label>Nom</label>
+                <input type="text" id="rewardName" placeholder="Titre de la récompense">
+            </div>
+            <div class="form-group">
+                <label>Coût (Points)</label>
+                <input type="number" id="rewardCost" value="100" min="1">
+            </div>
+            <div class="form-group">
+                <label>Couleur de fond (Hex)</label>
+                <input type="color" id="rewardColor" value="#00FF00">
+            </div>
+            <div class="form-group">
+                <label>Cooldown global (secondes)</label>
+                <input type="number" id="rewardGlobalCooldown" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center;">
+                    <input type="checkbox" id="rewardIsEnabled" checked style="width:auto; margin-right:8px;">
+                    Activé
+                </label>
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center;">
+                    <input type="checkbox" id="rewardUserInput" style="width:auto; margin-right:8px;">
+                    Demander une saisie utilisateur
+                </label>
+            </div>
+            <div class="config-actions" style="margin-top: 20px; justify-content: flex-end;">
+                <button class="btn btn-secondary" id="cancelRewardBtn" style="margin-right: 10px;">Annuler</button>
+                <button class="btn btn-primary" id="saveRewardBtn">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="config-tab">
+        <div id="config-form-container" class="config-wrapper"></div>
+        <div class="unified-button-row">
+            <button class="btn btn-primary" id="saveConfigBtn">Sauvegarder Tout</button>
+            <button class="btn btn-success" id="connectBtn">Connexion</button>
+            <button class="btn btn-danger" id="disconnectBtn">Déconnexion</button>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <div id="confirmationOverlay" class="confirmation-overlay">
+        <div class="confirmation-box">
+            <h4 id="confirmationMessage">Êtes-vous sûr ?</h4>
+            <div class="confirmation-buttons">
+                <button class="btn btn-danger" id="confirmYes">Oui</button>
+                <button class="btn btn-secondary" id="confirmNo">Non</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-container"></div>
+
+    <div id="device-picker-overlay" class="confirmation-overlay">
+        <div class="device-picker-box">
+            <h3>Choisir un appareil</h3>
+            <div id="device-discovery-status">Recherche en cours...</div>
+            <div id="device-list" class="device-list"></div>
+            <button id="close-device-picker" class="btn btn-secondary">Annuler</button>
+        </div>
+    </div>
+
+
+    <script src="renderer/input_customizer.js"></script>
+    <script src="renderer/channel_points.js" type="module"></script>
+    <script src="renderer/alerts.js" type="module"></script>
+    <script src="renderer/app.js" type="module"></script>
+</body>
+
+</html>
