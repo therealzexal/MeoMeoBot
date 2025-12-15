@@ -517,18 +517,11 @@ function setupBotEvents() {
             if (rewardSounds[rewardId]) {
                 const soundPath = rewardSounds[rewardId];
                 console.log(`[BOT] Triggering reward sound for ${rewardId}`);
-                // Trigger an alert with just audio
                 bot.triggerAlert('custom_reward', {
                     audio: soundPath,
-                    // Minimal text/image to avoid visual clutter if only sound is desired?
-                    // User said "J'ai un point de chaîne... mais il y a une bande son".
-                    // Usually we want just the sound.
-                    // But the widget requires text to show something?
-                    // If I send empty text/image, widget might show empty box.
-                    // Let's rely on widget handling.
                     text: '',
                     image: '',
-                    duration: 5000 // default
+                    duration: 5000
                 });
             }
         }
@@ -1104,6 +1097,49 @@ ipcMain.handle('simulate-sub', () => {
         return { success: true };
     }
     return { success: false };
+});
+
+
+ipcMain.handle('get-channel-rewards', async () => {
+    try {
+        const rewards = await bot.getCustomRewards();
+        return rewards;
+    } catch (e) {
+        throw e;
+    }
+});
+
+ipcMain.handle('create-channel-reward', async (event, data) => {
+    try {
+        return await bot.createCustomReward(data);
+    } catch (e) {
+        throw e;
+    }
+});
+
+ipcMain.handle('update-channel-reward', async (event, id, data) => {
+    try {
+        return await bot.updateCustomReward(id, data);
+    } catch (e) {
+        throw e;
+    }
+});
+
+ipcMain.handle('delete-channel-reward', async (event, id) => {
+    try {
+        return await bot.deleteCustomReward(id);
+    } catch (e) {
+        throw e;
+    }
+});
+
+ipcMain.handle('get-reward-sounds', () => {
+    return bot.getConfig().rewardSounds || {};
+});
+
+ipcMain.handle('save-reward-sounds', (event, sounds) => {
+    bot.updateConfig({ rewardSounds: sounds });
+    return { success: true };
 });
 
 app.on('will-quit', () => {

@@ -669,6 +669,114 @@ class TwitchBot {
         this.configManager.clearGiveawayParticipants();
         if (this.onParticipantsUpdated) this.onParticipantsUpdated();
     }
+    async getCustomRewards() {
+        if (!this.userId || !this.clientId) return [];
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${this.userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API Error: ${response.status} ${text}`);
+            }
+
+            const data = await response.json();
+            return data.data;
+        } catch (error) {
+            console.error('[POINTS] Error fetching rewards:', error);
+            throw error;
+        }
+    }
+
+    async createCustomReward(data) {
+        if (!this.userId || !this.clientId) throw new Error('Bot not connected or user ID missing');
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${this.userId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API Error: ${response.status} ${text}`);
+            }
+
+            const resData = await response.json();
+            return resData.data[0];
+        } catch (error) {
+            console.error('[POINTS] Error creating reward:', error);
+            throw error;
+        }
+    }
+
+    async updateCustomReward(id, data) {
+        if (!this.userId || !this.clientId) throw new Error('Bot not connected');
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${this.userId}&id=${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API Error: ${response.status} ${text}`);
+            }
+
+            const resData = await response.json();
+            return resData.data[0];
+        } catch (error) {
+            console.error('[POINTS] Error updating reward:', error);
+            throw error;
+        }
+    }
+
+    async deleteCustomReward(id) {
+        if (!this.userId || !this.clientId) throw new Error('Bot not connected');
+        const config = this.getConfig();
+        const token = config.token.replace('oauth:', '');
+
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${this.userId}&id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Client-Id': this.clientId
+                }
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API Error: ${response.status} ${text}`);
+            }
+            return true;
+        } catch (error) {
+            console.error('[POINTS] Error deleting reward:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = TwitchBot;
