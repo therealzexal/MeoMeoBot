@@ -215,14 +215,14 @@ class BaseWidgetServer {
                             
                             if (data.type === 'handshake') {
                                 const lastRunId = sessionStorage.getItem('widget_run_id');
-                                if (lastRunId !== data.runId) {
-                                    console.log('[Widget] New run detected, reloading...');
+                                if (lastRunId && lastRunId !== data.runId) {
                                     sessionStorage.setItem('widget_run_id', data.runId);
                                     const url = new URL(window.location.href);
                                     url.searchParams.set('t', Date.now());
                                     window.location.href = url.toString();
                                     return;
                                 }
+                                sessionStorage.setItem('widget_run_id', data.runId);
                                 ws.send(JSON.stringify({ type: 'get-config' }));
                             }
 

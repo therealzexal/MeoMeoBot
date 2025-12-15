@@ -12,8 +12,6 @@ class RouletteWidgetServer extends BaseWidgetServer {
         return htmlWithScript.replace('const INITIAL_CHOICES = [];', `const INITIAL_CHOICES = ${choices};`);
     }
 
-    // onConnection removed (Base handles it)
-
     broadcastConfig(config) {
         this.broadcast({ type: 'config-update', widget: 'roulette', config });
     }

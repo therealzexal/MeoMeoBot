@@ -43,7 +43,7 @@
     </video>
     <div id="chat-container"></div>
     <style id="custom-css">
-
+        /* __CUSTOM_CSS__ */
     </style>
     <script>
         const CLIENT_ID = '__TWITCH_CLIENT_ID__';
@@ -244,6 +244,11 @@
                     if (cfg.maxMessages) {
                         MAX_MESSAGES = parseInt(cfg.maxMessages, 10) || 10;
                     }
+                    if (cfg.customCSS) {
+                        const style = document.getElementById('custom-css');
+                        if (style) style.textContent = cfg.customCSS;
+                    }
+                    updateSnow();
                 } else if (data.type === 'chat') {
                     await addMessage(data);
                 } else if (data.type === 'clear-chat') {
@@ -385,6 +390,7 @@
         }
 
         connectWebSocket();
+        updateSnow();
     </script>
 </body>
 
