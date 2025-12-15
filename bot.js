@@ -226,15 +226,32 @@ class TwitchBot {
             this.incrementSubCount();
             this.triggerAlert('resub', { username, months, message });
         });
-        this.client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
-            this.incrementSubCount();
-            this.triggerAlert('sub', { username, recipient });
-        });
         this.client.on('submysterygift', (channel, username, numbOfSubs, methods, userstate) => {
             this.incrementSubCount(numbOfSubs);
-            this.triggerAlert('sub', { username, amount: numbOfSubs });
+            this.triggerAlert('subgift', { username, amount: numbOfSubs });
         });
 
+        this.client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
+            this.incrementSubCount();
+            const isCommunityGift = userstate && userstate['msg-param-community-gift-id'];
+
+            if (!isCommunityGift) {
+                this.triggerAlert('subgift', { username, amount: 1 });
+            }
+        });
+
+        this.client.on('raw_message', (messageCloned, message) => {
+            if (message.command === 'USERNOTICE' && message.tags) {
+                const msgId = message.tags['msg-id'];
+
+                if (msgId === 'hype-train-start') {
+                    this.triggerAlert('hypetrain', { username: 'Twitch', amount: 1 });
+                } else if (msgId === 'hype-train-level') {
+                    const level = message.tags['msg-param-level'] || '?';
+                    this.triggerAlert('hypetrain', { username: 'Twitch', amount: level });
+                }
+            }
+        });
 
         this.client.on('raided', (channel, username, viewers) => {
             this.triggerAlert('raid', { username, viewers });
@@ -369,7 +386,8 @@ class TwitchBot {
 
         alertPayload.text = alertPayload.text
             .replace('{username}', `<span class="alert-username">${alertPayload.username}</span>`)
-            .replace('{amount}', `<span class="alert-amount">${alertPayload.amount || ''}</span>`);
+            .replace('{amount}', `<span class="alert-amount">${alertPayload.amount || ''}</span>`)
+            .replace('{s}', (alertPayload.amount && alertPayload.amount > 1) ? 's' : '');
 
         if (this.onAlert) this.onAlert(alertPayload);
     }
@@ -378,8 +396,10 @@ class TwitchBot {
         switch (type) {
             case 'follow': return '{username} suit la chaîne !';
             case 'sub': return '{username} s\'est abonné !';
+            case 'subgift': return '{username} a offert {amount} sub{s} !';
             case 'raid': return 'Raid de {username} !';
             case 'cheer': return '{username} a envoyé {amount} bits !';
+            case 'hypetrain': return 'Hype Train Niveau {amount} !';
             default: return 'Nouvelle alerte';
         }
     }

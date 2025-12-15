@@ -12,10 +12,12 @@ let initialized = false;
 const EVENT_TYPES = {
     'follow': { label: 'Follow', defaultText: '{username} suit la chaîne !', hasMessage: false },
     'sub': { label: 'Sub', defaultText: '{username} s\'est abonné !', hasMessage: false },
+    'subgift': { label: 'Subgift', defaultText: '{username} a offert {amount} sub{s} !', hasMessage: false },
     'resub': { label: 'Re-Sub', defaultText: '{username} s\'est réabonné ({months} mois) !', hasMessage: true },
     'donation': { label: 'Dons', defaultText: '{username} a fait un don de {amount} !', hasMessage: true },
     'cheer': { label: 'Bits', defaultText: '{username} a envoyé {amount} bits !', hasMessage: true },
-    'raid': { label: 'Raid', defaultText: 'Raid de {username} !', hasMessage: false }
+    'raid': { label: 'Raid', defaultText: 'Raid de {username} !', hasMessage: false },
+    'hypetrain': { label: 'Hype Train', defaultText: 'Hype Train Niveau {amount} !', hasMessage: false }
 };
 
 const alertsWidget = API.createWidgetHelper('alerts');
@@ -378,7 +380,8 @@ function playShadowAlert(shadow, alert) {
     textContainer.innerHTML = (alert.text || '')
         .replace('{username}', '<span class="alert-username">Pseudo</span>')
         .replace('{amount}', '<span class="alert-amount">100</span>')
-        .replace('{months}', '<span class="alert-months">12</span>');
+        .replace('{months}', '<span class="alert-months">12</span>')
+        .replace('{s}', 's');
 
     msgContainer.innerHTML = alert.message || '';
 
@@ -565,7 +568,10 @@ async function triggerTest() {
             text: (config.textTemplate || EVENT_TYPES[currentType].defaultText)
                 .replace('{username}', '<span class="alert-username">Zexal</span>')
                 .replace('{amount}', '<span class="alert-amount">100</span>')
-                .replace('{months}', '<span class="alert-months">12</span>'),
+                .replace('{username}', '<span class="alert-username">Zexal</span>')
+                .replace('{amount}', '<span class="alert-amount">100</span>')
+                .replace('{months}', '<span class="alert-months">12</span>')
+                .replace('{s}', 's'),
             image: config.image,
             audio: config.audio,
             volume: config.volume,
