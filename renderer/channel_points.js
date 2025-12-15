@@ -298,8 +298,18 @@ async function saveReward() {
     try {
         let finalId = editingId;
         if (isEditing) {
-            await API.points.updateReward(editingId, data);
-            showStatus('points-status-msg', 'Récompense modifiée', 'success');
+            try {
+                await API.points.updateReward(editingId, data);
+                showStatus('points-status-msg', 'Récompense modifiée', 'success');
+            } catch (e) {
+                const isForbidden = e.message && (e.message.includes('403') || e.message.includes('Forbidden'));
+                if (isForbidden) {
+                    console.warn('[POINTS] Cannot edit Twitch reward (not owned). Saving local config only.');
+                    showStatus('points-status-msg', 'Réglages Twitch bloqués (externe), alerte sauvegardée', 'warning');
+                } else {
+                    throw e;
+                }
+            }
         } else {
             const newRew = await API.points.createReward(data);
             finalId = newRew.id;
