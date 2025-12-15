@@ -64,10 +64,11 @@
                     const alert = data.alert;
                     if (alert.image && alert.image.startsWith('file://')) {
                         let rawPath = alert.image.replace('file://', '');
-                        // Windows fix: remove leading slash if it precedes a drive letter (e.g. /C:/...)
+                        // Windows fix: e.g. /C:/Users... -> C:/Users...
                         if (rawPath.match(/^\/[a-zA-Z]:/)) {
                             rawPath = rawPath.substring(1);
                         }
+                        console.log('[Widget] Loading image from:', rawPath);
                         alert.image = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
                     }
 
@@ -76,6 +77,7 @@
                         if (rawPath.match(/^\/[a-zA-Z]:/)) {
                             rawPath = rawPath.substring(1);
                         }
+                        console.log('[Widget] Loading audio from:', rawPath);
                         alert.audio = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
                     }
                     playAlert(alert);
