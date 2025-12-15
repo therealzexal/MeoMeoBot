@@ -483,6 +483,10 @@ class TwitchBot {
             return;
         }
 
+        if (tags['custom-reward-id']) {
+            this.handleRedemption(tags['custom-reward-id'], tags, message);
+        }
+
         try {
             await this.ensureAppAccessToken();
         } catch (err) {
@@ -663,6 +667,23 @@ class TwitchBot {
             }, 3000);
         }
         return winner;
+    }
+
+    handleRedemption(rewardId, tags, message) {
+        const config = this.getConfig();
+        const sound = config.rewardSounds ? config.rewardSounds[rewardId] : null;
+        const image = config.rewardImages ? config.rewardImages[rewardId] : null;
+
+        if (sound || image) {
+            const alertPayload = {
+                type: 'reward-redemption',
+                username: tags['display-name'] || tags.username,
+                text: message || 'Récompense !',
+                image: image,
+                audio: sound
+            };
+            if (this.onAlert) this.onAlert(alertPayload);
+        }
     }
 
     clearParticipants() {

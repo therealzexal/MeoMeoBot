@@ -5,7 +5,9 @@ let rewardsList;
 let rewardEditorContainer;
 let isEditing = false;
 let editingId = null;
+
 let savedRewardSounds = {};
+let savedRewardImages = {};
 
 const DEFAULT_COLOR = '#00FF00';
 
@@ -45,8 +47,9 @@ function init() {
 async function loadRewardSounds() {
     try {
         savedRewardSounds = await window.api.invoke('get-reward-sounds') || {};
+        savedRewardImages = await window.api.invoke('get-reward-images') || {};
     } catch (e) {
-        console.error('Error loading reward sounds:', e);
+        console.error('Error loading reward assets:', e);
     }
 }
 
@@ -126,7 +129,7 @@ function renderRewards(rewards) {
                 await API.points.deleteReward(reward.id);
                 const newSounds = { ...savedRewardSounds };
                 delete newSounds[reward.id];
-                await window.electronAPI.invoke('save-reward-sounds', newSounds);
+                await window.api.invoke('save-reward-sounds', newSounds);
                 savedRewardSounds = newSounds;
 
                 showStatus('points-status-msg', 'Récompense supprimée', 'success');
@@ -170,6 +173,18 @@ function openEditor(reward = null) {
     formFuncs.appendChild(createInputGroup('Coût', reward ? reward.cost : 100,
         (v) => { }, 'number', 'rewardCostInput'));
 
+    const promptVal = reward ? (reward.prompt || '') : '';
+    // Custom textarea creation since createInputGroup is for inputs
+    const promptDiv = document.createElement('div');
+    promptDiv.className = 'form-group';
+    promptDiv.innerHTML = '<label>Description (Prompt)</label>';
+    const promptArea = document.createElement('textarea');
+    promptArea.id = 'rewardPromptInput';
+    promptArea.value = promptVal;
+    promptArea.rows = 3;
+    promptDiv.appendChild(promptArea);
+    formFuncs.appendChild(promptDiv);
+
     const colorDiv = document.createElement('div');
     colorDiv.className = 'input-group';
     colorDiv.innerHTML = `<label>Couleur</label><input type="color" id="rewardColorInput" value="${reward ? reward.background_color : DEFAULT_COLOR}" style="width:100%; height:40px; padding:0; border:none;">`;
@@ -182,6 +197,10 @@ function openEditor(reward = null) {
     const currentSound = (reward && savedRewardSounds[reward.id]) ? savedRewardSounds[reward.id] : '';
     formFuncs.appendChild(createFilePickerGroup('Son de l\'alerte', currentSound, 'audio', async (val) => {
     }, 'rewardSoundInput'));
+
+    const currentImage = (reward && savedRewardImages[reward.id]) ? savedRewardImages[reward.id] : '';
+    formFuncs.appendChild(createFilePickerGroup('Image de l\'alerte', currentImage, 'image', async (val) => {
+    }, 'rewardImageInput'));
 
     rewardEditorContainer.appendChild(formFuncs);
 
@@ -242,8 +261,14 @@ async function saveReward() {
     const isEnabled = document.getElementById('rewardEnabledInput').checked;
     const userInput = document.getElementById('rewardUserInputInput').checked;
 
+
+    const promptText = document.getElementById('rewardPromptInput').value.trim();
+
     const soundInput = document.getElementById('rewardSoundInput');
     const soundPath = soundInput ? soundInput.value : '';
+
+    const imageInput = document.getElementById('rewardImageInput');
+    const imagePath = imageInput ? imageInput.value : '';
 
     if (!title || cost < 1) {
         showStatus('points-status-msg', 'Nom et coût (>0) requis', 'error');
@@ -256,6 +281,7 @@ async function saveReward() {
         background_color: color,
         is_enabled: isEnabled,
         is_user_input_required: userInput,
+        prompt: promptText,
         is_global_cooldown_enabled: cooldown > 0,
         global_cooldown_seconds: cooldown > 0 ? cooldown : undefined
     };
@@ -289,6 +315,15 @@ async function saveReward() {
             }
             await window.api.invoke('save-reward-sounds', newSounds);
             savedRewardSounds = newSounds;
+
+            const newImages = { ...savedRewardImages };
+            if (imagePath) {
+                newImages[finalId] = imagePath;
+            } else {
+                delete newImages[finalId];
+            }
+            await window.api.invoke('save-reward-images', newImages);
+            savedRewardImages = newImages;
         }
 
         closeEditor();

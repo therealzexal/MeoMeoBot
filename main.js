@@ -1111,6 +1111,15 @@ ipcMain.handle('save-reward-sounds', (event, sounds) => {
     return { success: true };
 });
 
+ipcMain.handle('get-reward-images', () => {
+    return bot.getConfig().rewardImages || {};
+});
+
+ipcMain.handle('save-reward-images', (event, images) => {
+    bot.updateConfig({ rewardImages: images });
+    return { success: true };
+});
+
 app.on('will-quit', () => {
     if (chatServer) chatServer.stop();
     if (spotifyServer) spotifyServer.stop();
