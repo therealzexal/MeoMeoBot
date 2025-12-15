@@ -80,8 +80,7 @@ class AlertsWidgetServer extends BaseWidgetServer {
         this.isPlaying = true;
         this.broadcast({ type: 'alert', alert: nextAlert });
 
-        // Safety timeout in case client doesn't send finished event
-        const duration = (parseInt(nextAlert.duration) || 5000) + 2000; // duration + 2s buffer
+        const duration = (parseInt(nextAlert.duration) || 5000) + 2000;
         if (this.safetyTimer) clearTimeout(this.safetyTimer);
         this.safetyTimer = setTimeout(() => {
             if (this.isPlaying) {

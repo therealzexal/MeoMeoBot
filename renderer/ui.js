@@ -276,6 +276,24 @@ export function createFilePickerGroup(label, value, type, onChange) {
 
     container.appendChild(input);
     container.appendChild(btn);
+    container.appendChild(input);
+    container.appendChild(btn);
     div.appendChild(container);
+    return div;
+}
+
+export function createCheckboxGroup(label, checked, onChange) {
+    const div = document.createElement('div');
+    div.className = 'form-group checkbox-group';
+    const labelEl = document.createElement('label');
+    labelEl.textContent = label;
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.addEventListener('change', (e) => onChange(e.target.checked));
+
+    labelEl.appendChild(input);
+    div.appendChild(labelEl);
     return div;
 }

@@ -193,12 +193,6 @@ function createWindow() {
     }
     setupBotEvents();
     autoConnectBot();
-
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-        if (input.key === 'F12' && input.type === 'keyDown') {
-            mainWindow.webContents.toggleDevTools();
-        }
-    });
 }
 
 function openCssEditorWindow(widgetName = 'chat') {
