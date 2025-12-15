@@ -47,7 +47,7 @@ function init() {
 
 async function loadRewardSounds() {
     try {
-        savedRewardSounds = await window.electronAPI.invoke('get-reward-sounds') || {};
+        savedRewardSounds = await window.api.invoke('get-reward-sounds') || {};
     } catch (e) {
         console.error('Error loading reward sounds:', e);
     }
@@ -288,7 +288,7 @@ async function saveReward() {
             } else {
                 delete newSounds[finalId];
             }
-            await window.electronAPI.invoke('save-reward-sounds', newSounds);
+            await window.api.invoke('save-reward-sounds', newSounds);
             savedRewardSounds = newSounds;
         }
 
