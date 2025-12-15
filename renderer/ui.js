@@ -180,13 +180,14 @@ export function createRow() {
     return div;
 }
 
-export function createInputGroup(label, value, onChange, type = 'text') {
+export function createInputGroup(label, value, onChange, type = 'text', id = null) {
     const div = document.createElement('div');
     div.className = 'form-group';
     div.innerHTML = `<label>${label}</label>`;
     const input = document.createElement('input');
     input.type = type;
     input.value = value;
+    if (id) input.id = id;
     input.addEventListener('input', (e) => onChange(e.target.value));
     div.appendChild(input);
     return div;
@@ -240,7 +241,7 @@ export function createSelectGroup(label, value, options, onChange) {
 
 
 
-export function createFilePickerGroup(label, value, type, onChange) {
+export function createFilePickerGroup(label, value, type, onChange, id = null) {
     const div = document.createElement('div');
     div.className = 'form-group';
     div.innerHTML = `<label>${label}</label>`;
@@ -253,6 +254,7 @@ export function createFilePickerGroup(label, value, type, onChange) {
     input.value = value || '';
     input.readOnly = true;
     input.placeholder = 'Aucun fichier';
+    if (id) input.id = id;
 
     const btn = document.createElement('button');
     btn.className = 'btn btn-secondary';
@@ -276,8 +278,7 @@ export function createFilePickerGroup(label, value, type, onChange) {
 
     container.appendChild(input);
     container.appendChild(btn);
-    container.appendChild(input);
-    container.appendChild(btn);
+    // REMOVED DUPLICATE APPENDS
     div.appendChild(container);
     return div;
 }
