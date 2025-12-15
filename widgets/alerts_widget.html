@@ -88,18 +88,12 @@
         }
 
         function playAlert(alert) {
-            container.className = 'alert-box';
-            container.style.opacity = '0';
+            // Reset content
             imgContainer.innerHTML = '';
             textContainer.innerHTML = alert.text || '';
             msgContainer.innerHTML = alert.message || '';
 
-            if (alert.image) {
-                const img = document.createElement('img');
-                img.src = alert.image;
-                imgContainer.appendChild(img);
-            }
-
+            // Audio setup
             if (alert.audio) {
                 audio.src = alert.audio;
                 audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
@@ -107,13 +101,27 @@
                 audio.src = '';
             }
 
-            if (alert.layout === 'side') {
-                container.classList.add('layout-side-by-side');
-            }
+            // check if we have visuals
+            const hasVisuals = alert.image || alert.text || alert.message;
 
-            container.classList.remove('animate-out');
-            container.classList.add('animate-in');
-            container.style.opacity = '1';
+            if (hasVisuals) {
+                container.className = 'alert-box';
+                container.style.opacity = '0';
+
+                if (alert.image) {
+                    const img = document.createElement('img');
+                    img.src = alert.image;
+                    imgContainer.appendChild(img);
+                }
+
+                if (alert.layout === 'side') {
+                    container.classList.add('layout-side-by-side');
+                }
+
+                container.classList.remove('animate-out');
+                container.classList.add('animate-in');
+                container.style.opacity = '1';
+            }
 
             const duration = (alert.duration || 5000);
 
@@ -122,7 +130,8 @@
             }
 
             setTimeout(() => {
-                stopAlert();
+                if (hasVisuals) stopAlert();
+                else ws.send(JSON.stringify({ type: 'alert-finished' }));
             }, duration);
         }
 

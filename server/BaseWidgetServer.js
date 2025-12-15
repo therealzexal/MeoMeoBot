@@ -24,6 +24,12 @@ class BaseWidgetServer {
 
         this.server.listen(this.port, () => {
             console.log(`[${this.widgetName.toUpperCase()}] Widget Server running on port ${this.port}`);
+
+            // Save the actual port to config so renderer can find it
+            if (this.bot && this.bot.updateConfig) {
+                this.bot.updateConfig({ [this.configKey]: this.port });
+            }
+
             this.initWebSocket();
             if (onPortChanged) onPortChanged();
         });

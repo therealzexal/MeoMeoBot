@@ -142,6 +142,23 @@ ipcMain.handle('delete-channel-reward', async (event, rewardId) => {
     return await bot.deleteChannelReward(rewardId);
 });
 
+ipcMain.handle('save-reward-sounds', async (event, soundsMap) => {
+    if (bot) {
+        const config = bot.getConfig();
+        config.rewardSounds = soundsMap;
+        bot.updateConfig({ rewardSounds: soundsMap });
+        return true;
+    }
+    return false;
+});
+
+ipcMain.handle('get-reward-sounds', async () => {
+    if (bot) {
+        return bot.getConfig().rewardSounds || {};
+    }
+    return {};
+});
+
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
@@ -497,6 +514,31 @@ function setupBotEvents() {
     bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
 
     bot.onChatMessage = (messageData) => {
+        // Check for custom reward
+        if (messageData.tags && messageData.tags['custom-reward-id']) {
+            const rewardId = messageData.tags['custom-reward-id'];
+            const config = bot.getConfig();
+            const rewardSounds = config.rewardSounds || {};
+
+            if (rewardSounds[rewardId]) {
+                const soundPath = rewardSounds[rewardId];
+                console.log(`[BOT] Triggering reward sound for ${rewardId}`);
+                // Trigger an alert with just audio
+                bot.triggerAlert('custom_reward', {
+                    audio: soundPath,
+                    // Minimal text/image to avoid visual clutter if only sound is desired?
+                    // User said "J'ai un point de chaîne... mais il y a une bande son".
+                    // Usually we want just the sound.
+                    // But the widget requires text to show something?
+                    // If I send empty text/image, widget might show empty box.
+                    // Let's rely on widget handling.
+                    text: '',
+                    image: '',
+                    duration: 5000 // default
+                });
+            }
+        }
+
         if (messageData.text && messageData.text.startsWith('!')) return;
         sendChatToWidgets(messageData);
     };
