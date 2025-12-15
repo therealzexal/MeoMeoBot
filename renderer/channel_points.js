@@ -17,10 +17,7 @@ function init() {
         rewardEditorContainer = document.createElement('div');
         rewardEditorContainer.id = 'reward-editor-integrated';
         rewardEditorContainer.className = 'reward-editor-container hidden';
-        const controls = document.querySelector('.controls');
-        if (controls && controls.parentNode) {
-            controls.parentNode.insertBefore(rewardEditorContainer, rewardsList);
-        } else {
+        if (rewardsList && rewardsList.parentNode) {
             rewardsList.parentNode.insertBefore(rewardEditorContainer, rewardsList);
         }
     } else {
