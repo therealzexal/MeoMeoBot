@@ -64,16 +64,9 @@ class ChatWidgetServer extends BaseWidgetServer {
         content = content.replace('const MIN_SIZE = 32;', `const MIN_SIZE = ${minSize};`);
         content = content.replace('const MAX_SIZE = 96;', `const MAX_SIZE = ${maxSize};`);
         content = content.replace('/* __CUSTOM_CSS__ */', customCSS);
-
-        // Inject Base Script manually for Emote Wall if it's not standard widget?
-        // Emote wall is a separate page. It needs the WS script.
-        // Step 1910 code did not inject it. Assuming it worked without it or had it hardcoded.
-        // We will stick to Step 1910 logic (no injection).
-
         return content;
     }
 
-    // onConnection removed (Base handles it)
 
     broadcastChat(messageData) {
         this.broadcast(messageData);

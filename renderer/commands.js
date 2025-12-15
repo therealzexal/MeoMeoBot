@@ -145,7 +145,6 @@ async function removeCommand(command) {
     try {
         await API.commands.remove(command);
         loadCommands();
-        // showStatus('commands-status-msg', NOTIFICATIONS.SUCCESS.DELETED, 'success');
     } catch (error) {
         showStatus('commands-status-msg', NOTIFICATIONS.ERROR.DELETE.replace('{error}', error), 'error');
     }

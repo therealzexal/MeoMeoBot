@@ -355,7 +355,6 @@ function connectPreviewWebSocket(shadow) {
 }
 
 function playShadowAlert(shadow, alert) {
-    // Look inside the preview shadow root (no scaler now)
     const wrapper = shadow.getElementById('alert-wrapper');
     const imgContainer = shadow.getElementById('alert-image-container');
     const textContainer = shadow.getElementById('alert-text');
@@ -387,13 +386,8 @@ function playShadowAlert(shadow, alert) {
 
     if (alert.layout === 'side') wrapper.classList.add('layout-side-by-side');
 
-    const alertsTab = document.querySelector('.tab[data-tab="alerts"]');
-    const isAlertsTabActive = alertsTab && alertsTab.classList.contains('active');
-
-    if (alert.audio && isAlertsTabActive) {
+    if (alert.audio) {
         audio.src = alert.audio;
-        audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
-        audio.play().catch(e => console.log('Preview Audio Error:', e));
     }
 
     wrapper.style.opacity = '1';

@@ -7,8 +7,6 @@ class SubgoalsWidgetServer extends BaseWidgetServer {
         super(bot, defaultPort, 'subgoals');
     }
 
-    // transformHtml removed (Base handles it)
-
     handleCustomRoutes(req, res) {
         if (req.url === '/widget/subgoals-list') {
             this.serveSubgoalsList(req, res);
@@ -30,7 +28,6 @@ class SubgoalsWidgetServer extends BaseWidgetServer {
     }
 
     onConnection(ws) {
-        // Base sends 'subgoals' config automatically
         const subgoalsListConfig = this.bot.getWidgetConfig('subgoals-list');
         if (subgoalsListConfig) {
             ws.send(JSON.stringify({

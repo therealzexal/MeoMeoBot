@@ -234,13 +234,6 @@ export function createSelectGroup(label, value, options, onChange) {
     return div;
 }
 
-
-
-
-
-
-
-
 export function createFilePickerGroup(label, value, type, onChange, id = null) {
     const div = document.createElement('div');
     div.className = 'form-group';
