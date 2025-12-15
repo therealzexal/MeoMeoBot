@@ -53,8 +53,18 @@ async function loadRewardSounds() {
     }
 }
 
+// Debug wrapper
+window.addEventListener('error', (event) => {
+    const el = document.getElementById('rewardsList');
+    if (el) el.innerHTML += `<div style="color:red; font-size:12px;">Global Error: ${event.message} at ${event.filename}:${event.lineno}</div>`;
+});
+
 async function loadRewards() {
-    if (!rewardsList) return;
+    console.log("loadRewards called");
+    if (!rewardsList) {
+        console.error("rewardsList element not found!");
+        return;
+    }
     rewardsList.innerHTML = '<div class="loading-spinner">Chargement (Init)...</div>';
     closeEditor();
 
