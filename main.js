@@ -126,38 +126,7 @@ ipcMain.handle('get-themes', async () => {
 
 
 
-ipcMain.handle('get-channel-rewards', async () => {
-    return await bot.getChannelRewards();
-});
 
-ipcMain.handle('create-channel-reward', async (event, rewardData) => {
-    return await bot.createChannelReward(rewardData);
-});
-
-ipcMain.handle('update-channel-reward', async (event, rewardId, rewardData) => {
-    return await bot.updateChannelReward(rewardId, rewardData);
-});
-
-ipcMain.handle('delete-channel-reward', async (event, rewardId) => {
-    return await bot.deleteChannelReward(rewardId);
-});
-
-ipcMain.handle('save-reward-sounds', async (event, soundsMap) => {
-    if (bot) {
-        const config = bot.getConfig();
-        config.rewardSounds = soundsMap;
-        bot.updateConfig({ rewardSounds: soundsMap });
-        return true;
-    }
-    return false;
-});
-
-ipcMain.handle('get-reward-sounds', async () => {
-    if (bot) {
-        return bot.getConfig().rewardSounds || {};
-    }
-    return {};
-});
 
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
