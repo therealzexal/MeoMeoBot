@@ -55,11 +55,13 @@ async function loadRewardSounds() {
 
 async function loadRewards() {
     if (!rewardsList) return;
-    rewardsList.innerHTML = '<div class="loading-spinner">Chargement...</div>';
+    rewardsList.innerHTML = '<div class="loading-spinner">Chargement (Init)...</div>';
     closeEditor();
 
     try {
+        rewardsList.innerHTML = '<div class="loading-spinner">Connexion au bot (IPC)...</div>';
         const rewards = await API.points.getRewards();
+        rewardsList.innerHTML = '<div class="loading-spinner">Données reçues...</div>';
         renderRewards(rewards);
         showStatus('points-status-msg', 'Mise à jour réussie', 'success');
     } catch (e) {
