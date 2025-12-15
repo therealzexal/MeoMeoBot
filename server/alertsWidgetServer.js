@@ -79,6 +79,16 @@ class AlertsWidgetServer extends BaseWidgetServer {
         const nextAlert = this.alertQueue.shift();
         this.isPlaying = true;
         this.broadcast({ type: 'alert', alert: nextAlert });
+
+        const duration = (nextAlert.duration || 5000) + 2000;
+        if (this.safetyTimer) clearTimeout(this.safetyTimer);
+        this.safetyTimer = setTimeout(() => {
+            if (this.isPlaying) {
+                console.log('[ALERTS] Safety timeout triggered - forcing next alert');
+                this.isPlaying = false;
+                this.processQueue();
+            }
+        }, duration);
     }
 
     skipCurrent() {

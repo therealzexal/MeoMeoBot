@@ -63,12 +63,19 @@
                 if (data.type === 'alert') {
                     const alert = data.alert;
                     if (alert.image && alert.image.startsWith('file://')) {
-                        const rawPath = alert.image.replace('file://', '');
+                        let rawPath = alert.image.replace('file://', '');
+                        // Windows fix: remove leading slash if it precedes a drive letter (e.g. /C:/...)
+                        if (rawPath.match(/^\/[a-zA-Z]:/)) {
+                            rawPath = rawPath.substring(1);
+                        }
                         alert.image = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
                     }
 
                     if (alert.audio && alert.audio.startsWith('file://')) {
-                        const rawPath = alert.audio.replace('file://', '');
+                        let rawPath = alert.audio.replace('file://', '');
+                        if (rawPath.match(/^\/[a-zA-Z]:/)) {
+                            rawPath = rawPath.substring(1);
+                        }
                         alert.audio = `${window.location.protocol}//${host}/local-file?path=${encodeURIComponent(rawPath)}`;
                     }
                     playAlert(alert);
