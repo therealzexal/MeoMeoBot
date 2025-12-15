@@ -477,23 +477,7 @@ function setupBotEvents() {
     bot.onParticipantAdded = (username) => safeSend('participant-added', { username });
 
     bot.onChatMessage = (messageData) => {
-        // Check for custom reward
-        if (messageData.tags && messageData.tags['custom-reward-id']) {
-            const rewardId = messageData.tags['custom-reward-id'];
-            const config = bot.getConfig();
-            const rewardSounds = config.rewardSounds || {};
 
-            if (rewardSounds[rewardId]) {
-                const soundPath = rewardSounds[rewardId];
-                console.log(`[BOT] Triggering reward sound for ${rewardId}`);
-                bot.triggerAlert('custom_reward', {
-                    audio: soundPath,
-                    text: '',
-                    image: '',
-                    duration: 5000
-                });
-            }
-        }
 
         if (messageData.text && messageData.text.startsWith('!')) return;
         sendChatToWidgets(messageData);
@@ -1130,4 +1114,3 @@ app.on('will-quit', () => {
     if (mediaServer) mediaServer.close();
     if (bonjourInstance) bonjourInstance.destroy();
 });
-

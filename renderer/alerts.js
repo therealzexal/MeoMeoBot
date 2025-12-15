@@ -387,7 +387,10 @@ function playShadowAlert(shadow, alert) {
 
     if (alert.layout === 'side') wrapper.classList.add('layout-side-by-side');
 
-    if (alert.audio) {
+    const alertsTab = document.querySelector('.tab[data-tab="alerts"]');
+    const isAlertsTabActive = alertsTab && alertsTab.classList.contains('active');
+
+    if (alert.audio && isAlertsTabActive) {
         audio.src = alert.audio;
         audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
         audio.play().catch(e => console.log('Preview Audio Error:', e));
