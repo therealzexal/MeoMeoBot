@@ -355,7 +355,6 @@ function connectPreviewWebSocket(shadow) {
 }
 
 function playShadowAlert(shadow, alert) {
-    // Look inside the preview shadow root (no scaler now)
     const wrapper = shadow.getElementById('alert-wrapper');
     const imgContainer = shadow.getElementById('alert-image-container');
     const textContainer = shadow.getElementById('alert-text');
