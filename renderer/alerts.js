@@ -568,8 +568,6 @@ async function triggerTest() {
             text: (config.textTemplate || EVENT_TYPES[currentType].defaultText)
                 .replace('{username}', '<span class="alert-username">Zexal</span>')
                 .replace('{amount}', '<span class="alert-amount">100</span>')
-                .replace('{username}', '<span class="alert-username">Zexal</span>')
-                .replace('{amount}', '<span class="alert-amount">100</span>')
                 .replace('{months}', '<span class="alert-months">12</span>')
                 .replace('{s}', 's'),
             image: config.image,
