@@ -1104,6 +1104,16 @@ ipcMain.handle('save-reward-images', (event, images) => {
     return { success: true };
 });
 
+ipcMain.handle('get-points-global-volume', () => {
+    const config = bot.getConfig();
+    return config.pointsGlobalVolume !== undefined ? config.pointsGlobalVolume : 0.5;
+});
+
+ipcMain.handle('save-points-global-volume', (event, volume) => {
+    bot.updateConfig({ pointsGlobalVolume: volume });
+    return { success: true };
+});
+
 app.on('will-quit', () => {
     if (chatServer) chatServer.stop();
     if (spotifyServer) spotifyServer.stop();

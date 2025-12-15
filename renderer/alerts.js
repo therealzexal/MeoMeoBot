@@ -345,6 +345,8 @@ function connectPreviewWebSocket(shadow) {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'alert') {
+                // Anti-duplication: Dashboard does not play reward sounds
+                if (data.alert.type === 'reward-redemption') return;
                 playShadowAlert(shadow, data.alert);
             } else if (data.type === 'skip') {
                 const wrapper = shadow.getElementById('alert-wrapper');

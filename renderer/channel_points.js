@@ -1,5 +1,6 @@
 import { API } from './api.js';
-import { showStatus, NOTIFICATIONS, ICONS, createDeleteControl, createFilePickerGroup, createInputGroup, createCheckboxGroup } from './ui.js';
+import { showStatus, NOTIFICATIONS, ICONS, createDeleteControl, createFilePickerGroup, createInputGroup, createCheckboxGroup, createSliderGroup } from './ui.js';
+
 
 let rewardsList;
 let rewardEditorContainer;
@@ -8,6 +9,8 @@ let editingId = null;
 
 let savedRewardSounds = {};
 let savedRewardImages = {};
+
+
 
 const DEFAULT_COLOR = '#00FF00';
 
@@ -42,12 +45,54 @@ function init() {
     }
 
     loadRewardSounds();
+    loadGlobalVolume();
+}
+
+async function loadGlobalVolume() {
+    const vol = await window.api.invoke('get-points-global-volume');
+    const container = document.querySelector('.points-header-controls');
+
+    const refreshBtn = document.getElementById('refreshRewardsBtn');
+    if (refreshBtn && refreshBtn.parentNode) {
+        let volContainer = document.getElementById('points-global-volume-container');
+        if (!volContainer) {
+            volContainer = document.createElement('div');
+            volContainer.id = 'points-global-volume-container';
+            volContainer.style.display = 'flex';
+            volContainer.style.alignItems = 'center';
+            volContainer.style.marginLeft = '15px';
+            volContainer.style.gap = '10px';
+
+            const label = document.createElement('span');
+            label.textContent = 'Volume Global:';
+            label.style.fontSize = '0.9em';
+            label.style.color = 'var(--text-secondary)';
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = '0';
+            slider.max = '1';
+            slider.step = '0.05';
+            slider.value = vol;
+            slider.style.width = '100px';
+
+            slider.addEventListener('input', async (e) => {
+                await window.api.invoke('save-points-global-volume', parseFloat(e.target.value));
+            });
+
+            volContainer.appendChild(label);
+            volContainer.appendChild(slider);
+            refreshBtn.parentNode.insertBefore(volContainer, refreshBtn.nextSibling);
+        }
+    }
 }
 
 async function loadRewardSounds() {
     try {
         savedRewardSounds = await window.api.invoke('get-reward-sounds') || {};
         savedRewardImages = await window.api.invoke('get-reward-images') || {};
+
+
     } catch (e) {
         console.error('Error loading reward assets:', e);
     }
@@ -120,7 +165,7 @@ function renderRewards(rewards) {
 
         const editBtn = document.createElement('button');
         editBtn.className = 'btn btn-secondary btn-sm';
-        editBtn.innerHTML = ICONS.edit || '✎';
+        editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
         editBtn.title = 'Modifier';
         editBtn.onclick = () => openEditor(reward);
 
@@ -199,8 +244,11 @@ function openEditor(reward = null) {
     }, 'rewardSoundInput'));
 
     const currentImage = (reward && savedRewardImages[reward.id]) ? savedRewardImages[reward.id] : '';
-    formFuncs.appendChild(createFilePickerGroup('Image de l\'alerte', currentImage, 'image', async (val) => {
+    formFuncs.appendChild(createFilePickerGroup('Image de l\'alerte (<em style="font-size:0.8em; color:var(--text-secondary);">Icone UI uniquement</em>)', currentImage, 'image', async (val) => {
     }, 'rewardImageInput'));
+
+
+
 
     rewardEditorContainer.appendChild(formFuncs);
 
@@ -334,7 +382,10 @@ async function saveReward() {
             }
             await window.api.invoke('save-reward-images', newImages);
             savedRewardImages = newImages;
+
+
         }
+
 
         closeEditor();
         loadRewards();
