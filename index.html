@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MeoMeoBot</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/points.css">
+    <link rel="stylesheet" href="css/alerts.css">
+    <link rel="stylesheet" href="css/cast.css">
+    <link rel="stylesheet" href="css/commands.css">
+    <link rel="stylesheet" href="css/config.css">
+    <link rel="stylesheet" href="css/giveaway.css">
+    <link rel="stylesheet" href="css/moderation.css">
+    <link rel="stylesheet" href="css/widgets.css">
+    <link rel="stylesheet" href="css/points.css">
 </head>
 
 <body>
@@ -337,9 +346,24 @@
     <div class="tab-content" id="alerts-tab">
         <div class="card full-height-card" style="display: flex; flex-direction: column;">
             <div class="alerts-layout" style="display: flex; height: 100%;">
-
                 <div class="alerts-sidebar">
-
+                    <div class="alert-type-btn active" data-type="follow"><span>Follow</span> <input type="checkbox"
+                            id="check-follow"></div>
+                    <div class="alert-type-btn" data-type="sub"><span>Sub</span> <input type="checkbox" id="check-sub">
+                    </div>
+                    <div class="alert-type-btn" data-type="subgift"><span>Subgift</span> <input type="checkbox"
+                            id="check-subgift"></div>
+                    <div class="alert-type-btn" data-type="resub"><span>Re-Sub</span> <input type="checkbox"
+                            id="check-resub"></div>
+                    <div class="alert-type-btn" data-type="donation"><span>Dons</span> <input type="checkbox"
+                            id="check-donation"></div>
+                    <div class="alert-type-btn" data-type="cheer"><span>Bits</span> <input type="checkbox"
+                            id="check-cheer"></div>
+                    <div class="alert-type-btn" data-type="raid"><span>Raid</span> <input type="checkbox"
+                            id="check-raid"></div>
+                    <div class="alert-type-btn" data-type="hypetrain"><span>Hype Train</span> <input type="checkbox"
+                            id="check-hypetrain"></div>
+                    <div class="alert-type-btn" data-type="themes"><span>Thèmes</span></div>
                 </div>
 
 
@@ -380,46 +404,78 @@
                 <button class="btn btn-secondary" id="refreshRewardsBtn">Rafraîchir</button>
                 <span id="points-status-msg" class="status-msg" style="margin-left: auto;"></span>
             </div>
+
+            <div id="reward-editor-static" class="reward-editor-container hidden"
+                style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <h3 id="reward-editor-title"
+                    style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px;">Nouvelle
+                    récompense</h3>
+
+                <div class="reward-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="rewardNameInput">
+                    </div>
+                    <div class="form-group">
+                        <label>Coût</label>
+                        <input type="number" id="rewardCostInput">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description (Prompt)</label>
+                        <textarea id="rewardPromptInput" rows="3"></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Couleur</label>
+                        <input type="color" id="rewardColorInput"
+                            style="width:100%; height:40px; padding:0; border:none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cooldown Global (sec)</label>
+                        <input type="number" id="rewardCooldownInput">
+                    </div>
+
+                    <div></div>
+
+                    <div class="form-group">
+                        <label>Son de l'alerte</label>
+                        <div class="file-picker-container">
+                            <input type="text" id="rewardSoundInput" readonly placeholder="Aucun fichier">
+                            <button class="btn btn-secondary" id="rewardSoundPickBtn">...</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Image de l'alerte (<em style="font-size:0.8em; color:var(--text-secondary);">Icone UI
+                                uniquement</em>)</label>
+                        <div class="file-picker-container">
+                            <input type="text" id="rewardImageInput" readonly placeholder="Aucun fichier">
+                            <button class="btn btn-secondary" id="rewardImagePickBtn">...</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:20px; margin-top:15px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="rewardEnabledInput"> <label for="rewardEnabledInput">Activer la
+                            récompense</label>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="rewardUserInputInput"> <label for="rewardUserInputInput">Demander du
+                            texte (User Input)</label>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                    <button class="btn btn-secondary" id="cancelRewardEditorBtn">Annuler</button>
+                    <button class="btn btn-primary" id="saveRewardEditorBtn">Sauvegarder</button>
+                </div>
+            </div>
+
             <div class="list-container" id="rewardsList">
                 <div class="loading-spinner">Chargement...</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="reward-editor-overlay" class="confirmation-overlay">
-        <div class="confirmation-box" style="width: 400px; max-width: 90vw;">
-            <h3 id="reward-editor-title">Nouvelle Récompense</h3>
-            <div class="form-group">
-                <label>Nom</label>
-                <input type="text" id="rewardName" placeholder="Titre de la récompense">
-            </div>
-            <div class="form-group">
-                <label>Coût (Points)</label>
-                <input type="number" id="rewardCost" value="100" min="1">
-            </div>
-            <div class="form-group">
-                <label>Couleur de fond (Hex)</label>
-                <input type="color" id="rewardColor" value="#00FF00">
-            </div>
-            <div class="form-group">
-                <label>Cooldown global (secondes)</label>
-                <input type="number" id="rewardGlobalCooldown" value="0" min="0">
-            </div>
-            <div class="form-group">
-                <label style="display:flex; align-items:center;">
-                    <input type="checkbox" id="rewardIsEnabled" checked style="width:auto; margin-right:8px;">
-                    Activé
-                </label>
-            </div>
-            <div class="form-group">
-                <label style="display:flex; align-items:center;">
-                    <input type="checkbox" id="rewardUserInput" style="width:auto; margin-right:8px;">
-                    Demander une saisie utilisateur
-                </label>
-            </div>
-            <div class="config-actions" style="margin-top: 20px; justify-content: flex-end;">
-                <button class="btn btn-secondary" id="cancelRewardBtn" style="margin-right: 10px;">Annuler</button>
-                <button class="btn btn-primary" id="saveRewardBtn">Sauvegarder</button>
             </div>
         </div>
     </div>
@@ -433,16 +489,6 @@
         </div>
     </div>
     </div>
-    </div>
-
-    <div id="confirmationOverlay" class="confirmation-overlay">
-        <div class="confirmation-box">
-            <h4 id="confirmationMessage">Êtes-vous sûr ?</h4>
-            <div class="confirmation-buttons">
-                <button class="btn btn-danger" id="confirmYes">Oui</button>
-                <button class="btn btn-secondary" id="confirmNo">Non</button>
-            </div>
-        </div>
     </div>
 
     <div id="notification-container"></div>

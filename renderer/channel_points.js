@@ -16,24 +16,37 @@ const DEFAULT_COLOR = '#00FF00';
 
 function init() {
     rewardsList = document.getElementById('rewardsList');
-
-    let existingEditor = document.getElementById('reward-editor-integrated');
-    if (!existingEditor) {
-        rewardEditorContainer = document.createElement('div');
-        rewardEditorContainer.id = 'reward-editor-integrated';
-        rewardEditorContainer.className = 'reward-editor-container hidden';
-        if (rewardsList && rewardsList.parentNode) {
-            rewardsList.parentNode.insertBefore(rewardEditorContainer, rewardsList);
-        }
-    } else {
-        rewardEditorContainer = existingEditor;
-    }
+    rewardEditorContainer = document.getElementById('reward-editor-static');
 
     const addBtn = document.getElementById('addRewardBtn');
     if (addBtn) addBtn.addEventListener('click', () => openEditor());
 
     const refreshBtn = document.getElementById('refreshRewardsBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', loadRewards);
+
+    const cancelBtn = document.getElementById('cancelRewardEditorBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeEditor);
+
+    const saveBtn = document.getElementById('saveRewardEditorBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveReward);
+
+    document.getElementById('rewardSoundPickBtn').addEventListener('click', async () => {
+        try {
+            const path = await API.openFileDialog([{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg'] }]);
+            if (path) {
+                document.getElementById('rewardSoundInput').value = `file://${path.replace(/\\/g, '/')}`;
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    document.getElementById('rewardImagePickBtn').addEventListener('click', async () => {
+        try {
+            const path = await API.openFileDialog([{ name: 'Images', extensions: ['jpg', 'png', 'gif'] }]);
+            if (path) {
+                document.getElementById('rewardImageInput').value = `file://${path.replace(/\\/g, '/')}`;
+            }
+        } catch (e) { console.error(e); }
+    });
 
 
     const pointsTab = document.querySelector('.tab[data-tab="points"]');
@@ -200,92 +213,22 @@ function openEditor(reward = null) {
     isEditing = !!reward;
     editingId = reward ? reward.id : null;
 
-    rewardEditorContainer.innerHTML = '';
+    document.getElementById('reward-editor-title').textContent = isEditing ? 'Modifier la récompense' : 'Nouvelle récompense';
+    document.getElementById('saveRewardEditorBtn').textContent = isEditing ? 'Sauvegarder' : 'Créer';
 
-    const title = document.createElement('h3');
-    title.textContent = isEditing ? 'Modifier la récompense' : 'Nouvelle récompense';
-    title.style.marginBottom = '15px';
-    title.style.borderBottom = '1px solid #444';
-    title.style.paddingBottom = '10px';
-    rewardEditorContainer.appendChild(title);
-
-    const formFuncs = document.createElement('div');
-    formFuncs.className = 'reward-form-grid';
-
-    formFuncs.appendChild(createInputGroup('Nom', reward ? reward.title : '',
-        (v) => { }, 'text', 'rewardNameInput'));
-
-    formFuncs.appendChild(createInputGroup('Coût', reward ? reward.cost : 100,
-        (v) => { }, 'number', 'rewardCostInput'));
-
-    const promptVal = reward ? (reward.prompt || '') : '';
-    // Custom textarea creation since createInputGroup is for inputs
-    const promptDiv = document.createElement('div');
-    promptDiv.className = 'form-group';
-    promptDiv.innerHTML = '<label>Description (Prompt)</label>';
-    const promptArea = document.createElement('textarea');
-    promptArea.id = 'rewardPromptInput';
-    promptArea.value = promptVal;
-    promptArea.rows = 3;
-    promptDiv.appendChild(promptArea);
-    formFuncs.appendChild(promptDiv);
-
-    const colorDiv = document.createElement('div');
-    colorDiv.className = 'input-group';
-    colorDiv.innerHTML = `<label>Couleur</label><input type="color" id="rewardColorInput" value="${reward ? reward.background_color : DEFAULT_COLOR}" style="width:100%; height:40px; padding:0; border:none;">`;
-    formFuncs.appendChild(colorDiv);
+    document.getElementById('rewardNameInput').value = reward ? reward.title : '';
+    document.getElementById('rewardCostInput').value = reward ? reward.cost : 100;
+    document.getElementById('rewardPromptInput').value = reward ? (reward.prompt || '') : '';
+    document.getElementById('rewardColorInput').value = reward ? reward.background_color : DEFAULT_COLOR;
 
     const hasCooldown = reward && reward.global_cooldown_setting && reward.global_cooldown_setting.is_enabled;
-    const cooldownVal = hasCooldown ? reward.global_cooldown_setting.global_cooldown_seconds : 0;
-    formFuncs.appendChild(createInputGroup('Cooldown Global (sec)', cooldownVal, (v) => { }, 'number', 'rewardCooldownInput'));
+    document.getElementById('rewardCooldownInput').value = hasCooldown ? reward.global_cooldown_setting.global_cooldown_seconds : 0;
 
-    const currentSound = (reward && savedRewardSounds[reward.id]) ? savedRewardSounds[reward.id] : '';
-    formFuncs.appendChild(createFilePickerGroup('Son de l\'alerte', currentSound, 'audio', async (val) => {
-    }, 'rewardSoundInput'));
+    document.getElementById('rewardEnabledInput').checked = (!reward || reward.is_enabled);
+    document.getElementById('rewardUserInputInput').checked = (reward && reward.is_user_input_required);
 
-    const currentImage = (reward && savedRewardImages[reward.id]) ? savedRewardImages[reward.id] : '';
-    formFuncs.appendChild(createFilePickerGroup('Image de l\'alerte (<em style="font-size:0.8em; color:var(--text-secondary);">Icone UI uniquement</em>)', currentImage, 'image', async (val) => {
-    }, 'rewardImageInput'));
-
-
-
-
-    rewardEditorContainer.appendChild(formFuncs);
-
-    const checks = document.createElement('div');
-    checks.style.display = 'flex';
-    checks.style.gap = '20px';
-    checks.style.marginTop = '15px';
-
-    const enableCheck = document.createElement('div');
-    enableCheck.innerHTML = `<label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="rewardEnabledInput" ${(!reward || reward.is_enabled) ? 'checked' : ''}> Activer la récompense</label>`;
-
-    const inputCheck = document.createElement('div');
-    inputCheck.innerHTML = `<label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="rewardUserInputInput" ${(reward && reward.is_user_input_required) ? 'checked' : ''}> Demander du texte (User Input)</label>`;
-
-    checks.appendChild(enableCheck);
-    checks.appendChild(inputCheck);
-    rewardEditorContainer.appendChild(checks);
-
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.justifyContent = 'flex-end';
-    btnRow.style.gap = '10px';
-    btnRow.style.marginTop = '20px';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'btn btn-secondary';
-    cancelBtn.textContent = 'Annuler';
-    cancelBtn.onclick = closeEditor;
-
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'btn btn-primary';
-    saveBtn.textContent = isEditing ? 'Sauvegarder' : 'Créer';
-    saveBtn.onclick = saveReward;
-
-    btnRow.appendChild(cancelBtn);
-    btnRow.appendChild(saveBtn);
-    rewardEditorContainer.appendChild(btnRow);
+    document.getElementById('rewardSoundInput').value = (reward && savedRewardSounds[reward.id]) ? savedRewardSounds[reward.id] : '';
+    document.getElementById('rewardImageInput').value = (reward && savedRewardImages[reward.id]) ? savedRewardImages[reward.id] : '';
 
     rewardEditorContainer.classList.remove('hidden');
     rewardsList.classList.add('hidden');
@@ -294,7 +237,6 @@ function openEditor(reward = null) {
 function closeEditor() {
     if (rewardEditorContainer) {
         rewardEditorContainer.classList.add('hidden');
-        rewardEditorContainer.innerHTML = '';
     }
     if (rewardsList) rewardsList.classList.remove('hidden');
     isEditing = false;
@@ -395,44 +337,7 @@ async function saveReward() {
     }
 }
 
-const style = document.createElement('style');
-style.innerHTML = `
-    .reward-card {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        padding: 10px 15px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        transition: transform 0.2s;
-    }
-    .reward-card:hover {
-        transform: translateX(2px);
-    }
-    .reward-details { flex: 1; }
-    .reward-title { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-    .cost-badge { background: #9147ff; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; }
-    .reward-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-    .reward-actions { display: flex; gap: 5px; }
-    
-    .reward-editor-container {
-        background: var(--bg-secondary);
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border: 1px solid var(--border-color);
-    }
-    .hidden { display: none !important; }
-    
-    .reward-form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-    }
-`;
-document.head.appendChild(style);
+
 
 document.addEventListener('DOMContentLoaded', init);
 

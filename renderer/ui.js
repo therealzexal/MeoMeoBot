@@ -27,27 +27,7 @@ export function showStatus(elementId, message, type = 'success', duration = 3000
 }
 
 export function setupConfirmationOverlay() {
-    const overlay = document.getElementById('confirmationOverlay');
-    const confirmYes = document.getElementById('confirmYes');
-    const confirmNo = document.getElementById('confirmNo');
-    let currentCallback = null;
-
-    window.showConfirmation = (message, callback) => {
-        document.getElementById('confirmationMessage').textContent = message;
-        currentCallback = callback;
-        overlay.classList.add('active');
-    };
-
-    confirmYes.onclick = () => {
-        if (currentCallback) currentCallback();
-        overlay.classList.remove('active');
-        currentCallback = null;
-    };
-
-    confirmNo.onclick = () => {
-        overlay.classList.remove('active');
-        currentCallback = null;
-    };
+    // Removed per user request. Use inline confirmation (createDeleteControl).
 }
 
 export function setupWindowControls() {
