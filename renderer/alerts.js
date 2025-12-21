@@ -338,7 +338,6 @@ function connectPreviewWebSocket(shadow) {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'alert') {
-                // Anti-duplication: Dashboard does not play reward sounds
                 if (data.alert.type === 'reward-redemption') return;
                 playShadowAlert(shadow, data.alert);
             } else if (data.type === 'skip') {
@@ -410,7 +409,6 @@ function playShadowAlert(shadow, alert) {
 
     if (alert.audio) {
         audio.src = transformLocalPath(alert.audio);
-        // Explicitly play audio for dashboard preview feedback
         audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
         audio.play().catch(e => console.error('[Preview] Audio play failed:', e));
     } else {

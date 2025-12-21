@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/moderation.css">
     <link rel="stylesheet" href="css/widgets.css">
     <link rel="stylesheet" href="css/points.css">
+    <link rel="stylesheet" href="css/planning.css">
 </head>
 
 <body>
@@ -63,6 +64,7 @@
             <div class="tab" data-tab="widgets">Widgets</div>
             <div class="tab" data-tab="alerts">Alertes</div>
             <div class="tab" data-tab="points">Points</div>
+            <div class="tab" data-tab="planning">Planning</div>
         </div>
         <div class="settings-tab">
             <div class="tab icon-tab" data-tab="config" title="Configuration">
@@ -480,6 +482,84 @@
         </div>
     </div>
 
+    <div class="tab-content" id="planning-tab">
+        <div class="planning-layout full-height-card">
+            <div class="planning-toolbar card">
+                <div class="toolbar-group">
+                    <button id="planning-prev-week" class="btn btn-secondary">&lt; Semaine Préc.</button>
+                    <span id="planning-week-label">12 - 18 Décembre</span>
+                    <button id="planning-next-week" class="btn btn-secondary">Semaine Suiv. &gt;</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Titre:</span>
+                    <input type="text" id="planning-title-input" placeholder="Planning de la semaine"
+                        value="STREAM SCHEDULE">
+                </div>
+
+                <div class="toolbar-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="planning-start-sunday">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="setting-label">Dimanche 1er</span>
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="file-picker-container compact">
+                        <input type="text" id="planning-bg-input" readonly placeholder="Fond..." title="Image de fond">
+                        <button class="btn btn-secondary btn-icon" id="planning-bg-pick-btn">📂</button>
+                    </div>
+                </div>
+
+                <div class="toolbar-actions right">
+                    <button class="btn btn-primary" id="planning-save-twitch-btn">
+                        <span class="icon">📡</span> Sync Twitch
+                    </button>
+                    <button class="btn btn-success" id="planning-export-btn">
+                        <span class="icon">📷</span> Exporter
+                    </button>
+                </div>
+            </div>
+
+            <div class="planning-workspace">
+                <div class="planning-editor card">
+                    <div class="day-selector">
+                        <div class="day-tab active" data-day="0">Lun</div>
+                        <div class="day-tab" data-day="1">Mar</div>
+                        <div class="day-tab" data-day="2">Mer</div>
+                        <div class="day-tab" data-day="3">Jeu</div>
+                        <div class="day-tab" data-day="4">Ven</div>
+                        <div class="day-tab" data-day="5">Sam</div>
+                        <div class="day-tab" data-day="6">Dim</div>
+                    </div>
+
+                    <div class="day-editor-content">
+                        <div class="day-header-row">
+                            <h3 id="editor-day-title">Lundi</h3>
+                            <button class="btn btn-sm btn-primary" id="add-segment-btn">+ Ajouter</button>
+                        </div>
+                        <div id="segments-list" class="segments-list">
+                            <div class="empty-state">Aucun stream prévu ce jour.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="planning-preview-container card">
+                    <div id="planning-preview-card" class="planning-card">
+                        <div class="planning-card-bg"></div>
+                        <div class="planning-card-header">
+                            <h1 id="preview-title">STREAM SCHEDULE</h1>
+                            <div id="preview-dates" class="preview-dates">12.12 - 18.12</div>
+                        </div>
+                        <div class="planning-grid" id="planning-grid">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-content" id="config-tab">
         <div id="config-form-container" class="config-wrapper"></div>
         <div class="unified-button-row">
@@ -506,6 +586,7 @@
     <script src="renderer/input_customizer.js"></script>
     <script src="renderer/channel_points.js" type="module"></script>
     <script src="renderer/alerts.js" type="module"></script>
+    <script src="renderer/planning.js" type="module"></script>
     <script src="renderer/app.js" type="module"></script>
 </body>
 

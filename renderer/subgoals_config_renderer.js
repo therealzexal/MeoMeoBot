@@ -167,7 +167,6 @@ function getPreviewHtml() {
         .step-label { position: absolute; top: -35px; background: rgba(0, 0, 0, 0.8); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; white-space: nowrap; border: 1px solid rgba(255, 255, 255, 0.3); z-index: 6; box-shadow: 0 4px 6px rgba(0,0,0,0.3); left: 50%; transform: translateX(-50%); --arrow-pos: 50%; }
         .step-label::after { content: ''; position: absolute; bottom: -5px; left: var(--arrow-pos); transform: translateX(-50%); border-width: 5px 5px 0; border-style: solid; border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent; }
         
-        /* Custom CSS */
         ${currentConfig.customCSS || ''}
     `;
 

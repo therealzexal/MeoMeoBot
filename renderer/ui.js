@@ -27,7 +27,6 @@ export function showStatus(elementId, message, type = 'success', duration = 3000
 }
 
 export function setupConfirmationOverlay() {
-    // Removed per user request. Use inline confirmation (createDeleteControl).
 }
 
 export function setupWindowControls() {
@@ -251,7 +250,6 @@ export function createFilePickerGroup(label, value, type, onChange, id = null) {
 
     container.appendChild(input);
     container.appendChild(btn);
-    // REMOVED DUPLICATE APPENDS
     div.appendChild(container);
     return div;
 }

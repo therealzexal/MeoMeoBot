@@ -907,6 +907,57 @@ class TwitchBot {
             throw error;
         }
     }
+
+    async searchCategories(query) {
+        if (!query) return [];
+        try {
+            const data = await this.helixRequest(`search/categories?query=${encodeURIComponent(query)}`);
+            return data.data;
+        } catch (e) {
+            console.error('[TWITCH] Error searching categories:', e);
+            throw e;
+        }
+    }
+
+    async getSchedule() {
+        try {
+            const data = await this.helixRequest('schedule');
+            return data.data;
+        } catch (e) {
+            console.error('[TWITCH] Error fetching schedule:', e);
+            return null;
+        }
+    }
+
+    async createScheduleSegment(segment) {
+        try {
+            await this.helixRequest('schedule/segment', 'POST', segment);
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error creating segment:', e);
+            throw e;
+        }
+    }
+
+    async updateScheduleSegment(id, segment) {
+        try {
+            await this.helixRequest(`schedule/segment?id=${id}`, 'PATCH', segment);
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error updating segment:', e);
+            throw e;
+        }
+    }
+
+    async deleteScheduleSegment(id) {
+        try {
+            await this.helixRequest(`schedule/segment?id=${id}`, 'DELETE');
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error deleting segment:', e);
+            throw e;
+        }
+    }
 }
 
 module.exports = TwitchBot;

@@ -5,6 +5,7 @@ import { loadParticipants, startGiveaway, stopGiveaway, drawWinner, clearPartici
 import { loadCommands, addCommand } from './commands.js';
 import { loadBannedWords, addBannedWord, clearBannedWords, saveAutoMessage, saveClipConfig } from './moderation.js';
 import { setupCast } from './cast.js';
+import { initPlanning } from './planning.js';
 
 let configState = {};
 
@@ -19,6 +20,7 @@ async function initializeApp() {
     setupWindowControls();
     setupConfirmationOverlay();
     setupCast();
+    initPlanning();
     setupEventListeners();
 
     await loadAllData();

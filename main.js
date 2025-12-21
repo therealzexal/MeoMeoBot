@@ -1109,6 +1109,48 @@ ipcMain.handle('get-points-global-volume', () => {
     return config.pointsGlobalVolume !== undefined ? config.pointsGlobalVolume : 0.5;
 });
 
+ipcMain.handle('twitch-search-categories', async (event, query) => {
+    return await bot.searchCategories(query);
+});
+
+ipcMain.handle('twitch-get-schedule', async () => {
+    return await bot.getSchedule();
+});
+
+ipcMain.handle('twitch-create-schedule-segment', async (event, segment) => {
+    return await bot.createScheduleSegment(segment);
+});
+
+ipcMain.handle('twitch-update-schedule-segment', async (event, id, segment) => {
+    return await bot.updateScheduleSegment(id, segment);
+});
+
+ipcMain.handle('twitch-delete-schedule-segment', async (event, id) => {
+    return await bot.deleteScheduleSegment(id);
+});
+
+ipcMain.handle('save-planning-image', async (event, rect) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { success: false, error: 'Window not found' };
+
+    try {
+        const image = await win.webContents.capturePage(rect);
+        const { canceled, filePath } = await dialog.showSaveDialog(win, {
+            title: 'Sauvegarder le planning',
+            defaultPath: 'planning.png',
+            filters: [{ name: 'Images', extensions: ['png', 'jpg'] }]
+        });
+
+        if (canceled || !filePath) return { success: false, cancelled: true };
+
+        await fs.promises.writeFile(filePath, image.toPNG());
+        return { success: true, filePath };
+    } catch (e) {
+        console.error('Error saving planning image:', e);
+        return { success: false, error: e.message };
+    }
+});
+
 ipcMain.handle('save-points-global-volume', (event, volume) => {
     bot.updateConfig({ pointsGlobalVolume: volume });
     return { success: true };
