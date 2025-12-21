@@ -349,6 +349,31 @@ function connectPreviewWebSocket(shadow) {
     };
 }
 
+function transformLocalPath(path) {
+    if (!path) return path;
+    if (path.startsWith('http')) return path;
+
+    try {
+        let rawPath = path;
+        if (rawPath.startsWith('file://')) {
+            rawPath = rawPath.replace(/^file:\/\//, '');
+        }
+
+        try { rawPath = decodeURIComponent(rawPath); } catch (e) {
+            console.error('[Preview] Decode error', e);
+        }
+
+        if (navigator.platform.toUpperCase().indexOf('WIN') >= 0 || rawPath.match(/^\/[a-zA-Z]:/)) {
+            if (rawPath.startsWith('/')) rawPath = rawPath.substring(1);
+        }
+
+        return `http://127.0.0.1:${widgetPort}/local-file?path=${encodeURIComponent(rawPath)}`;
+    } catch (e) {
+        console.error('[Preview] Path transform error', e);
+        return path;
+    }
+}
+
 function playShadowAlert(shadow, alert) {
     const wrapper = shadow.getElementById('alert-wrapper');
     const imgContainer = shadow.getElementById('alert-image-container');
@@ -364,9 +389,7 @@ function playShadowAlert(shadow, alert) {
 
     imgContainer.innerHTML = '';
     if (alert.image) {
-        let imgPath = alert.image;
-        if (imgPath.startsWith('file://')) {
-        }
+        let imgPath = transformLocalPath(alert.image);
         const img = document.createElement('img');
         img.src = imgPath;
         img.onerror = (e) => console.error('[Preview] Image load failed:', e);
@@ -386,7 +409,7 @@ function playShadowAlert(shadow, alert) {
     if (alert.layout === 'side') wrapper.classList.add('layout-side-by-side');
 
     if (alert.audio) {
-        audio.src = alert.audio;
+        audio.src = transformLocalPath(alert.audio);
         // Explicitly play audio for dashboard preview feedback
         audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
         audio.play().catch(e => console.error('[Preview] Audio play failed:', e));
