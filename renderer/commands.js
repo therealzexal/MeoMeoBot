@@ -18,6 +18,7 @@ export async function loadCommands() {
             const name = document.createElement('span');
             name.className = 'command-name';
             name.textContent = cmd;
+            name.style.color = 'var(--accent)';
 
             const resp = document.createElement('span');
             resp.className = 'command-response';

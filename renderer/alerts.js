@@ -31,7 +31,7 @@ function init() {
 
     setupPreview();
 
-    renderSidebar();
+    updateSidebarState();
     renderForm(currentType);
 
     alertsWidget.onRefresh((globalConfig, appConfig) => {
@@ -46,7 +46,7 @@ function init() {
         if (currentType && currentType !== 'themes') updatePreview(currentType);
         else if (currentType === 'themes') updateGlobalThemePreview(currentConfig.customCSS);
 
-        renderSidebar();
+        updateSidebarState();
         if (currentType === 'themes') {
             renderThemesTab();
         } else {
@@ -59,53 +59,46 @@ function init() {
 
     const testBtn = document.getElementById('testAlertBtn');
     if (testBtn) testBtn.addEventListener('click', triggerTest);
+
+    const typeBtns = document.querySelectorAll('.alert-type-btn');
+    typeBtns.forEach(btn => {
+        const type = btn.dataset.type;
+        if (type) {
+            btn.addEventListener('click', (e) => {
+                if (e.target.type !== 'checkbox') {
+                    switchType(type);
+                }
+            });
+
+            const checkbox = btn.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    updateConfig(type, 'enabled', e.target.checked);
+                });
+            }
+        }
+    });
 }
 
-function renderSidebar() {
-    if (!sidebar) return;
-    sidebar.innerHTML = '';
 
-    Object.keys(EVENT_TYPES).forEach(type => {
-        const meta = EVENT_TYPES[type];
-        const isActive = type === currentType;
-        const typeConfig = currentConfig[type] || {};
-        const isEnabled = typeConfig.enabled !== false;
 
-        const btn = document.createElement('div');
-        btn.className = `alert-type-btn ${isActive ? 'active' : ''}`;
-        btn.dataset.type = type;
-
-        btn.onclick = (e) => {
-            if (e.target.type !== 'checkbox') {
-                switchType(type);
-            }
-        };
-
-        const label = document.createElement('span');
-        label.textContent = meta.label;
-
-        const toggle = document.createElement('input');
-        toggle.type = 'checkbox';
-        toggle.checked = isEnabled;
-        toggle.onclick = (e) => {
-            updateConfig(type, 'enabled', e.target.checked);
-        };
-
-        btn.appendChild(label);
-        btn.appendChild(toggle);
-        sidebar.appendChild(btn);
+function updateSidebarState() {
+    document.querySelectorAll('.alert-type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === currentType);
     });
 
-    const themeBtn = document.createElement('div');
-    themeBtn.className = `alert-type-btn ${currentType === 'themes' ? 'active' : ''}`;
-    themeBtn.onclick = () => switchType('themes');
-    themeBtn.innerHTML = '<span>Thèmes Global</span>';
-    sidebar.appendChild(themeBtn);
+    Object.keys(EVENT_TYPES).forEach(type => {
+        const checkbox = document.getElementById(`check-${type}`);
+        if (checkbox) {
+            const typeConfig = currentConfig[type] || {};
+            checkbox.checked = typeConfig.enabled !== false;
+        }
+    });
 }
 
 function switchType(type) {
     currentType = type;
-    renderSidebar();
+    updateSidebarState();
     if (type === 'themes') {
         renderThemesTab();
     } else {
@@ -345,6 +338,8 @@ function connectPreviewWebSocket(shadow) {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'alert') {
+                // Anti-duplication: Dashboard does not play reward sounds
+                if (data.alert.type === 'reward-redemption') return;
                 playShadowAlert(shadow, data.alert);
             } else if (data.type === 'skip') {
                 const wrapper = shadow.getElementById('alert-wrapper');

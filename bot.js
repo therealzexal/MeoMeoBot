@@ -1,3 +1,4 @@
+
 const tmi = require('tmi.js');
 const configManager = require('./config/configManager');
 
@@ -21,6 +22,33 @@ class TwitchBot {
         this.followPollInterval = null;
         this.lastFollowerId = null;
         this.onAlert = null;
+        this.onChatMessage = null;
+        this.onParticipantsUpdated = null;
+
+        if (this.isDevMockEnabled()) {
+            this.mockRewards = [
+                {
+                    id: 'mock-reward-1',
+                    title: 'BOIS',
+                    cost: 50,
+                    background_color: '#b665f8ff',
+                    is_enabled: true,
+                    global_cooldown_setting: { is_enabled: true, global_cooldown_seconds: 60 },
+                    should_redemptions_skip_request_queue: false
+                },
+                {
+                    id: 'mock-reward-2',
+                    title: 'VIP',
+                    cost: 1000,
+                    background_color: '#1aa5aaff',
+                    is_enabled: true,
+                    global_cooldown_setting: { is_enabled: false, global_cooldown_seconds: 0 },
+                    should_redemptions_skip_request_queue: false
+                }
+            ];
+        } else {
+            this.mockRewards = [];
+        }
     }
 
     setClipCooldown(seconds) {
@@ -51,12 +79,12 @@ class TwitchBot {
             const cleanToken = token.replace('oauth:', '');
             const response = await fetch('https://id.twitch.tv/oauth2/validate', {
                 headers: {
-                    'Authorization': `OAuth ${cleanToken}`
+                    'Authorization': `OAuth ${cleanToken} `
                 }
             });
 
             if (!response.ok) {
-                throw new Error(`Token validation failed: ${response.statusText}`);
+                throw new Error(`Token validation failed: ${response.statusText} `);
             }
 
             const data = await response.json();
@@ -137,7 +165,48 @@ class TwitchBot {
         return await response.json();
     }
 
+    isDevMockEnabled() {
+        if (process.argv.includes('--dev')) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const devOptionsPath = path.join(__dirname, 'dev_options.js');
+                if (fs.existsSync(devOptionsPath)) {
+                    const devOptions = require('./dev_options.js');
+                    return !!devOptions.mockAffiliate;
+                }
+            } catch (e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     async getChannelRewards() {
+        if (this.isDevMockEnabled()) {
+            console.log('[DEV] Returning mocked Channel Rewards');
+            return [
+                {
+                    id: 'mock-reward-1',
+                    title: 'Hydratez-vous !',
+                    cost: 50,
+                    background_color: '#00C7AC',
+                    is_enabled: true,
+                    global_cooldown_setting: { is_enabled: true, global_cooldown_seconds: 60 },
+                    should_redemptions_skip_request_queue: false
+                },
+                {
+                    id: 'mock-reward-2',
+                    title: 'Mode Star',
+                    cost: 1000,
+                    background_color: '#FFD700',
+                    is_enabled: true,
+                    global_cooldown_setting: { is_enabled: false, global_cooldown_seconds: 0 },
+                    should_redemptions_skip_request_queue: false
+                }
+            ];
+        }
+
         try {
             const data = await this.helixRequest('channel_points/custom_rewards');
             return data.data;
@@ -506,7 +575,8 @@ class TwitchBot {
             apiAuth: {
                 clientId: process.env.TWITCH_CLIENT_ID,
                 token: this.appAccessToken
-            }
+            },
+            isWidgetHidden: !!tags['custom-reward-id']
         };
 
         if (this.onChatMessage) this.onChatMessage(messageData);
@@ -672,15 +742,20 @@ class TwitchBot {
     handleRedemption(rewardId, tags, message) {
         const config = this.getConfig();
         const sound = config.rewardSounds ? config.rewardSounds[rewardId] : null;
-        const image = config.rewardImages ? config.rewardImages[rewardId] : null;
 
-        if (sound || image) {
+        let volume = 0.5;
+        if (config.pointsGlobalVolume !== undefined) {
+            volume = config.pointsGlobalVolume;
+        }
+
+        if (sound) {
             const alertPayload = {
                 type: 'reward-redemption',
                 username: tags['display-name'] || tags.username,
-                text: message || 'Récompense !',
-                image: image,
-                audio: sound
+                text: null,
+                image: null,
+                audio: sound,
+                volume: volume
             };
             if (this.onAlert) this.onAlert(alertPayload);
         }
@@ -691,6 +766,11 @@ class TwitchBot {
         if (this.onParticipantsUpdated) this.onParticipantsUpdated();
     }
     async getCustomRewards() {
+        if (this.isDevMockEnabled()) {
+            console.log('[DEV] Returning mocked Custom Rewards (Stateful)');
+            return this.mockRewards;
+        }
+
         if (!this.userId || !this.clientId) return [];
         const config = this.getConfig();
         const token = config.token.replace('oauth:', '');
@@ -717,6 +797,21 @@ class TwitchBot {
     }
 
     async createCustomReward(data) {
+        if (this.isDevMockEnabled()) {
+            console.log('[DEV] Mock create reward:', data);
+            const newReward = {
+                id: 'mock-reward-' + Date.now(),
+                ...data,
+                is_enabled: true,
+                is_paused: false,
+                is_in_stock: true,
+                should_redemptions_skip_request_queue: false,
+                redemptions_redeemed_current_stream: null,
+                cooldown_expires_at: null
+            };
+            this.mockRewards.push(newReward);
+            return newReward;
+        }
         if (!this.userId || !this.clientId) throw new Error('Bot not connected or user ID missing');
         const config = this.getConfig();
         const token = config.token.replace('oauth:', '');
@@ -746,6 +841,15 @@ class TwitchBot {
     }
 
     async updateCustomReward(id, data) {
+        if (this.isDevMockEnabled()) {
+            console.log('[DEV] Mock update reward:', id, data);
+            const index = this.mockRewards.findIndex(r => r.id === id);
+            if (index !== -1) {
+                this.mockRewards[index] = { ...this.mockRewards[index], ...data };
+                return this.mockRewards[index];
+            }
+            throw new Error('Reward not found in mock store');
+        }
         if (!this.userId || !this.clientId) throw new Error('Bot not connected');
         const config = this.getConfig();
         const token = config.token.replace('oauth:', '');
@@ -775,6 +879,11 @@ class TwitchBot {
     }
 
     async deleteCustomReward(id) {
+        if (this.isDevMockEnabled()) {
+            console.log('[DEV] Mock delete reward:', id);
+            this.mockRewards = this.mockRewards.filter(r => r.id !== id);
+            return true;
+        }
         if (!this.userId || !this.clientId) throw new Error('Bot not connected');
         const config = this.getConfig();
         const token = config.token.replace('oauth:', '');
