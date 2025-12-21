@@ -138,6 +138,7 @@ class BaseWidgetServer {
 
         fs.stat(filePath, (err, stats) => {
             if (err || !stats.isFile()) {
+                console.error(`[BaseWidgetServer] Local file not found: ${filePath}`, err || '');
                 res.statusCode = 404;
                 return res.end('File not found');
             }
