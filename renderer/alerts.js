@@ -364,8 +364,12 @@ function playShadowAlert(shadow, alert) {
 
     imgContainer.innerHTML = '';
     if (alert.image) {
+        let imgPath = alert.image;
+        if (imgPath.startsWith('file://')) {
+        }
         const img = document.createElement('img');
-        img.src = alert.image;
+        img.src = imgPath;
+        img.onerror = (e) => console.error('[Preview] Image load failed:', e);
         imgContainer.appendChild(img);
     } else {
         imgContainer.innerHTML = '<div style="font-size:48px; color:#777;">[IMG]</div>';
@@ -383,6 +387,11 @@ function playShadowAlert(shadow, alert) {
 
     if (alert.audio) {
         audio.src = alert.audio;
+        // Explicitly play audio for dashboard preview feedback
+        audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
+        audio.play().catch(e => console.error('[Preview] Audio play failed:', e));
+    } else {
+        audio.src = '';
     }
 
     wrapper.style.opacity = '1';
