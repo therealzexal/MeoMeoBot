@@ -1113,6 +1113,10 @@ ipcMain.handle('twitch-search-categories', async (event, query) => {
     return await bot.searchCategories(query);
 });
 
+ipcMain.handle('twitch-get-steamgriddb-image', async (event, gameName) => {
+    return await bot.getSteamGridDbImage(gameName);
+});
+
 ipcMain.handle('twitch-get-schedule', async () => {
     return await bot.getSchedule();
 });
@@ -1129,21 +1133,21 @@ ipcMain.handle('twitch-delete-schedule-segment', async (event, id) => {
     return await bot.deleteScheduleSegment(id);
 });
 
-ipcMain.handle('save-planning-image', async (event, rect) => {
+ipcMain.handle('save-planning-base64', async (event, dataURL) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return { success: false, error: 'Window not found' };
 
     try {
-        const image = await win.webContents.capturePage(rect);
         const { canceled, filePath } = await dialog.showSaveDialog(win, {
             title: 'Sauvegarder le planning',
             defaultPath: 'planning.png',
-            filters: [{ name: 'Images', extensions: ['png', 'jpg'] }]
+            filters: [{ name: 'Images', extensions: ['png'] }]
         });
 
         if (canceled || !filePath) return { success: false, cancelled: true };
 
-        await fs.promises.writeFile(filePath, image.toPNG());
+        const base64Data = dataURL.replace(/^data:image\/png;base64,/, "");
+        await fs.promises.writeFile(filePath, base64Data, 'base64');
         return { success: true, filePath };
     } catch (e) {
         console.error('Error saving planning image:', e);

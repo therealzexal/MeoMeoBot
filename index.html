@@ -484,46 +484,55 @@
 
     <div class="tab-content" id="planning-tab">
         <div class="planning-layout full-height-card">
-            <div class="planning-toolbar card">
-                <div class="toolbar-group">
-                    <button id="planning-prev-week" class="btn btn-secondary">&lt; Semaine Préc.</button>
-                    <span id="planning-week-label">12 - 18 Décembre</span>
-                    <button id="planning-next-week" class="btn btn-secondary">Semaine Suiv. &gt;</button>
+
+            <div class="planning-sidebar card">
+
+
+                <div class="form-group">
+                    <input type="text" id="planning-title-input" placeholder="Titre..." value="PLANNING">
                 </div>
 
-                <div class="toolbar-group">
-                    <span class="toolbar-label">Titre:</span>
-                    <input type="text" id="planning-title-input" placeholder="Planning de la semaine"
-                        value="STREAM SCHEDULE">
-                </div>
-
-                <div class="toolbar-group">
-                    <label class="toggle-switch">
+                <div class="week-control-row">
+                    <div class="week-selector">
+                        <button id="planning-prev-week" class="btn btn-sm btn-secondary">&lt;</button>
+                        <span id="planning-week-label">Semaine</span>
+                        <button id="planning-next-week" class="btn btn-sm btn-secondary">&gt;</button>
+                    </div>
+                    <div class="sunday-check-wrapper">
                         <input type="checkbox" id="planning-start-sunday">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="setting-label">Dimanche 1er</span>
+                        <label for="planning-start-sunday">Dim</label>
+                    </div>
                 </div>
 
-                <div class="toolbar-actions">
+                <div class="form-group">
                     <div class="file-picker-container compact">
-                        <input type="text" id="planning-bg-input" readonly placeholder="Fond..." title="Image de fond">
+                        <input type="text" id="planning-bg-input" readonly placeholder="Image de fond...">
                         <button class="btn btn-secondary btn-icon" id="planning-bg-pick-btn">📂</button>
                     </div>
                 </div>
 
-                <div class="toolbar-actions right">
-                    <button class="btn btn-primary" id="planning-save-twitch-btn">
-                        <span class="icon">📡</span> Sync Twitch
+                <div class="sidebar-actions">
+                    <button class="btn btn-primary btn-sm btn-block" id="planning-save-twitch-btn">
+                        <span class="icon">📡</span> Sync
                     </button>
-                    <button class="btn btn-success" id="planning-export-btn">
-                        <span class="icon">📷</span> Exporter
+                    <button class="btn btn-warning btn-sm btn-block" id="planning-load-prev-btn"
+                        style="margin-top:5px; margin-bottom:5px;">
+                        <span class="icon">↺</span> Planning précédent
+                    </button>
+                    <button class="btn btn-success btn-sm btn-block" id="planning-export-btn">
+                        <span class="icon">📷</span> Export
                     </button>
                 </div>
-            </div>
 
-            <div class="planning-workspace">
-                <div class="planning-editor card">
+
+                <div class="divider"></div>
+
+
+                <div class="sidebar-section list-section">
+                    <div class="day-editor-header">
+                        <h3>Éditeur</h3>
+                    </div>
+
                     <div class="day-selector">
                         <div class="day-tab active" data-day="0">Lun</div>
                         <div class="day-tab" data-day="1">Mar</div>
@@ -536,27 +545,32 @@
 
                     <div class="day-editor-content">
                         <div class="day-header-row">
-                            <h3 id="editor-day-title">Lundi</h3>
-                            <button class="btn btn-sm btn-primary" id="add-segment-btn">+ Ajouter</button>
+                            <h4 id="editor-day-title">Lundi</h4>
+                            <button class="btn btn-xs btn-primary" id="add-segment-btn">+ Stream</button>
                         </div>
                         <div id="segments-list" class="segments-list">
-                            <div class="empty-state">Aucun stream prévu ce jour.</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="planning-preview-container card">
-                    <div id="planning-preview-card" class="planning-card">
-                        <div class="planning-card-bg"></div>
-                        <div class="planning-card-header">
-                            <h1 id="preview-title">STREAM SCHEDULE</h1>
-                            <div id="preview-dates" class="preview-dates">12.12 - 18.12</div>
+            </div>
+
+            <div class="planning-main-preview card">
+                <div id="planning-preview-card" class="planning-card">
+                    <div class="planning-card-bg"></div>
+                    <div class="planning-card-header">
+                        <h1 id="preview-title">STREAM SCHEDULE</h1>
+                        <div id="preview-dates" class="preview-dates">Dates</div>
+                    </div>
+                    <div class="planning-grid-container">
+                        <div class="time-labels-col">
                         </div>
                         <div class="planning-grid" id="planning-grid">
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -586,6 +600,7 @@
     <script src="renderer/input_customizer.js"></script>
     <script src="renderer/channel_points.js" type="module"></script>
     <script src="renderer/alerts.js" type="module"></script>
+    <script src="node_modules/html2canvas/dist/html2canvas.min.js"></script>
     <script src="renderer/planning.js" type="module"></script>
     <script src="renderer/app.js" type="module"></script>
 </body>

@@ -5,7 +5,7 @@ let currentState = {
     weekStart: new Date(),
     startSunday: false,
     bgImage: null,
-    title: "STREAM SCHEDULE",
+    title: "PLANNING",
     events: {}
 };
 
@@ -27,17 +27,64 @@ const els = {
     previewTitle: document.getElementById('preview-title'),
     previewDates: document.getElementById('preview-dates'),
     previewGrid: document.getElementById('planning-grid'),
-    previewBg: document.querySelector('.planning-card-bg')
+    previewBg: document.querySelector('.planning-card-bg'),
+    timeLabelsCol: document.querySelector('.time-labels-col'),
+    previewContainer: document.querySelector('.planning-main-preview')
 };
 
 const DAYS_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-const JS_TO_MON_INDEX = [6, 0, 1, 2, 3, 4, 5];
 
 export function initPlanning() {
     setupEventListeners();
     initWeek();
+    loadState();
     renderAll();
     loadTwitchSchedule();
+    fitPreview();
+    window.addEventListener('resize', fitPreview);
+    generateTimeDatalist();
+}
+
+function generateTimeDatalist() {
+    if (document.getElementById('allowed-times')) return;
+    const datalist = document.createElement('datalist');
+    datalist.id = 'allowed-times';
+    const minutes = ['00', '10', '15', '20', '30', '40', '45', '50'];
+    for (let h = 0; h < 24; h++) {
+        const hh = h.toString().padStart(2, '0');
+        minutes.forEach(mm => {
+            const option = document.createElement('option');
+            option.value = `${hh}:${mm}`;
+            datalist.appendChild(option);
+        });
+    }
+    document.body.appendChild(datalist);
+}
+
+function fitPreview() {
+    if (!els.previewCard || !els.previewContainer) return;
+
+    const containerWidth = els.previewContainer.clientWidth;
+    const containerHeight = els.previewContainer.clientHeight;
+
+    if (containerWidth === 0 || containerHeight === 0) return;
+
+    const cardWidth = els.previewCard.offsetWidth || 1800;
+    const cardHeight = els.previewCard.offsetHeight || 940;
+
+    const scaleX = (containerWidth - 40) / cardWidth;
+    const scaleY = (containerHeight - 40) / cardHeight;
+
+    const scale = Math.min(scaleX, scaleY);
+
+    els.previewCard.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+
+const resizeObserver = new ResizeObserver(() => {
+    fitPreview();
+});
+if (els.previewContainer) {
+    resizeObserver.observe(els.previewContainer);
 }
 
 function setupEventListeners() {
@@ -46,11 +93,13 @@ function setupEventListeners() {
 
     els.titleInput.addEventListener('input', (e) => {
         currentState.title = e.target.value;
+        saveState();
         renderHeader();
     });
 
     els.startSundayCheck.addEventListener('change', (e) => {
         currentState.startSunday = e.target.checked;
+        saveState();
         renderAll();
     });
 
@@ -59,6 +108,7 @@ function setupEventListeners() {
         if (path) {
             currentState.bgImage = path;
             els.bgInput.value = path;
+            saveState();
             renderHeader();
         }
     });
@@ -72,19 +122,23 @@ function setupEventListeners() {
     });
 
     els.addSegmentBtn.addEventListener('click', () => {
-        const activeDayIndex = parseInt(document.querySelector('.day-tab.active').dataset.day);
+        const activeTab = document.querySelector('.day-tab.active');
+        if (!activeTab) return;
+        const activeDayIndex = parseInt(activeTab.dataset.day);
         const dateKey = getDateKeyForDayIndex(activeDayIndex);
 
         if (!currentState.events[dateKey]) currentState.events[dateKey] = [];
 
         currentState.events[dateKey].push({
             id: null,
-            startTime: "20:00",
-            duration: 120,
-            category: { name: "Just Chatting", boxArtUrl: "" },
-            title: "Stream du soir"
+            startTime: "14:00",
+            endTime: null,
+            category: { name: "", boxArtUrl: "" },
+            title: "",
+            useMiniature: false
         });
 
+        saveState();
         renderEditor();
         renderPreviewGrid();
     });
@@ -92,28 +146,88 @@ function setupEventListeners() {
     els.exportBtn.addEventListener('click', async () => {
         const card = els.previewCard;
 
-        card.style.transform = 'none';
-        card.style.position = 'fixed';
-        card.style.top = '0';
-        card.style.left = '0';
-        card.style.zIndex = '9999';
+        const clone = card.cloneNode(true);
 
-        await new Promise(r => setTimeout(r, 100));
+        clone.style.width = '1800px';
+        clone.style.height = '940px';
+        clone.style.transform = 'none';
+        clone.style.position = 'absolute';
+        clone.style.top = '0';
+        clone.style.left = '-9999px';
+        clone.style.zIndex = '-1';
 
-        const captureRect = { x: 0, y: 0, width: 1280, height: 720 };
-        const res = await api.invoke('save-planning-image', captureRect);
+        document.body.appendChild(clone);
 
-        // Restore
-        card.style.transform = originalTransform;
-        card.style.position = 'relative';
-        card.style.zIndex = 'auto';
+        try {
+            await new Promise(r => setTimeout(r, 100));
 
-        if (res.success) {
-            alert('Image sauvegardée !');
+            const canvas = await html2canvas(clone, {
+                backgroundColor: null,
+                scale: 1,
+                width: 1800,
+                height: 940,
+                useCORS: true,
+                allowTaint: true
+            });
+
+            const dataURL = canvas.toDataURL('image/png');
+            const res = await api.invoke('save-planning-base64', dataURL);
+
+            if (res.success) {
+
+            } else if (res.error) {
+                alert('Erreur: ' + res.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erreur export: ' + err.message);
+        } finally {
+            document.body.removeChild(clone);
         }
     });
 
     els.saveTwitchBtn.addEventListener('click', syncToTwitch);
+
+    const loadPrevBtn = document.getElementById('planning-load-prev-btn');
+    if (loadPrevBtn) {
+        loadPrevBtn.addEventListener('click', () => {
+            loadState(true);
+            renderAll();
+        });
+    }
+}
+
+function saveState() {
+    localStorage.setItem('planning_state', JSON.stringify({
+        startSunday: currentState.startSunday,
+        bgImage: currentState.bgImage,
+        title: currentState.title,
+        events: currentState.events
+    }));
+}
+
+function loadState(loadEvents = false) {
+    const saved = localStorage.getItem('planning_state');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (parsed.startSunday !== undefined) currentState.startSunday = parsed.startSunday;
+            if (parsed.bgImage) {
+                currentState.bgImage = parsed.bgImage;
+                els.bgInput.value = parsed.bgImage;
+            }
+            if (parsed.title) {
+                currentState.title = parsed.title;
+                els.titleInput.value = parsed.title;
+            }
+            if (loadEvents && parsed.events) {
+                currentState.events = parsed.events;
+            }
+        } catch (e) {
+            console.error("Error loading state", e);
+        }
+    }
+    els.startSundayCheck.checked = currentState.startSunday;
 }
 
 
@@ -145,7 +259,10 @@ function getDateForDayIndex(index) {
 
 function getDateKeyForDayIndex(index) {
     const d = getDateForDayIndex(index);
-    return d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 async function loadTwitchSchedule() {
@@ -160,28 +277,35 @@ async function loadTwitchSchedule() {
 
             schedule.segments.forEach(seg => {
                 const d = new Date(seg.start_time);
-                const dateKey = d.toISOString().split('T')[0];
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const dateKey = `${year}-${month}-${day}`;
 
                 if (currentState.events[dateKey]) {
                     const h = d.getHours().toString().padStart(2, '0');
                     const m = d.getMinutes().toString().padStart(2, '0');
 
-                    let duration = 60;
+
+                    let endTime = null;
                     if (seg.end_time) {
-                        const end = new Date(seg.end_time);
-                        duration = Math.round((end - d) / 60000);
+                        const endD = new Date(seg.end_time);
+                        const eh = endD.getHours().toString().padStart(2, '0');
+                        const em = endD.getMinutes().toString().padStart(2, '0');
+                        endTime = `${eh}:${em}`;
                     }
 
                     currentState.events[dateKey].push({
                         id: seg.id,
                         startTime: `${h}:${m}`,
-                        duration: duration,
+                        endTime: endTime,
                         category: {
                             id: seg.category ? seg.category.id : null,
-                            name: seg.category ? seg.category.name : 'Unknown',
+                            name: seg.category ? seg.category.name : '',
                             boxArtUrl: seg.category ? seg.category.box_art_url : ''
                         },
-                        title: seg.title
+                        title: seg.title || "",
+                        useMiniature: false
                     });
                 }
             });
@@ -197,6 +321,7 @@ async function loadTwitchSchedule() {
 
 function renderAll() {
     renderHeader();
+    renderTimeLabels();
     renderEditor();
     renderPreviewGrid();
 }
@@ -226,6 +351,19 @@ function renderHeader() {
     }
 }
 
+function renderTimeLabels() {
+    const col = els.timeLabelsCol;
+    col.innerHTML = '';
+
+    for (let h = 0; h <= 24; h += 3) {
+        const div = document.createElement('div');
+        div.className = 'time-label';
+        div.textContent = `${h}h`;
+        div.style.top = `${(h / 24) * 100}%`;
+        col.appendChild(div);
+    }
+}
+
 function renderPreviewGrid() {
     els.previewGrid.innerHTML = '';
 
@@ -234,9 +372,18 @@ function renderPreviewGrid() {
         order = [6, 0, 1, 2, 3, 4, 5];
     }
 
+    const eventsPerDay = {};
     order.forEach(dayIndex => {
         const dateKey = getDateKeyForDayIndex(dayIndex);
-        const dayEvents = currentState.events[dateKey] || [];
+        const originalEvents = currentState.events[dateKey] || [];
+        eventsPerDay[dayIndex] = originalEvents.map(e => ({ ...e, _isContinuation: false }));
+    });
+
+    for (let i = 0; i < order.length; i++) {
+        const dayIndex = order[i];
+        const dayEvents = eventsPerDay[dayIndex];
+
+        dayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
         const col = document.createElement('div');
         col.className = 'planning-col';
@@ -248,56 +395,104 @@ function renderPreviewGrid() {
         const content = document.createElement('div');
         content.className = 'planning-col-content';
 
-        dayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        for (let j = 0; j < dayEvents.length; j++) {
+            const evt = dayEvents[j];
+            const [sh, sm] = evt.startTime.split(':').map(Number);
+            const startMinutes = sh * 60 + sm;
 
-        dayEvents.forEach(evt => {
+            let endMinutes = 24 * 60;
+
+            if (evt.endTime) {
+                const [eh, em] = evt.endTime.split(':').map(Number);
+                const absoluteEnd = eh * 60 + em;
+
+                if (absoluteEnd < startMinutes) {
+                    endMinutes = 24 * 60;
+                } else {
+                    endMinutes = absoluteEnd;
+                }
+            } else {
+                if (j < dayEvents.length - 1) {
+                    const nextEvt = dayEvents[j + 1];
+                    const [nh, nm] = nextEvt.startTime.split(':').map(Number);
+                    const nextStart = nh * 60 + nm;
+                    if (nextStart > startMinutes) endMinutes = nextStart;
+                }
+            }
+
+            if (endMinutes > 24 * 60) endMinutes = 24 * 60;
+
+            const durationMinutes = endMinutes - startMinutes;
+            if (durationMinutes <= 0) continue;
+
+            const topPercent = (startMinutes / (24 * 60)) * 100;
+            const heightPercent = (durationMinutes / (24 * 60)) * 100;
+
             const card = document.createElement('div');
             card.className = 'preview-event';
+            if (evt.useMiniature) card.classList.add('has-image');
+            if (evt._isContinuation) card.classList.add('is-continuation');
+
+            card.style.top = `${topPercent}%`;
+            card.style.height = `${heightPercent}%`;
 
             const img = document.createElement('img');
             img.className = 'preview-event-image';
             let url = evt.category.boxArtUrl;
             if (url) {
-                url = url.replace('{width}', '285').replace('{height}', '380');
+                url = url.replace('{width}', '900').replace('{height}', '1200');
             } else {
-                url = 'assets/no-art.jpg';
+                url = 'assets/icon.png';
             }
             img.src = url;
+
+            img.onerror = () => { img.style.display = 'none'; };
 
             const info = document.createElement('div');
             info.className = 'preview-event-info';
 
-            const time = document.createElement('div');
-            time.className = 'preview-event-time';
-            time.textContent = evt.startTime;
+            const headerRow = document.createElement('div');
+            headerRow.className = 'preview-event-header-row';
 
-            const game = document.createElement('div');
-            game.className = 'preview-event-game';
-            game.textContent = evt.category.name;
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'preview-event-time';
 
-            const title = document.createElement('div');
-            title.className = 'preview-event-title';
-            title.textContent = evt.title;
+            if (evt._isContinuation) {
+                timeDiv.textContent = `... - ${evt.endTime}`;
+            } else {
+                timeDiv.textContent = evt.startTime + (evt.endTime ? ` - ${evt.endTime}` : '');
+            }
 
-            info.appendChild(time);
-            info.appendChild(game);
-            info.appendChild(title);
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'preview-event-title';
+            titleDiv.textContent = evt.title;
+
+            headerRow.appendChild(timeDiv);
+            headerRow.appendChild(titleDiv);
+            info.appendChild(headerRow);
+
+            if (!evt.useMiniature) {
+                const gameDiv = document.createElement('div');
+                gameDiv.className = 'preview-event-game';
+                gameDiv.textContent = evt.category.name;
+                info.appendChild(gameDiv);
+            }
 
             card.appendChild(img);
             card.appendChild(info);
 
             content.appendChild(card);
-        });
+        }
 
         col.appendChild(header);
         col.appendChild(content);
-
         els.previewGrid.appendChild(col);
-    });
+    }
 }
 
 function renderEditor() {
     const activeTab = document.querySelector('.day-tab.active');
+    if (!activeTab) return;
     const dayIndex = parseInt(activeTab.dataset.day);
 
     els.editorDayTitle.textContent = DAYS_FR[dayIndex];
@@ -321,21 +516,26 @@ function renderEditor() {
                 <span>Segment ${idx + 1}</span>
             </div>
             <div class="segment-time-inputs">
-                <input type="time" class="inp-start" value="${evt.startTime}">
-                <span>min:</span>
-                <input type="number" class="inp-dur" value="${evt.duration}">
+                <input type="time" class="inp-start" value="${evt.startTime}" step="300" list="allowed-times">
+                <span style="font-size:10px">à</span>
+                <input type="time" class="inp-end" value="${evt.endTime || ''}" placeholder="--:--" step="300" list="allowed-times">
             </div>
             <div class="segment-game-search">
                 <input type="text" class="segment-game-input" placeholder="Jeu/Catégorie..." value="${evt.category.name}">
                 <div class="game-search-results"></div>
             </div>
             <input type="text" class="segment-title-input" placeholder="Titre du stream" value="${evt.title}">
+            <div class="miniature-option">
+                <input type="checkbox" class="inp-mini" ${evt.useMiniature ? 'checked' : ''}>
+                <span>Afficher miniature</span>
+            </div>
         `;
 
         const inpStart = div.querySelector('.inp-start');
-        const inpDur = div.querySelector('.inp-dur');
+        const inpEnd = div.querySelector('.inp-end');
         const inpGame = div.querySelector('.segment-game-input');
         const inpTitle = div.querySelector('.segment-title-input');
+        const inpMini = div.querySelector('.inp-mini');
         const resultsBox = div.querySelector('.game-search-results');
         const deleteBtn = div.querySelector('.segment-delete-btn');
 
@@ -344,12 +544,18 @@ function renderEditor() {
             renderPreviewGrid();
         });
 
-        inpDur.addEventListener('change', (e) => {
-            evt.duration = parseInt(e.target.value);
+        inpEnd.addEventListener('change', (e) => {
+            evt.endTime = e.target.value || null;
+            renderPreviewGrid();
         });
 
         inpTitle.addEventListener('input', (e) => {
             evt.title = e.target.value;
+            renderPreviewGrid();
+        });
+
+        inpMini.addEventListener('change', (e) => {
+            evt.useMiniature = e.target.checked;
             renderPreviewGrid();
         });
 
@@ -381,13 +587,19 @@ function renderEditor() {
                         const boxUrl = game.box_art_url.replace('{width}', '40').replace('{height}', '50');
                         r.innerHTML = `<img src="${boxUrl}" class="game-result-img"><span class="game-result-name">${game.name}</span>`;
 
-                        r.addEventListener('click', () => {
+                        r.addEventListener('click', async () => {
                             evt.category.id = game.id;
                             evt.category.name = game.name;
                             evt.category.boxArtUrl = game.box_art_url;
                             inpGame.value = game.name;
                             resultsBox.classList.remove('active');
                             renderPreviewGrid();
+
+                            const highResUrl = await api.invoke('twitch-get-steamgriddb-image', game.name);
+                            if (highResUrl) {
+                                evt.category.boxArtUrl = highResUrl;
+                                renderPreviewGrid();
+                            }
                         });
 
                         resultsBox.appendChild(r);
@@ -411,11 +623,32 @@ function renderEditor() {
 
 
 async function syncToTwitch() {
-    if (!confirm("Attention: Cette action va mettre à jour votre planning Twitch officiel pour la semaine visible. Continuer ?")) return;
+    const btn = els.saveTwitchBtn;
 
-    els.saveTwitchBtn.disabled = true;
-    els.saveTwitchBtn.textContent = "Updating...";
+    if (btn.dataset.confirming !== 'true') {
+        btn.dataset.confirming = 'true';
+        btn.textContent = 'Confirmer ?';
+        btn.classList.add('btn-warning');
+        btn.classList.remove('btn-primary');
 
+        setTimeout(() => {
+            if (btn.dataset.confirming === 'true') {
+                btn.dataset.confirming = 'false';
+                btn.innerHTML = '<span class="icon">📡</span> Sync';
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-primary');
+            }
+        }, 3000);
+        return;
+    }
+
+    btn.dataset.confirming = 'false';
+    btn.classesList?.remove('btn-warning');
+    btn.classList.remove('btn-warning');
+    btn.classList.add('btn-primary');
+
+    btn.disabled = true;
+    btn.textContent = "Updating...";
 
     try {
         const schedule = await api.invoke('twitch-get-schedule');
@@ -433,10 +666,26 @@ async function syncToTwitch() {
             for (const evt of events) {
                 const fullStartTime = new Date(`${dateKey}T${evt.startTime}:00`);
 
+                if (!evt.id && fullStartTime < new Date()) {
+                    console.warn(`Skipping event ${evt.title} (past)`);
+                    continue;
+                }
+
+
+                let duration = 60;
+                if (evt.endTime) {
+                    const startMin = parseInt(evt.startTime.split(':')[0]) * 60 + parseInt(evt.startTime.split(':')[1]);
+                    const endMin = parseInt(evt.endTime.split(':')[0]) * 60 + parseInt(evt.endTime.split(':')[1]);
+                    duration = endMin - startMin;
+                    if (duration < 0) duration += 24 * 60;
+                } else {
+                    duration = 120;
+                }
+
                 const payload = {
                     start_time: fullStartTime.toISOString(),
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    duration: evt.duration.toString(),
+                    duration: duration.toString(),
                     category_id: evt.category.id,
                     title: evt.title,
                     is_recurring: false
@@ -455,6 +704,7 @@ async function syncToTwitch() {
         const weekEnd = getDateForDayIndex(6);
         weekEnd.setHours(23, 59, 59, 999);
 
+
         for (const seg of existingSegments) {
             const segDate = new Date(seg.start_time);
             if (segDate >= weekStart && segDate <= weekEnd) {
@@ -464,14 +714,12 @@ async function syncToTwitch() {
             }
         }
 
-        alert("Planning synchronisé avec succès !");
         loadTwitchSchedule();
-
     } catch (e) {
         console.error("Sync failed", e);
         alert("Erreur lors de la synchro: " + e.message);
     } finally {
         els.saveTwitchBtn.disabled = false;
-        els.saveTwitchBtn.innerHTML = '<span class="icon">📡</span> Sync Twitch';
+        els.saveTwitchBtn.innerHTML = 'Sync Twitch';
     }
 }

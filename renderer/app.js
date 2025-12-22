@@ -220,10 +220,16 @@ function renderConfigForm() {
     colStreamlabs.innerHTML = '<h4>Streamlabs</h4>';
     colStreamlabs.appendChild(createInputGroup('Socket Token', configState.streamlabsSocketToken, v => configState.streamlabsSocketToken = v, 'password'));
 
+    const colSteamGrid = document.createElement('div');
+    colSteamGrid.className = 'config-col';
+    colSteamGrid.innerHTML = '<h4>SteamGridDB</h4>';
+    colSteamGrid.appendChild(createInputGroup('API Key', configState.steamGridDbApiKey, v => configState.steamGridDbApiKey = v, 'password'));
+
     columnsDiv.appendChild(colTwitch);
     columnsDiv.appendChild(colApi);
     columnsDiv.appendChild(colSpotify);
     columnsDiv.appendChild(colStreamlabs);
+    columnsDiv.appendChild(colSteamGrid);
 
     container.appendChild(columnsDiv);
 }
