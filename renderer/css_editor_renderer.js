@@ -312,6 +312,13 @@ const cssClasses = {
         { class: '.subgoal-item', desc: 'Élément de la liste (<li>)' },
         { class: '.subgoal-count', desc: 'Le nombre de subs requis (ex: +10)' },
         { class: '.subgoal-label', desc: 'Le titre de l\'objectif' }
+    ],
+    roulette: [
+        { class: '#wheel-container', desc: 'Conteneur de la roue (Canvas)' },
+        { class: '#list-container', desc: 'Conteneur de la liste' },
+        { class: '.list-item', desc: 'Élément de la liste' },
+        { class: '.list-center-marker', desc: 'Marqueur central (liste)' },
+        { class: '#winner-display', desc: 'Affichage du gagnant' }
     ]
 };
 
@@ -330,8 +337,7 @@ async function loadThemes(widget) {
 
             if (widget) {
                 const standardPrefix = widget + '_';
-                const isSubgoals = widget === 'subgoals' && id.startsWith('sub_');
-                if (!id.startsWith(standardPrefix) && !id.startsWith('theme_') && !isSubgoals) {
+                if (!id.startsWith(standardPrefix) && !id.startsWith('theme_')) {
                     return;
                 }
             }
@@ -439,7 +445,8 @@ async function loadWidgetConfig(widgetName) {
             currentWidget === 'spotify' ? 'de Spotify' :
                 currentWidget === 'subgoals' ? 'du Subgoals' :
                     currentWidget === 'subgoals-list' ? 'de la Liste Subgoals' :
-                        'du mur d\'emotes';
+                        currentWidget === 'roulette' ? 'de la Roulette' :
+                            'du mur d\'emotes';
     }
 
     const maxRow = document.getElementById('maxMessagesRow');
@@ -676,11 +683,149 @@ function renderPreview() {
         html = getSubgoalsPreviewHtml(css);
     } else if (currentWidget === 'subgoals-list') {
         html = getSubgoalsListPreviewHtml(css);
+    } else if (currentWidget === 'roulette') {
+        html = getRoulettePreviewHtml(css);
     } else {
         html = `<!DOCTYPE html><html><head><style>${defaultCss[currentWidget] || ''} ${css}</style></head><body><div style="color:white;padding:20px;">Aperçu non disponible pour ce widget</div></body></html>`;
     }
 
     frame.srcdoc = html;
+}
+
+function getRoulettePreviewHtml(customCss) {
+    return `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            ${defaultCss.roulette || ''}
+            ${customCss}
+        </style>
+    </head>
+    
+    <body>
+    
+        <!-- Wheel View -->
+        <div id="wheel-container">
+            <div id="pointer"></div>
+            <canvas id="wheel" width="1000" height="1000"></canvas>
+            <div id="hub">SPIN</div>
+        </div>
+    
+        <!-- List View -->
+        <div id="list-container">
+            <div class="list-center-marker"></div>
+            <div id="list-scroll-view" class="list-scroll-view">
+                <!-- Static items for preview -->
+                <div class="list-item" style="color:#ffffff;">CHOIX 1</div>
+                <div class="list-item" style="color:#ffffff;">CHOIX 2</div>
+                <div class="list-item" style="color:#ffffff;">CHOIX 3</div>
+                <div class="list-item" style="color:#ffffff;">CHOIX 4</div>
+                <div class="list-item" style="color:#ffffff;">CHOIX 5</div>
+            </div>
+        </div>
+    
+        <div id="winner-display"></div>
+    
+        <script>
+            // Minimal JS to render static wheel if visible
+            const canvas = document.getElementById('wheel');
+            const ctx = canvas.getContext('2d');
+            
+            const choices = ["Rouge", "Bleu", "Jaune", "Noir", "Blanc"];
+            const COLORS = [
+                { bg: '#ecf0f1', text: '#2c3e50' },
+                { bg: '#2c3e50', text: '#ecf0f1' },
+                { bg: '#3498db', text: '#ffffff' },
+                { bg: '#f1c40f', text: '#2c3e50' },
+                { bg: '#e74c3c', text: '#ffffff' }
+            ];
+            
+            function drawWheel() {
+                if (!canvas) return;
+                const arc = Math.PI * 2 / choices.length;
+                const outsideRadius = 480;
+                const textRadius = 360;
+                
+                ctx.translate(500, 500);
+                
+                for (let i = 0; i < choices.length; i++) {
+                    const angle = i * arc;
+                    const style = COLORS[i % COLORS.length];
+                    
+                    ctx.fillStyle = style.bg;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, outsideRadius, angle, angle + arc, false);
+                    ctx.arc(0, 0, 0, angle + arc, angle, true);
+                    ctx.fill();
+                    
+                    ctx.save();
+                    ctx.fillStyle = style.text;
+                    ctx.rotate(angle + arc / 2 + Math.PI);
+                    ctx.translate(-textRadius, 0); 
+                    ctx.restore();
+                }
+            }
+            
+            // List Visuals Logic (FISHEYE)
+            const listContainer = document.getElementById('list-container');
+            const listScrollView = document.getElementById('list-scroll-view');
+            const listItemHeight = 44; // Must match widget
+            
+            function updatePreviewVisuals() {
+                if (getComputedStyle(listContainer).display === 'none') {
+                    requestAnimationFrame(updatePreviewVisuals);
+                    return;
+                }
+                
+                const containerCenter = listContainer.clientHeight / 2;
+                const currentTranslateY = 0; 
+                
+                const items = listScrollView.children;
+                const totalItems = items.length;
+
+                for (let i = 0; i < totalItems; i++) {
+                    const item = items[i];
+                    
+                    const itemTop = (i * listItemHeight) + currentTranslateY;
+                    const itemCenter = itemTop + (listItemHeight / 2);
+                    const signedDist = itemCenter - containerCenter; 
+                    const dist = Math.abs(signedDist);
+                    
+                    let scale = 0.8;
+                    let opacity = 1;
+                    let fontWeight = '400';
+                    let translateY = 0;
+
+                    if (dist < 28) {
+                        scale = 1.6;
+                        fontWeight = '800';
+                        translateY = 0;
+                    } else if (dist < 60) {
+                        scale = 1.25;
+                        fontWeight = '600';
+                        translateY = signedDist > 0 ? 18 : -18;
+                    } else if (dist < 100) {
+                         scale = 0.95;
+                         fontWeight = '400';
+                        translateY = signedDist > 0 ? 32 : -32;
+                    } else {
+                         scale = 0.7;
+                         translateY = signedDist > 0 ? 48 : -48;
+                    }
+                    
+                    item.style.transform = 'scale(' + scale + ') translateY(' + translateY + 'px)';
+                    item.style.opacity = opacity;
+                    item.style.fontWeight = fontWeight;
+                }
+                requestAnimationFrame(updatePreviewVisuals);
+            }
+            
+            drawWheel(); 
+            updatePreviewVisuals();
+        </script>
+    </body>
+    </html>`;
 }
 
 function getSubgoalsListPreviewHtml(customCss) {

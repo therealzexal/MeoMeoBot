@@ -1,38 +1,74 @@
-import { NOTIFICATIONS, createRow, createInputGroup, createSliderGroup, createSelectGroup, createFilePickerGroup, showStatus } from './ui.js';
+import { NOTIFICATIONS, showStatus } from './ui.js';
 import { API } from './api.js';
 
 let currentType = 'follow';
 let currentConfig = {};
 let widgetPort = 8097;
 
-let sidebar;
-let configForm;
-let initialized = false;
+let isInitialized = false;
 
 const EVENT_TYPES = {
-    'follow': { label: 'Follow', defaultText: '{username} suit la chaîne !', hasMessage: false },
-    'sub': { label: 'Sub', defaultText: '{username} s\'est abonné !', hasMessage: false },
-    'subgift': { label: 'Subgift', defaultText: '{username} a offert {amount} sub{s} !', hasMessage: false },
-    'resub': { label: 'Re-Sub', defaultText: '{username} s\'est réabonné ({months} mois) !', hasMessage: true },
-    'donation': { label: 'Dons', defaultText: '{username} a fait un don de {amount} !', hasMessage: true },
-    'cheer': { label: 'Bits', defaultText: '{username} a envoyé {amount} bits !', hasMessage: true },
-    'raid': { label: 'Raid', defaultText: 'Raid de {username} !', hasMessage: false },
-    'hypetrain': { label: 'Hype Train', defaultText: 'Hype Train Niveau {amount} !', hasMessage: false }
+    'follow': { label: 'Follow', defaultText: '{username} suit la chaîne !' },
+    'sub': { label: 'Sub', defaultText: '{username} s\'est abonné !' },
+    'subgift': { label: 'Subgift', defaultText: '{username} a offert {amount} sub{s} !' },
+    'resub': { label: 'Re-Sub', defaultText: '{username} s\'est réabonné ({months} mois) !' },
+    'donation': { label: 'Dons', defaultText: '{username} a fait un don de {amount} !' },
+    'cheer': { label: 'Bits', defaultText: '{username} a envoyé {amount} bits !' },
+    'raid': { label: 'Raid', defaultText: 'Raid de {username} !' },
+    'hypetrain': { label: 'Hype Train', defaultText: 'Hype Train Niveau {amount} !' }
+};
+
+const els = {
+    sidebar: null,
+    standardConfig: null,
+    themeEditor: null,
+    widgetUrl: null,
+    msgInput: null,
+    imgInput: null,
+    imgBtn: null,
+    audioInput: null,
+    audioBtn: null,
+    layoutSelect: null,
+    volumeInput: null,
+    volumeVal: null,
+    durationInput: null,
+    themeCss: null,
+    themeResetBtn: null,
+    themeConfirmBtn: null,
+    themeCancelBtn: null
 };
 
 const alertsWidget = API.createWidgetHelper('alerts');
 
 function init() {
-    if (initialized) return;
-    initialized = true;
+    if (isInitialized) return;
+    isInitialized = true;
 
-    sidebar = document.querySelector('.alerts-sidebar');
-    configForm = document.getElementById('alert-config-form');
 
+    els.sidebar = document.querySelector('.alerts-sidebar');
+    els.standardConfig = document.getElementById('alert-standard-config');
+    els.themeEditor = document.getElementById('alert-theme-editor');
+    els.widgetUrl = document.getElementById('alert-widget-url');
+    els.msgInput = document.getElementById('alert-message-input');
+    els.imgInput = document.getElementById('alert-image-input');
+    els.imgBtn = document.getElementById('alert-image-btn');
+    els.audioInput = document.getElementById('alert-audio-input');
+    els.audioBtn = document.getElementById('alert-audio-btn');
+    els.layoutSelect = document.getElementById('alert-layout-select');
+    els.volumeInput = document.getElementById('alert-volume-input');
+    els.volumeVal = document.getElementById('alert-volume-val');
+    els.durationInput = document.getElementById('alert-duration-input');
+
+    els.themeCss = document.getElementById('alert-theme-css');
+    els.themeResetBtn = document.getElementById('alert-theme-reset-btn');
+    els.themeConfirmBtn = document.getElementById('alert-theme-confirm-btn');
+    els.themeCancelBtn = document.getElementById('alert-theme-cancel-btn');
+
+    setupEventListeners();
     setupPreview();
 
     updateSidebarState();
-    renderForm(currentType);
+
 
     alertsWidget.onRefresh((globalConfig, appConfig) => {
         currentConfig = globalConfig || {};
@@ -43,14 +79,13 @@ function init() {
             widgetPort = 8097;
         }
 
-        if (currentType && currentType !== 'themes') updatePreview(currentType);
-        else if (currentType === 'themes') updateGlobalThemePreview(currentConfig.customCSS);
-
         updateSidebarState();
+        updateUI();
+
         if (currentType === 'themes') {
-            renderThemesTab();
+            updateGlobalThemePreview(currentConfig.customCSS);
         } else {
-            renderForm(currentType);
+            updatePreview(currentType);
         }
     });
 
@@ -59,6 +94,9 @@ function init() {
 
     const testBtn = document.getElementById('testAlertBtn');
     if (testBtn) testBtn.addEventListener('click', triggerTest);
+}
+
+function setupEventListeners() {
 
     const typeBtns = document.querySelectorAll('.alert-type-btn');
     typeBtns.forEach(btn => {
@@ -73,14 +111,125 @@ function init() {
             const checkbox = btn.querySelector('input[type="checkbox"]');
             if (checkbox) {
                 checkbox.addEventListener('change', (e) => {
-                    updateConfig(type, 'enabled', e.target.checked);
+                    updateConfigValue(type, 'enabled', e.target.checked);
                 });
             }
         }
     });
+
+
+    els.msgInput.addEventListener('input', (e) => updateConfigValue(currentType, 'textTemplate', e.target.value));
+
+    els.imgBtn.addEventListener('click', async () => {
+        const path = await API.openFileDialog([{ name: 'Images', extensions: ['jpg', 'png', 'gif'] }]);
+        if (path) {
+            const val = `file://${path.replace(/\\/g, '/')}`;
+            els.imgInput.value = val;
+            updateConfigValue(currentType, 'image', val);
+        }
+    });
+
+    els.audioBtn.addEventListener('click', async () => {
+        const path = await API.openFileDialog([{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg'] }]);
+        if (path) {
+            const val = `file://${path.replace(/\\/g, '/')}`;
+            els.audioInput.value = val;
+            updateConfigValue(currentType, 'audio', val);
+        }
+    });
+
+    els.layoutSelect.addEventListener('change', (e) => updateConfigValue(currentType, 'layout', e.target.value));
+
+    els.volumeInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        els.volumeVal.textContent = `${Math.round(val * 100)}%`;
+        updateConfigValue(currentType, 'volume', val);
+    });
+
+    els.durationInput.addEventListener('input', (e) => {
+        updateConfigValue(currentType, 'duration', parseInt(e.target.value));
+    });
+
+
+
+    let debounceTimer;
+    els.themeCss.addEventListener('input', (e) => {
+        currentConfig.customCSS = e.target.value;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateGlobalThemePreview(currentConfig.customCSS);
+        }, 500);
+    });
+
+    els.themeResetBtn.onclick = () => {
+        els.themeResetBtn.style.display = 'none';
+        els.themeConfirmBtn.style.display = 'inline-block';
+        els.themeCancelBtn.style.display = 'inline-block';
+    };
+
+    els.themeCancelBtn.onclick = () => {
+        els.themeConfirmBtn.style.display = 'none';
+        els.themeCancelBtn.style.display = 'none';
+        els.themeResetBtn.style.display = 'inline-block';
+    };
+
+    els.themeConfirmBtn.onclick = async () => {
+        try {
+            await API.widgets.resetConfig('alerts');
+
+
+
+            currentConfig.customCSS = '';
+            els.themeCss.value = DEFAULT_CSS;
+            updateGlobalThemePreview(DEFAULT_CSS);
+
+            showStatus('alerts-status-msg', 'Thème réinitialisé avec succès', 'success');
+
+            els.themeConfirmBtn.style.display = 'none';
+            els.themeCancelBtn.style.display = 'none';
+            els.themeResetBtn.style.display = 'inline-block';
+        } catch (e) {
+            console.error(e);
+            showStatus('alerts-status-msg', 'Erreur réinitialisation', 'error');
+        }
+    };
 }
 
+function updateUI() {
+    if (currentType === 'themes') {
+        els.standardConfig.style.display = 'none';
+        els.themeEditor.style.display = 'flex';
 
+        els.themeCss.value = currentConfig.customCSS || DEFAULT_CSS;
+    } else {
+        els.themeEditor.style.display = 'none';
+        els.standardConfig.style.display = 'flex';
+
+        const typeConfig = currentConfig[currentType] || {};
+        const meta = EVENT_TYPES[currentType];
+
+
+        els.widgetUrl.textContent = `http://127.0.0.1:${widgetPort}/widget/alerts`;
+
+
+        els.msgInput.value = typeConfig.textTemplate || meta.defaultText;
+        els.imgInput.value = typeConfig.image || '';
+        els.audioInput.value = typeConfig.audio || '';
+        els.layoutSelect.value = typeConfig.layout || 'top';
+
+        const vol = typeConfig.volume !== undefined ? typeConfig.volume : 0.5;
+        els.volumeInput.value = vol;
+        els.volumeVal.textContent = `${Math.round(vol * 100)}%`;
+
+        els.durationInput.value = typeConfig.duration || 5000;
+    }
+}
+
+function updateConfigValue(type, key, value) {
+    if (!currentConfig[type]) currentConfig[type] = {};
+    currentConfig[type][key] = value;
+    if (type !== 'themes') updatePreview(type);
+}
 
 function updateSidebarState() {
     document.querySelectorAll('.alert-type-btn').forEach(btn => {
@@ -99,10 +248,11 @@ function updateSidebarState() {
 function switchType(type) {
     currentType = type;
     updateSidebarState();
+    updateUI();
+
     if (type === 'themes') {
-        renderThemesTab();
+        updateGlobalThemePreview(currentConfig.customCSS);
     } else {
-        renderForm(type);
         updatePreview(type);
     }
 }
@@ -144,142 +294,6 @@ const DEFAULT_CSS = `
     text-shadow: 4px 4px #000000;
 }
 `;
-
-function renderThemesTab() {
-    configForm.innerHTML = '';
-    const container = document.createElement('div');
-    container.className = 'alert-config-group';
-    container.style.flex = '1';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.height = '100%';
-
-    const textarea = document.createElement('textarea');
-    textarea.className = 'css-editor-textarea';
-    textarea.style.flex = '1';
-    textarea.style.width = '100%';
-    textarea.style.background = '#222';
-    textarea.style.color = '#fff';
-    textarea.style.border = '1px solid #444';
-    textarea.style.padding = '10px';
-    textarea.style.marginTop = '20px';
-    textarea.style.marginBottom = '20px';
-    textarea.style.resize = 'none';
-
-    textarea.value = currentConfig.customCSS || DEFAULT_CSS;
-
-    textarea.addEventListener('change', (e) => {
-        currentConfig.customCSS = e.target.value;
-    });
-
-    let debounceTimer;
-    textarea.addEventListener('input', (e) => {
-        currentConfig.customCSS = e.target.value;
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            updateGlobalThemePreview(currentConfig.customCSS);
-        }, 500);
-    });
-
-    container.appendChild(textarea);
-
-    const btnContainer = document.createElement('div');
-    btnContainer.style.display = 'flex';
-    btnContainer.style.gap = '10px';
-    btnContainer.style.marginBottom = '10px';
-    container.appendChild(btnContainer);
-
-    function showResetButton() {
-        btnContainer.innerHTML = '';
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'btn btn-danger';
-        resetBtn.textContent = 'Réinitialiser le thème (Défaut)';
-        resetBtn.style.flex = '1';
-        resetBtn.onclick = () => showConfirmation();
-        btnContainer.appendChild(resetBtn);
-    }
-
-    function showConfirmation() {
-        btnContainer.innerHTML = '';
-
-        const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'btn btn-danger';
-        confirmBtn.textContent = 'Confirmer ?';
-        confirmBtn.style.flex = '1';
-        confirmBtn.onclick = async () => {
-            try {
-                await API.widgets.resetConfig('alerts');
-                currentConfig.customCSS = '';
-                textarea.value = DEFAULT_CSS;
-                updateGlobalThemePreview(DEFAULT_CSS);
-                showStatus('alerts-status-msg', 'Thème réinitialisé avec succès', 'success');
-                showResetButton();
-            } catch (e) {
-                console.error(e);
-                showStatus('alerts-status-msg', 'Erreur lors de la réinitialisation', 'error');
-                showResetButton();
-            }
-        };
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-secondary';
-        cancelBtn.textContent = 'Annuler';
-        cancelBtn.style.flex = '1';
-        cancelBtn.onclick = () => showResetButton();
-
-        btnContainer.appendChild(confirmBtn);
-        btnContainer.appendChild(cancelBtn);
-    }
-
-    showResetButton();
-
-    configForm.appendChild(container);
-
-    updateGlobalThemePreview(currentConfig.customCSS || '');
-}
-
-function renderForm(type) {
-    if (!configForm) return;
-    configForm.innerHTML = '';
-
-    const typeConfig = currentConfig[type] || {};
-    const meta = EVENT_TYPES[type];
-
-    const container = document.createElement('div');
-    container.className = 'compact-container';
-
-    const urlDisplay = document.createElement('div');
-    urlDisplay.className = 'widget-url-display';
-    urlDisplay.innerHTML = `<span style="color:var(--text-secondary); margin-right:5px;">Source OBS:</span> <code class="chat-widget-url">http://127.0.0.1:${widgetPort}/widget/alerts</code>`;
-    container.appendChild(urlDisplay);
-
-    container.appendChild(createInputGroup('Message', typeConfig.textTemplate || meta.defaultText, (val) => updateConfig(type, 'textTemplate', val)));
-
-    const visualRow = createRow();
-    visualRow.appendChild(createFilePickerGroup('Image', typeConfig.image, 'image', (val) => updateConfig(type, 'image', val)));
-    visualRow.appendChild(createFilePickerGroup('Son', typeConfig.audio, 'audio', (val) => updateConfig(type, 'audio', val)));
-    container.appendChild(visualRow);
-
-    const settingsRow = createRow();
-    settingsRow.appendChild(createSelectGroup('Disposition', typeConfig.layout || 'top', [
-        { value: 'top', label: 'Image au-dessus' },
-        { value: 'side', label: 'Image à gauche' }
-    ], (val) => updateConfig(type, 'layout', val)));
-
-    settingsRow.appendChild(createSliderGroup('Volume', typeConfig.volume !== undefined ? typeConfig.volume : 0.5, (val) => updateConfig(type, 'volume', parseFloat(val))));
-    settingsRow.appendChild(createInputGroup('Durée (ms)', typeConfig.duration || 5000, (val) => updateConfig(type, 'duration', parseInt(val)), 'number'));
-    container.appendChild(settingsRow);
-
-    configForm.appendChild(container);
-    updatePreview(type);
-}
-
-function updateConfig(type, key, value) {
-    if (!currentConfig[type]) currentConfig[type] = {};
-    currentConfig[type][key] = value;
-    updatePreview(type);
-}
 
 function setupPreview() {
     const container = document.getElementById('alert-preview-container');
@@ -338,7 +352,6 @@ function connectPreviewWebSocket(shadow) {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'alert') {
-                // Anti-duplication: Dashboard does not play reward sounds
                 if (data.alert.type === 'reward-redemption') return;
                 playShadowAlert(shadow, data.alert);
             } else if (data.type === 'skip') {
@@ -410,7 +423,6 @@ function playShadowAlert(shadow, alert) {
 
     if (alert.audio) {
         audio.src = transformLocalPath(alert.audio);
-        // Explicitly play audio for dashboard preview feedback
         audio.volume = alert.volume !== undefined ? alert.volume : 0.5;
         audio.play().catch(e => console.error('[Preview] Audio play failed:', e));
     } else {
@@ -439,7 +451,7 @@ function playShadowAlert(shadow, alert) {
 }
 
 function updatePreview(type) {
-    setupPreview();
+
     const container = document.getElementById('alert-preview-container');
     if (!container || !container.shadowRoot) return;
 
@@ -497,75 +509,7 @@ function updatePreview(type) {
 }
 
 function updateGlobalThemePreview(css) {
-    const container = document.getElementById('alert-preview-container');
-    if (!container) return;
-
-    if (!container.shadowRoot) setupPreview();
-
-    const shadow = container.shadowRoot;
-    const themeStyle = shadow.getElementById('theme-style') || shadow.querySelector('#preview-scaler #theme-style');
-
-    if (themeStyle) {
-        const defaultThemeCSS = `
-            .animate-in { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
-            .animate-out { animation: fadeOut 0.5s ease forwards; }
-
-            @keyframes bounceIn {
-                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-                50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-                70% { transform: translate(-50%, -50%) scale(0.9); }
-                100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            }
-
-            .layout-side-by-side { flex-direction: row !important; }
-            .layout-side-by-side .alert-image { margin-right: 20px; margin-bottom: 0; }
-            
-            .alert-box {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-            }
-            .alert-image {
-                max-width: 600px;
-                margin-bottom: 30px;
-            }
-            .alert-image img {
-                width: 100%;
-                display: block;
-                filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
-            }
-            .alert-text {
-                font-size: 24px;
-                font-weight: 900;
-                color: white;
-                line-height: 1.2;
-            }
-            .alert-message {
-                font-size: 32px;
-                font-weight: 700;
-                color: #eee;
-                text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
-                margin-top: 15px;
-            }
-            .alert-username {
-                font-size: 22px;
-                font-family: 'Road Rage', cursive !important;
-                font-weight: 400 !important;
-                font-style: normal;
-                color: yellow;
-                text-transform: uppercase;
-                letter-spacing: 0.2rem;
-                text-shadow: 4px 4px #000000;
-            }
-        `;
-        themeStyle.textContent = css || defaultThemeCSS;
-    }
+    updatePreview();
 }
 
 async function saveConfig() {

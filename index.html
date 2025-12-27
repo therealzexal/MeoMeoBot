@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/moderation.css">
     <link rel="stylesheet" href="css/widgets.css">
     <link rel="stylesheet" href="css/points.css">
+    <link rel="stylesheet" href="css/planning.css">
 </head>
 
 <body>
@@ -54,6 +55,18 @@
         </div>
     </div>
 
+    <div id="status-messages-container">
+        <span id="commands-status-msg" class="status-msg"></span>
+        <span id="giveaway-status-msg" class="status-msg"></span>
+        <span id="giveaway-control-status-msg" class="status-msg"></span>
+        <span id="banned-words-status-msg" class="status-msg"></span>
+        <span id="clear-banned-words-status" class="status-msg"></span>
+        <span id="auto-message-status" class="status-msg"></span>
+        <span id="clip-config-status" class="status-msg"></span>
+        <span id="alerts-status-msg" class="status-msg"></span>
+        <span id="points-status-msg" class="status-msg"></span>
+    </div>
+
     <div class="tabs-container">
         <div class="main-tabs">
             <div class="tab active" data-tab="commands">Commandes</div>
@@ -63,6 +76,7 @@
             <div class="tab" data-tab="widgets">Widgets</div>
             <div class="tab" data-tab="alerts">Alertes</div>
             <div class="tab" data-tab="points">Points</div>
+            <div class="tab" data-tab="planning">Planning</div>
         </div>
         <div class="settings-tab">
             <div class="tab icon-tab" data-tab="config" title="Configuration">
@@ -90,7 +104,7 @@
                         <input type="text" id="commandResponse" placeholder="Message de réponse">
                     </div>
                     <button class="btn btn-primary" id="addCommandBtn">Ajouter</button>
-                    <span id="commands-status-msg" class="status-msg"></span>
+
                 </div>
             </div>
             <div class="list-container" id="commandsList"></div>
@@ -119,7 +133,7 @@
                     </div>
                     <div class="config-actions">
                         <button class="btn btn-primary form-button" id="saveGiveawayConfig">Sauvegarder</button>
-                        <span id="giveaway-status-msg" class="status-msg"></span>
+
                     </div>
                 </div>
             </div>
@@ -130,7 +144,7 @@
                         <button class="btn btn-danger" id="stopGiveawayBtn">Arrêter</button>
                         <button class="btn btn-primary" id="drawWinnerBtn">Tirer un Gagnant</button>
                         <button class="btn btn-secondary" id="clearParticipantsBtn">Vider la Liste</button>
-                        <span id="giveaway-control-status-msg" class="status-msg"></span>
+
                     </div>
                     <div class="winner-display" id="winnerDisplay">Prêt pour le tirage</div>
                     <div class="card-header">
@@ -152,7 +166,7 @@
                             <input type="text" id="newBannedWord" placeholder="Mot à bannir">
                         </div>
                         <button class="btn btn-primary" id="addBannedWordBtn">Ajouter</button>
-                        <span id="banned-words-status-msg" class="status-msg"></span>
+
                         <div class="controls inline-controls">
                             <button id="clearBannedWordsBtn" class="control-button delete-btn" title="Vider la liste">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -175,7 +189,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <span id="clear-banned-words-status" class="status-msg"></span>
+
                     </div>
                 </div>
                 <div class="list-container" id="bannedWordsList"></div>
@@ -193,7 +207,7 @@
                     </div>
                     <div class="config-actions">
                         <button class="btn btn-primary form-button" id="saveAutoMessage">Sauvegarder</button>
-                        <span id="auto-message-status" class="status-msg"></span>
+
                     </div>
                 </div>
                 <div class="card">
@@ -204,7 +218,7 @@
                     </div>
                     <div class="config-actions">
                         <button class="btn btn-primary form-button" id="saveClipConfig">Sauvegarder Clip</button>
-                        <span id="clip-config-status" class="status-msg"></span>
+
                     </div>
                 </div>
             </div>
@@ -333,6 +347,7 @@
                     </div>
                     <div class="widget-col-actions">
                         <button class="btn btn-primary btn-sm" id="configureRouletteBtn">Configurer</button>
+                        <button class="btn btn-secondary btn-sm" onclick="editWidgetCss('roulette')">Thèmes</button>
                         <button class="btn btn-success btn-sm" id="spinRouletteBtn"
                             title="Lancer la roulette">Lancer</button>
                     </div>
@@ -371,6 +386,78 @@
                     style="flex: 1; overflow-y: hidden; padding: 0 10px; display: flex; flex-direction: column;">
                     <div id="alert-config-form" style="height: 100%; display: flex; flex-direction: column;">
 
+
+                        <div id="alert-standard-config" class="alert-config-group"
+                            style="display:none; flex-direction:column; height:100%;">
+                            <div class="compact-container">
+                                <div class="widget-url-display">
+                                    <span style="color:var(--text-secondary); margin-right:5px;">Source OBS:</span>
+                                    <code class="chat-widget-url" id="alert-widget-url">...</code>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Message</label>
+                                    <input type="text" id="alert-message-input">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Image</label>
+                                        <div class="file-picker-container">
+                                            <input type="text" id="alert-image-input" readonly
+                                                placeholder="Aucun fichier">
+                                            <button class="btn btn-secondary" id="alert-image-btn">...</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Son</label>
+                                        <div class="file-picker-container">
+                                            <input type="text" id="alert-audio-input" readonly
+                                                placeholder="Aucun fichier">
+                                            <button class="btn btn-secondary" id="alert-audio-btn">...</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Disposition</label>
+                                        <select id="alert-layout-select">
+                                            <option value="top">Image au-dessus</option>
+                                            <option value="side">Image à gauche</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <div style="display:flex; justify-content:space-between;">
+                                            <label>Volume</label>
+                                            <span id="alert-volume-val">50%</span>
+                                        </div>
+                                        <input type="range" id="alert-volume-input" min="0" max="1" step="0.05"
+                                            style="width:100%">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Durée (ms)</label>
+                                        <input type="number" id="alert-duration-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div id="alert-theme-editor" class="alert-config-group"
+                            style="display:none; flex:1; flex-direction:column; height:100%;">
+                            <textarea id="alert-theme-css" class="css-editor-textarea"
+                                style="flex:1; width:100%; background:#222; color:#fff; resize:none; margin: 20px 0; padding:10px; border:1px solid #444;"></textarea>
+                            <div class="theme-controls" style="display:flex; gap:10px; margin-bottom:10px;">
+                                <button id="alert-theme-reset-btn" class="btn btn-danger" style="flex:1;">Réinitialiser
+                                    le thème (Défaut)</button>
+                                <button id="alert-theme-confirm-btn" class="btn btn-danger"
+                                    style="flex:1; display:none;">Confirmer ?</button>
+                                <button id="alert-theme-cancel-btn" class="btn btn-secondary"
+                                    style="flex:1; display:none;">Annuler</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -389,8 +476,7 @@
                     <button class="btn btn-success" id="testAlertBtn">Tester l'alerte</button>
                     <button class="btn btn-primary" id="saveAlertsBtn" style="margin-top: auto;">Sauvegarder
                         Tout</button>
-                    <span id="alerts-status-msg"
-                        style="text-align: center; height: 20px; font-size: 13px; font-weight: 500; margin-top: 10px;"></span>
+
                 </div>
             </div>
         </div>
@@ -402,7 +488,7 @@
                 <button class="btn btn-primary" id="addRewardBtn" style="margin-right: 10px;">+ Nouvelle
                     Récompense</button>
                 <button class="btn btn-secondary" id="refreshRewardsBtn">Rafraîchir</button>
-                <span id="points-status-msg" class="status-msg" style="margin-left: auto;"></span>
+
             </div>
 
             <div id="reward-editor-static" class="reward-editor-container hidden"
@@ -480,6 +566,108 @@
         </div>
     </div>
 
+    <div class="tab-content" id="planning-tab">
+        <div class="planning-layout full-height-card">
+
+            <div class="planning-sidebar card">
+
+
+                <div class="form-group">
+                    <input type="text" id="planning-title-input" placeholder="Titre..." value="PLANNING">
+                </div>
+
+                <div class="week-control-row">
+                    <div class="week-selector">
+                        <button id="planning-prev-week" class="btn btn-sm btn-secondary">&lt;</button>
+                        <span id="planning-week-label">Semaine</span>
+                        <button id="planning-next-week" class="btn btn-sm btn-secondary">&gt;</button>
+                    </div>
+                    <div class="sunday-check-wrapper">
+                        <input type="checkbox" id="planning-start-sunday">
+                        <label for="planning-start-sunday">Dim</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="file-picker-container compact">
+                        <input type="text" id="planning-bg-input" readonly placeholder="Image de fond...">
+                        <button class="btn btn-secondary btn-icon" id="planning-bg-pick-btn">📂</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <button class="btn btn-primary btn-sm" id="planning-save-twitch-btn" title="Sync">
+                        <span class="icon">📡</span> Sync
+                    </button>
+
+
+                    <div id="load-prev-group" style="flex: 1; display: flex;">
+                        <button class="btn btn-warning btn-sm" id="planning-load-prev-btn" style="width: 100%;"
+                            title="Copier précédent">
+                            <span class="icon">↺</span> Copier précédent
+                        </button>
+                        <div id="planning-load-prev-confirm" style="display: none; width: 100%; gap: 5px;">
+                            <button class="btn btn-success btn-sm" id="planning-load-prev-yes"
+                                style="flex: 1;">✔</button>
+                            <button class="btn btn-danger btn-sm" id="planning-load-prev-no" style="flex: 1;">✖</button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success btn-sm" id="planning-export-btn" title="Exporter planning">
+                        <span class="icon">📷</span> Exporter planning
+                    </button>
+                </div>
+
+
+                <div class="divider"></div>
+
+
+                <div class="sidebar-section list-section">
+                    <div class="day-editor-header">
+                        <h3>Éditeur</h3>
+                    </div>
+
+                    <div class="day-selector">
+                        <div class="day-tab active" data-day="0">Lun</div>
+                        <div class="day-tab" data-day="1">Mar</div>
+                        <div class="day-tab" data-day="2">Mer</div>
+                        <div class="day-tab" data-day="3">Jeu</div>
+                        <div class="day-tab" data-day="4">Ven</div>
+                        <div class="day-tab" data-day="5">Sam</div>
+                        <div class="day-tab" data-day="6">Dim</div>
+                    </div>
+
+                    <div class="day-editor-content">
+                        <div class="day-header-row">
+                            <h4 id="editor-day-title">Lundi</h4>
+                            <button class="btn btn-xs btn-primary" id="add-segment-btn">+ Stream</button>
+                        </div>
+                        <div id="segments-list" class="segments-list">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="planning-main-preview card">
+                <div id="planning-preview-card" class="planning-card">
+                    <div class="planning-card-bg"></div>
+                    <div class="planning-card-header">
+                        <h1 id="preview-title">STREAM SCHEDULE</h1>
+                        <div id="preview-dates" class="preview-dates">Dates</div>
+                    </div>
+                    <div class="planning-grid-container">
+                        <div class="time-labels-col">
+                        </div>
+                        <div class="planning-grid" id="planning-grid">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <div class="tab-content" id="config-tab">
         <div id="config-form-container" class="config-wrapper"></div>
         <div class="unified-button-row">
@@ -502,10 +690,206 @@
         </div>
     </div>
 
+    <datalist id="allowed-times">
+        <option value="00:00"></option>
+        <option value="00:10"></option>
+        <option value="00:15"></option>
+        <option value="00:20"></option>
+        <option value="00:30"></option>
+        <option value="00:40"></option>
+        <option value="00:45"></option>
+        <option value="00:50"></option>
+        <option value="01:00"></option>
+        <option value="01:10"></option>
+        <option value="01:15"></option>
+        <option value="01:20"></option>
+        <option value="01:30"></option>
+        <option value="01:40"></option>
+        <option value="01:45"></option>
+        <option value="01:50"></option>
+        <option value="02:00"></option>
+        <option value="02:10"></option>
+        <option value="02:15"></option>
+        <option value="02:20"></option>
+        <option value="02:30"></option>
+        <option value="02:40"></option>
+        <option value="02:45"></option>
+        <option value="02:50"></option>
+        <option value="03:00"></option>
+        <option value="03:10"></option>
+        <option value="03:15"></option>
+        <option value="03:20"></option>
+        <option value="03:30"></option>
+        <option value="03:40"></option>
+        <option value="03:45"></option>
+        <option value="03:50"></option>
+        <option value="04:00"></option>
+        <option value="04:10"></option>
+        <option value="04:15"></option>
+        <option value="04:20"></option>
+        <option value="04:30"></option>
+        <option value="04:40"></option>
+        <option value="04:45"></option>
+        <option value="04:50"></option>
+        <option value="05:00"></option>
+        <option value="05:10"></option>
+        <option value="05:15"></option>
+        <option value="05:20"></option>
+        <option value="05:30"></option>
+        <option value="05:40"></option>
+        <option value="05:45"></option>
+        <option value="05:50"></option>
+        <option value="06:00"></option>
+        <option value="06:10"></option>
+        <option value="06:15"></option>
+        <option value="06:20"></option>
+        <option value="06:30"></option>
+        <option value="06:40"></option>
+        <option value="06:45"></option>
+        <option value="06:50"></option>
+        <option value="07:00"></option>
+        <option value="07:10"></option>
+        <option value="07:15"></option>
+        <option value="07:20"></option>
+        <option value="07:30"></option>
+        <option value="07:40"></option>
+        <option value="07:45"></option>
+        <option value="07:50"></option>
+        <option value="08:00"></option>
+        <option value="08:10"></option>
+        <option value="08:15"></option>
+        <option value="08:20"></option>
+        <option value="08:30"></option>
+        <option value="08:40"></option>
+        <option value="08:45"></option>
+        <option value="08:50"></option>
+        <option value="09:00"></option>
+        <option value="09:10"></option>
+        <option value="09:15"></option>
+        <option value="09:20"></option>
+        <option value="09:30"></option>
+        <option value="09:40"></option>
+        <option value="09:45"></option>
+        <option value="09:50"></option>
+        <option value="10:00"></option>
+        <option value="10:10"></option>
+        <option value="10:15"></option>
+        <option value="10:20"></option>
+        <option value="10:30"></option>
+        <option value="10:40"></option>
+        <option value="10:45"></option>
+        <option value="10:50"></option>
+        <option value="11:00"></option>
+        <option value="11:10"></option>
+        <option value="11:15"></option>
+        <option value="11:20"></option>
+        <option value="11:30"></option>
+        <option value="11:40"></option>
+        <option value="11:45"></option>
+        <option value="11:50"></option>
+        <option value="12:00"></option>
+        <option value="12:10"></option>
+        <option value="12:15"></option>
+        <option value="12:20"></option>
+        <option value="12:30"></option>
+        <option value="12:40"></option>
+        <option value="12:45"></option>
+        <option value="12:50"></option>
+        <option value="13:00"></option>
+        <option value="13:10"></option>
+        <option value="13:15"></option>
+        <option value="13:20"></option>
+        <option value="13:30"></option>
+        <option value="13:40"></option>
+        <option value="13:45"></option>
+        <option value="13:50"></option>
+        <option value="14:00"></option>
+        <option value="14:10"></option>
+        <option value="14:15"></option>
+        <option value="14:20"></option>
+        <option value="14:30"></option>
+        <option value="14:40"></option>
+        <option value="14:45"></option>
+        <option value="14:50"></option>
+        <option value="15:00"></option>
+        <option value="15:10"></option>
+        <option value="15:15"></option>
+        <option value="15:20"></option>
+        <option value="15:30"></option>
+        <option value="15:40"></option>
+        <option value="15:45"></option>
+        <option value="15:50"></option>
+        <option value="16:00"></option>
+        <option value="16:10"></option>
+        <option value="16:15"></option>
+        <option value="16:20"></option>
+        <option value="16:30"></option>
+        <option value="16:40"></option>
+        <option value="16:45"></option>
+        <option value="16:50"></option>
+        <option value="17:00"></option>
+        <option value="17:10"></option>
+        <option value="17:15"></option>
+        <option value="17:20"></option>
+        <option value="17:30"></option>
+        <option value="17:40"></option>
+        <option value="17:45"></option>
+        <option value="17:50"></option>
+        <option value="18:00"></option>
+        <option value="18:10"></option>
+        <option value="18:15"></option>
+        <option value="18:20"></option>
+        <option value="18:30"></option>
+        <option value="18:40"></option>
+        <option value="18:45"></option>
+        <option value="18:50"></option>
+        <option value="19:00"></option>
+        <option value="19:10"></option>
+        <option value="19:15"></option>
+        <option value="19:20"></option>
+        <option value="19:30"></option>
+        <option value="19:40"></option>
+        <option value="19:45"></option>
+        <option value="19:50"></option>
+        <option value="20:00"></option>
+        <option value="20:10"></option>
+        <option value="20:15"></option>
+        <option value="20:20"></option>
+        <option value="20:30"></option>
+        <option value="20:40"></option>
+        <option value="20:45"></option>
+        <option value="20:50"></option>
+        <option value="21:00"></option>
+        <option value="21:10"></option>
+        <option value="21:15"></option>
+        <option value="21:20"></option>
+        <option value="21:30"></option>
+        <option value="21:40"></option>
+        <option value="21:45"></option>
+        <option value="21:50"></option>
+        <option value="22:00"></option>
+        <option value="22:10"></option>
+        <option value="22:15"></option>
+        <option value="22:20"></option>
+        <option value="22:30"></option>
+        <option value="22:40"></option>
+        <option value="22:45"></option>
+        <option value="22:50"></option>
+        <option value="23:00"></option>
+        <option value="23:10"></option>
+        <option value="23:15"></option>
+        <option value="23:20"></option>
+        <option value="23:30"></option>
+        <option value="23:40"></option>
+        <option value="23:45"></option>
+        <option value="23:50"></option>
+    </datalist>
 
     <script src="renderer/input_customizer.js"></script>
     <script src="renderer/channel_points.js" type="module"></script>
     <script src="renderer/alerts.js" type="module"></script>
+    <script src="node_modules/html2canvas/dist/html2canvas.min.js"></script>
+    <script src="renderer/planning.js" type="module"></script>
     <script src="renderer/app.js" type="module"></script>
 </body>
 

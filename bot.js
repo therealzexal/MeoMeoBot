@@ -907,6 +907,125 @@ class TwitchBot {
             throw error;
         }
     }
+
+    async searchCategories(query) {
+        if (!query) return [];
+        try {
+            const data = await this.helixRequest(`search/categories?query=${encodeURIComponent(query)}`);
+            return data.data;
+        } catch (e) {
+            console.error('[TWITCH] Error searching categories:', e);
+            throw e;
+        }
+    }
+
+    async searchSteamGridDB(query) {
+        const config = this.getConfig();
+        const apiKey = config.steamGridDbApiKey;
+        if (!apiKey) return null;
+
+        try {
+            const searchResp = await fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            if (!searchResp.ok) return null;
+            const searchData = await searchResp.json();
+
+            if (!searchData.data || searchData.data.length === 0) return null;
+
+            const gameId = searchData.data[0].id;
+
+            const gridsResp = await fetch(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+
+            if (!gridsResp.ok) return null;
+            const gridsData = await gridsResp.json();
+
+            if (gridsData.data && gridsData.data.length > 0) {
+                return searchData.data.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    box_art_url: null
+                }));
+            }
+        } catch (e) {
+            console.error('[SGDB] Error:', e);
+        }
+        return null;
+    }
+
+    async getSteamGridDbImage(gameName) {
+        const config = this.getConfig();
+        const apiKey = config.steamGridDbApiKey;
+        if (!apiKey) return null;
+
+        try {
+            const searchResp = await fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(gameName)}`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            if (!searchResp.ok) return null;
+            const searchData = await searchResp.json();
+
+            if (!searchData.data || searchData.data.length === 0) return null;
+
+            const gameId = searchData.data[0].id;
+
+            const gridsResp = await fetch(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900,920x1080&styles=alternate,material,white_logo`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+
+            if (!gridsResp.ok) return null;
+            const gridsData = await gridsResp.json();
+
+            if (gridsData.data && gridsData.data.length > 0) {
+                return gridsData.data[0].url;
+            }
+        } catch (e) {
+            console.error('[SGDB] Error:', e);
+        }
+        return null;
+    }
+
+    async getSchedule() {
+        try {
+            const data = await this.helixRequest('schedule');
+            return data.data;
+        } catch (e) {
+            console.error('[TWITCH] Error fetching schedule:', e);
+            return null;
+        }
+    }
+
+    async createScheduleSegment(segment) {
+        try {
+            await this.helixRequest('schedule/segment', 'POST', segment);
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error creating segment:', e);
+            throw e;
+        }
+    }
+
+    async updateScheduleSegment(id, segment) {
+        try {
+            await this.helixRequest(`schedule/segment?id=${id}`, 'PATCH', segment);
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error updating segment:', e);
+            throw e;
+        }
+    }
+
+    async deleteScheduleSegment(id) {
+        try {
+            await this.helixRequest(`schedule/segment?id=${id}`, 'DELETE');
+            return true;
+        } catch (e) {
+            console.error('[TWITCH] Error deleting segment:', e);
+            throw e;
+        }
+    }
 }
 
 module.exports = TwitchBot;

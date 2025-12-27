@@ -123,26 +123,34 @@ body {
     font-weight: 500;
     transition: opacity 0.3s;
     opacity: 0;
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    margin: 0;
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .status-msg.success {
     color: var(--success);
-    background: rgba(0, 179, 95, 0.1);
-    border: 1px solid rgba(0, 179, 95, 0.2);
+    background: var(--bg-secondary);
+    border: 1px solid var(--success);
 }
 
 .status-msg.error {
     color: var(--danger);
-    background: rgba(233, 25, 22, 0.1);
-    border: 1px solid rgba(233, 25, 22, 0.2);
+    background: var(--bg-secondary);
+    border: 1px solid var(--danger);
 }
 
 .status-msg.info {
     color: var(--accent);
-    background: rgba(145, 71, 255, 0.1);
-    border: 1px solid rgba(145, 71, 255, 0.2);
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
 }
 
 .status {
