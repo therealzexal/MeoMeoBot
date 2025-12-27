@@ -19,7 +19,7 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    
+
     padding: 10px;
     gap: 10px;
     overflow-y: auto;
@@ -151,7 +151,7 @@
     background: var(--accent);
     color: white;
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .day-editor-content {
@@ -630,30 +630,122 @@
     color: var(--text-secondary);
 }
 
-.segment-time-inputs {
-    display: flex;
-    gap: 15px;
-    align-items: center;
+.segment-time-range-picker {
+    position: relative;
+    width: 100%;
 }
 
-.segment-time-inputs input {
-    width: 70px;
-    padding: 2px;
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
+.time-range-btn {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
     color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 11px;
-}
-
-.segment-time-inputs input::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.6;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
     cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
 }
 
-.segment-time-inputs input::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
+.time-range-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+
+.time-range-btn::after {
+    content: '▼';
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.time-range-btn.active::after {
+    transform: rotate(180deg);
+}
+
+.time-range-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    box-shadow: var(--glass-shadow);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.time-range-dropdown.active {
+    display: flex;
+}
+
+.time-range-columns {
+    display: flex;
+    height: 240px;
+}
+
+.time-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--glass-border);
+}
+
+.time-column:last-child {
+    border-right: none;
+}
+
+.time-column-header {
+    padding: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--glass-border);
+    font-weight: 700;
+}
+
+.time-options-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.time-option {
+    padding: 8px;
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.1s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.time-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+}
+
+.time-option.selected {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+}
+
+.time-options-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.time-options-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
 }
 
 .segment-game-search {

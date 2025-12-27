@@ -233,13 +233,13 @@ function importPreviousState() {
     const saved = localStorage.getItem('planning_state');
     if (!saved) return;
 
-    
+
 
 
     try {
         const parsed = JSON.parse(saved);
 
-        
+
         if (parsed.startSunday !== undefined) {
             currentState.startSunday = parsed.startSunday;
             els.startSundayCheck.checked = currentState.startSunday;
@@ -253,22 +253,22 @@ function importPreviousState() {
             els.titleInput.value = parsed.title;
         }
 
-        
+
         if (parsed.events) {
             const newEvents = {};
             for (const [dateStr, list] of Object.entries(parsed.events)) {
-                
-                
+
+
                 const d = new Date(dateStr);
-                
+
                 const dayIndex = (d.getDay() + 6) % 7;
 
-                
+
                 const targetDateKey = getDateKeyForDayIndex(dayIndex);
 
                 if (!newEvents[targetDateKey]) newEvents[targetDateKey] = [];
 
-                
+
                 const transposed = list.map(evt => ({
                     ...evt,
                     id: null
@@ -277,7 +277,7 @@ function importPreviousState() {
                 newEvents[targetDateKey] = newEvents[targetDateKey].concat(transposed);
             }
             currentState.events = newEvents;
-            saveState(); 
+            saveState();
         }
 
     } catch (e) {
@@ -566,15 +566,27 @@ function renderEditor() {
         const div = document.createElement('div');
         div.className = 'segment-item';
 
+        const timeLabel = `${evt.startTime} à ${evt.endTime || '--:--'}`;
+
         div.innerHTML = `
             <button class="segment-delete-btn" title="Supprimer">×</button>
             <div class="segment-header">
                 <span>Segment ${idx + 1}</span>
             </div>
-            <div class="segment-time-inputs">
-                <input type="time" class="inp-start" value="${evt.startTime}" step="300" list="allowed-times">
-                <span style="font-size:10px">à</span>
-                <input type="time" class="inp-end" value="${evt.endTime || ''}" placeholder="--:--" step="300" list="allowed-times">
+            <div class="segment-time-range-picker">
+                <button class="time-range-btn">${timeLabel}</button>
+                <div class="time-range-dropdown">
+                    <div class="time-range-columns">
+                        <div class="time-column">
+                            <div class="time-column-header">Début</div>
+                            <div class="time-options-list start-times"></div>
+                        </div>
+                        <div class="time-column">
+                            <div class="time-column-header">Fin</div>
+                            <div class="time-options-list end-times"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="segment-game-search">
                 <input type="text" class="segment-game-input" placeholder="Jeu/Catégorie..." value="${evt.category.name}">
@@ -587,22 +599,78 @@ function renderEditor() {
             </div>
         `;
 
-        const inpStart = div.querySelector('.inp-start');
-        const inpEnd = div.querySelector('.inp-end');
+        const timePickerBtn = div.querySelector('.time-range-btn');
+        const timeDropdown = div.querySelector('.time-range-dropdown');
+        const startList = div.querySelector('.start-times');
+        const endList = div.querySelector('.end-times');
+
         const inpGame = div.querySelector('.segment-game-input');
         const inpTitle = div.querySelector('.segment-title-input');
         const inpMini = div.querySelector('.inp-mini');
         const resultsBox = div.querySelector('.game-search-results');
         const deleteBtn = div.querySelector('.segment-delete-btn');
 
-        inpStart.addEventListener('change', (e) => {
-            evt.startTime = e.target.value;
-            renderPreviewGrid();
-        });
+        const hours = [];
+        for (let h = 0; h < 24; h++) {
+            const padH = String(h).padStart(2, '0');
+            ['00', '15', '30', '45'].forEach(m => {
+                hours.push(`${padH}:${m}`);
+            });
+        }
 
-        inpEnd.addEventListener('change', (e) => {
-            evt.endTime = e.target.value || null;
-            renderPreviewGrid();
+        const populateList = (list, currentVal, isStart) => {
+            list.innerHTML = '';
+            hours.forEach(time => {
+                const opt = document.createElement('div');
+                opt.className = 'time-option';
+                if (time === currentVal) opt.classList.add('selected');
+                opt.textContent = time;
+                opt.addEventListener('click', () => {
+                    if (isStart) {
+                        evt.startTime = time;
+                    } else {
+                        evt.endTime = time;
+                    }
+                    saveState();
+                    renderEditor();
+                    renderPreviewGrid();
+                });
+                list.appendChild(opt);
+            });
+
+            if (!isStart) {
+                const clearOpt = document.createElement('div');
+                clearOpt.className = 'time-option';
+                clearOpt.style.color = 'var(--danger)';
+                clearOpt.textContent = '--:--';
+                clearOpt.addEventListener('click', () => {
+                    evt.endTime = null;
+                    saveState();
+                    renderEditor();
+                    renderPreviewGrid();
+                });
+                list.prepend(clearOpt);
+            }
+        };
+
+        timePickerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasActive = timeDropdown.classList.contains('active');
+
+            document.querySelectorAll('.time-range-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.time-range-btn.active').forEach(b => b.classList.remove('active'));
+
+            if (!wasActive) {
+                timeDropdown.classList.add('active');
+                timePickerBtn.classList.add('active');
+                populateList(startList, evt.startTime, true);
+                populateList(endList, evt.endTime, false);
+
+                const selectedStart = startList.querySelector('.selected');
+                if (selectedStart) selectedStart.scrollIntoView({ block: 'center' });
+                const selectedEnd = endList.querySelector('.selected');
+                if (selectedEnd) selectedEnd.scrollIntoView({ block: 'center' });
+            }
         });
 
         inpTitle.addEventListener('input', (e) => {
@@ -670,6 +738,8 @@ function renderEditor() {
         document.addEventListener('click', (e) => {
             if (!div.contains(e.target)) {
                 resultsBox.classList.remove('active');
+                timeDropdown.classList.remove('active');
+                timePickerBtn.classList.remove('active');
             }
         });
 
