@@ -42,23 +42,6 @@ export function initPlanning() {
     loadTwitchSchedule();
     fitPreview();
     window.addEventListener('resize', fitPreview);
-    generateTimeDatalist();
-}
-
-function generateTimeDatalist() {
-    if (document.getElementById('allowed-times')) return;
-    const datalist = document.createElement('datalist');
-    datalist.id = 'allowed-times';
-    const minutes = ['00', '10', '15', '20', '30', '40', '45', '50'];
-    for (let h = 0; h < 24; h++) {
-        const hh = h.toString().padStart(2, '0');
-        minutes.forEach(mm => {
-            const option = document.createElement('option');
-            option.value = `${hh}:${mm}`;
-            datalist.appendChild(option);
-        });
-    }
-    document.body.appendChild(datalist);
 }
 
 function fitPreview() {
@@ -189,10 +172,26 @@ function setupEventListeners() {
     els.saveTwitchBtn.addEventListener('click', syncToTwitch);
 
     const loadPrevBtn = document.getElementById('planning-load-prev-btn');
-    if (loadPrevBtn) {
+    const loadPrevConfirm = document.getElementById('planning-load-prev-confirm');
+    const loadPrevYes = document.getElementById('planning-load-prev-yes');
+    const loadPrevNo = document.getElementById('planning-load-prev-no');
+
+    if (loadPrevBtn && loadPrevConfirm) {
         loadPrevBtn.addEventListener('click', () => {
-            loadState(true);
+            loadPrevBtn.style.display = 'none';
+            loadPrevConfirm.style.display = 'flex';
+        });
+
+        loadPrevNo.addEventListener('click', () => {
+            loadPrevConfirm.style.display = 'none';
+            loadPrevBtn.style.display = 'inline-block';
+        });
+
+        loadPrevYes.addEventListener('click', () => {
+            importPreviousState();
             renderAll();
+            loadPrevConfirm.style.display = 'none';
+            loadPrevBtn.style.display = 'inline-block';
         });
     }
 }
@@ -216,7 +215,7 @@ function loadState(loadEvents = false) {
                 currentState.bgImage = parsed.bgImage;
                 els.bgInput.value = parsed.bgImage;
             }
-            if (parsed.title) {
+            if (parsed.title !== undefined) {
                 currentState.title = parsed.title;
                 els.titleInput.value = parsed.title;
             }
@@ -228,6 +227,63 @@ function loadState(loadEvents = false) {
         }
     }
     els.startSundayCheck.checked = currentState.startSunday;
+}
+
+function importPreviousState() {
+    const saved = localStorage.getItem('planning_state');
+    if (!saved) return;
+
+    
+
+
+    try {
+        const parsed = JSON.parse(saved);
+
+        
+        if (parsed.startSunday !== undefined) {
+            currentState.startSunday = parsed.startSunday;
+            els.startSundayCheck.checked = currentState.startSunday;
+        }
+        if (parsed.bgImage) {
+            currentState.bgImage = parsed.bgImage;
+            els.bgInput.value = parsed.bgImage;
+        }
+        if (parsed.title !== undefined) {
+            currentState.title = parsed.title;
+            els.titleInput.value = parsed.title;
+        }
+
+        
+        if (parsed.events) {
+            const newEvents = {};
+            for (const [dateStr, list] of Object.entries(parsed.events)) {
+                
+                
+                const d = new Date(dateStr);
+                
+                const dayIndex = (d.getDay() + 6) % 7;
+
+                
+                const targetDateKey = getDateKeyForDayIndex(dayIndex);
+
+                if (!newEvents[targetDateKey]) newEvents[targetDateKey] = [];
+
+                
+                const transposed = list.map(evt => ({
+                    ...evt,
+                    id: null
+                }));
+
+                newEvents[targetDateKey] = newEvents[targetDateKey].concat(transposed);
+            }
+            currentState.events = newEvents;
+            saveState(); 
+        }
+
+    } catch (e) {
+        console.error("Error importing previous state", e);
+        alert("Erreur lors de l'import : " + e.message);
+    }
 }
 
 
